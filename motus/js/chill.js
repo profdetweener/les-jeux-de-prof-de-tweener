@@ -97,9 +97,7 @@ let keyButtons = {};
 const session = {
   /**
    * Liste des mots joues, du plus ancien au plus recent.
-   * Forme : { word: "MAISON", found: true, attempts: 3, wordLength: 6 }
-   * - attempts = nombre d'essais consommes (1..maxAttempts si found,
-   *              = maxAttempts si raté).
+   * Forme : { word, found, attempts, wordLength, maxAttempts, durationMs }
    */
   words: [],
 
@@ -112,6 +110,18 @@ const session = {
    * Meilleure serie de la session.
    */
   bestStreak: 0,
+
+  /**
+   * Timestamp (ms) du debut de la partie en cours. null entre les parties.
+   * Permet d'afficher un timer live et de calculer la duree finale a
+   * l'enregistrement du mot.
+   */
+  currentStartTime: null,
+
+  /**
+   * Intervalle DOM-update du timer live (id renvoye par setInterval).
+   */
+  liveTimerId: null,
 };
 
 // =============================================================================
@@ -163,11 +173,23 @@ function buildKeyboard() {
 
 function resetKeyboardColors() {
   for (const btn of Object.values(keyButtons)) {
-    btn.classList.remove("kb-absent", "kb-misplaced", "kb-good");
+    btn.classList.remove("kb-absent", "kb-misplaced", "kb-good", "kb-has-more");
   }
 }
 
-function updateKeyColor(letter, status) {
+/**
+ * Met a jour la couleur d'une touche du clavier en fonction du dernier feedback.
+ *
+ * Regle de monotonie : on ne degrade jamais une couleur (absent < misplaced < good).
+ * Le drapeau hasMore est un raffinement de "good" qui s'ajoute sans changer l'ordre.
+ * Il est conserve tant que la touche reste "good" — c'est utile car la presence
+ * d'une autre occurrence dans le mot ne change pas d'un essai a l'autre.
+ *
+ * @param {string} letter
+ * @param {"absent"|"misplaced"|"good"} status
+ * @param {boolean} [hasMore=false] uniquement pertinent quand status="good"
+ */
+function updateKeyColor(letter, status, hasMore = false) {
   const btn = keyButtons[letter];
   if (!btn) return;
   const order = { absent: 0, misplaced: 1, good: 2 };
@@ -175,6 +197,11 @@ function updateKeyColor(letter, status) {
   if (!current || order[status] > order[current]) {
     btn.classList.remove("kb-absent", "kb-misplaced", "kb-good");
     btn.classList.add(`kb-${status}`);
+  }
+  // Drapeau has-more : se cumule avec kb-good. Une fois pose, on le garde
+  // (sauf si la touche est ramenee en deçà de "good" — impossible par monotonie).
+  if (status === "good" && hasMore) {
+    btn.classList.add("kb-has-more");
   }
 }
 
@@ -185,6 +212,11 @@ function updateKeyColor(letter, status) {
 function rebuildGrid() {
   els.grid.innerHTML = "";
   if (!game.firstLetter) return;
+  // --motus-cols est defini sur le parent .game-main pour que .motus-header
+  // (frere de .motus-grid) puisse l'heriter aussi et caler sa max-width.
+  const parent = els.grid.closest(".game-main") || els.grid.parentElement;
+  if (parent) parent.style.setProperty("--motus-cols", String(game.wordLength));
+  // Conserve aussi sur le grid (compat retrocompatible avec les regles existantes).
   els.grid.style.setProperty("--motus-cols", String(game.wordLength));
 
   for (let row = 0; row < game.maxAttempts; row++) {
@@ -223,7 +255,7 @@ function repaintAttemptRowInstant(rowIndex, attempt) {
     cell.classList.remove("locked-letter", "typing");
     cell.classList.add("filled", `status-${fb.status}`);
     if (fb.hasMore) cell.classList.add("has-more");
-    updateKeyColor(fb.letter, fb.status);
+    updateKeyColor(fb.letter, fb.status, fb.hasMore);
   });
 }
 
@@ -258,7 +290,7 @@ async function animateAttemptRow(rowIndex, attempt) {
     cell.classList.remove("locked-letter");
     cell.classList.add("filled", `status-${fb.status}`);
     if (fb.hasMore) cell.classList.add("has-more");
-    updateKeyColor(fb.letter, fb.status);
+    updateKeyColor(fb.letter, fb.status, fb.hasMore);
     await sleep(REVEAL_DELAY_MS);
   }
   // Petit temps mort pour digerer le resultat avant la prochaine ligne
@@ -270,13 +302,16 @@ async function animateAttemptRow(rowIndex, attempt) {
 // =============================================================================
 
 /**
- * Calcule les positions VRAIMENT verrouillees. Conformement aux regles Motus,
- * seule la position 0 est imposee (= 1ere lettre du mot cible).
+ * Aucune position n'est verrouillee. Conformement aux regles Motus, la 1ere
+ * lettre du mot est imposee, mais on prefere la pre-saisir dans typingBuffer
+ * (geste "tape tout le mot, premiere lettre comprise" plus instinctif) plutot
+ * que de la verrouiller. L'utilisateur peut l'effacer s'il le souhaite.
+ *
+ * Retourne un tableau toujours vide (de longueur wordLength) — on garde la
+ * fonction et la propriete `lockedRow` pour minimiser les modifs ailleurs.
  */
 function computeLockedRow() {
-  const locked = new Array(game.wordLength).fill("");
-  locked[0] = game.firstLetter;
-  return locked;
+  return new Array(game.wordLength).fill("");
 }
 
 /**
@@ -298,14 +333,21 @@ function computeHintRow() {
 }
 
 /**
- * Vrai si l'utilisateur n'a encore tape aucune lettre sur la ligne courante
- * (= toutes les positions libres sont vides). Sert a decider si on affiche
- * les hints ou non.
+ * Vrai si l'utilisateur n'a encore rien tape "de son propre chef" sur la
+ * ligne courante : on ignore la position 0 si elle contient encore la lettre
+ * imposee (= etat initial juste apres resetTypingBuffer). Toutes les autres
+ * positions doivent etre vides.
+ *
+ * Sert a decider si on affiche les hints (lettres "good" des essais
+ * precedents) sur les positions libres.
  */
 function isRowUntouched() {
   for (let i = 0; i < game.wordLength; i++) {
-    // On ignore les positions verrouillees (elles sont remplies par definition)
-    if (game.lockedRow[i] !== "") continue;
+    if (i === 0) {
+      // Position 0 : intacte si elle contient encore la 1ere lettre imposee
+      if (game.typingBuffer[0] !== game.firstLetter) return false;
+      continue;
+    }
     if (game.typingBuffer[i]) return false;
   }
   return true;
@@ -317,9 +359,13 @@ function isRowUntouched() {
  *   - hintRow (uniquement si la ligne est intacte)
  *   - vide sinon
  *
- * Une position verrouillee ou un hint utilisent le style locked-letter
- * (texte bleu sombre sur fond blanc). Une lettre tapee par l'utilisateur
- * utilise le style typing (texte avec bordure bleu accent).
+ * Cas particulier de la position 0 : si elle contient encore la 1ere lettre
+ * imposee, on l'affiche en style "locked-letter" (visuel pre-rempli identique
+ * a la v5). Si l'utilisateur l'a remplacee par autre chose, style "typing"
+ * classique. Si vide, on l'affiche comme un hint (visuel locked-letter).
+ *
+ * Une position non-0 utilise le style "typing" si tapee, ou hint si vide
+ * et que la ligne est intacte.
  */
 function renderCurrentRow() {
   const idx = game.attempts.length;
@@ -332,12 +378,15 @@ function renderCurrentRow() {
     const cell = cells[col];
     cell.classList.remove("filled", "typing", "status-good", "status-misplaced", "status-absent", "has-more", "locked-letter");
 
-    if (game.lockedRow[col]) {
-      cell.textContent = game.lockedRow[col];
-      cell.classList.add("locked-letter");
-    } else if (game.typingBuffer[col]) {
+    if (game.typingBuffer[col]) {
       cell.textContent = game.typingBuffer[col];
-      cell.classList.add("typing");
+      // Position 0 affichee en "locked-letter" quand elle contient encore
+      // la lettre attendue, pour signaler visuellement que c'est un pre-remplissage.
+      if (col === 0 && game.typingBuffer[0] === game.firstLetter && showHints) {
+        cell.classList.add("locked-letter");
+      } else {
+        cell.classList.add("typing");
+      }
     } else if (showHints && game.hintRow[col]) {
       cell.textContent = game.hintRow[col];
       cell.classList.add("locked-letter");
@@ -348,11 +397,14 @@ function renderCurrentRow() {
 }
 
 /**
- * Reinitialise le buffer de saisie : les positions verrouillees prennent
- * leur lettre, les autres restent vides.
+ * Reinitialise le buffer de saisie. Comme aucune position n'est verrouillee,
+ * on commence avec toutes les cases vides — sauf la position 0 qu'on
+ * pre-remplit avec la 1ere lettre imposee (pure commodite, l'utilisateur peut
+ * l'effacer pour la retaper s'il veut).
  */
 function resetTypingBuffer() {
-  game.typingBuffer = game.lockedRow.map((l) => l);
+  game.typingBuffer = new Array(game.wordLength).fill("");
+  game.typingBuffer[0] = game.firstLetter;
 }
 
 /**
@@ -371,24 +423,23 @@ function isBufferComplete() {
 
 /**
  * Renvoie l'indice de la prochaine position libre apres ou egale a `from`.
- * Une position est "libre" si elle n'est pas verrouillee ET pas deja remplie
- * dans le buffer. Les hints ne comptent PAS comme remplissage (ils ne sont
- * pas dans typingBuffer).
+ * Une position est "libre" si elle est vide dans le buffer. Toutes les
+ * positions sont desormais tapables (plus aucun verrouillage).
  */
 function nextFreePos(from) {
   for (let i = from; i < game.wordLength; i++) {
-    if (game.lockedRow[i] === "" && !game.typingBuffer[i]) return i;
+    if (!game.typingBuffer[i]) return i;
   }
   return -1;
 }
 
 /**
- * Renvoie l'indice de la derniere position remplie (non verrouillee) du
- * buffer, ou -1 si rien n'est rempli librement.
+ * Renvoie l'indice de la derniere position remplie du buffer, ou -1 si
+ * tout est vide.
  */
 function lastFilledFreePos() {
   for (let i = game.wordLength - 1; i >= 0; i--) {
-    if (game.lockedRow[i] === "" && game.typingBuffer[i]) return i;
+    if (game.typingBuffer[i]) return i;
   }
   return -1;
 }
@@ -417,6 +468,13 @@ function onKeyPress(key) {
     return;
   }
   if (/^[A-Z]$/.test(key)) {
+    // Geste instinctif : si la ligne est encore "intacte" (= seule la pre-saisie
+    // de la 1ere lettre est presente), la 1ere frappe utilisateur efface cette
+    // pre-saisie et redemarre la ligne en position 0. Le joueur tape ainsi le
+    // mot complet, premiere lettre comprise.
+    if (isRowUntouched() && game.typingBuffer[0] === game.firstLetter) {
+      game.typingBuffer[0] = "";
+    }
     const pos = nextFreePos(0);
     if (pos === -1) return; // plus de place libre
     game.typingBuffer[pos] = key;
@@ -530,6 +588,50 @@ document.addEventListener("keydown", (e) => {
 // =============================================================================
 
 /**
+ * Formate une duree (en ms) en chaine compacte :
+ *   < 1 min : "47s"
+ *   < 1 h   : "3m24s"
+ *   sinon   : "1h12m"
+ *
+ * @param {number} ms
+ * @returns {string}
+ */
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${totalSec}s`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min < 60) return sec === 0 ? `${min}m` : `${min}m${String(sec).padStart(2, "0")}s`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}m`;
+}
+
+/**
+ * Demarre le chrono pour une nouvelle partie. Lance le timer live qui
+ * rafraichit l'affichage chaque seconde.
+ */
+function startTimer() {
+  session.currentStartTime = Date.now();
+  stopLiveTimer(); // au cas ou il en reste un de la partie precedente
+  // Rafraichit l'affichage tout de suite puis chaque seconde
+  renderStats();
+  session.liveTimerId = setInterval(renderStats, 1000);
+}
+
+/**
+ * Arrete le timer live (entre les parties). N'efface PAS currentStartTime —
+ * la duree finale est calculee dans recordSessionWord.
+ */
+function stopLiveTimer() {
+  if (session.liveTimerId !== null) {
+    clearInterval(session.liveTimerId);
+    session.liveTimerId = null;
+  }
+}
+
+/**
  * Enregistre la partie qui vient de se terminer (appel depuis goBetween).
  * @param {{found: boolean, word: string, attempts: number, wordLength: number}} entry
  */
@@ -551,7 +653,8 @@ function recordSessionWord(entry) {
 }
 
 /**
- * Recalcule et affiche toutes les stats a partir de session.words.
+ * Recalcule et affiche toutes les stats a partir de session.words et de
+ * l'etat du timer en cours.
  */
 function renderStats() {
   const total = session.words.length;
@@ -565,6 +668,26 @@ function renderStats() {
     ? Math.min(...foundList.map((w) => w.attempts))
     : null;
 
+  // Timers
+  // Total = cumul des durees de TOUTES les parties terminees + duree de la
+  //         partie en cours si applicable.
+  const totalDurationTerminated = session.words.reduce(
+    (s, w) => s + (w.durationMs || 0),
+    0
+  );
+  const liveDuration = session.currentStartTime !== null
+    ? Date.now() - session.currentStartTime
+    : 0;
+  const totalDuration = totalDurationTerminated + liveDuration;
+
+  // Moyenne par mot trouve (sur les parties terminees uniquement).
+  const foundDurations = foundList
+    .map((w) => w.durationMs)
+    .filter((d) => Number.isFinite(d) && d > 0);
+  const avgDuration = foundDurations.length > 0
+    ? foundDurations.reduce((s, d) => s + d, 0) / foundDurations.length
+    : null;
+
   setText("stat-games", String(total));
   setText("stat-found", String(foundCount));
   setText("stat-rate", rate == null ? "—" : `${rate}%`);
@@ -572,6 +695,13 @@ function renderStats() {
   setText("stat-best", best == null ? "—" : `${best} essai${best > 1 ? "s" : ""}`);
   setText("stat-streak", String(session.currentStreak));
   setText("stat-streak-best", String(session.bestStreak));
+
+  // Timers
+  setText("stat-time-total", totalDuration > 0 ? formatDuration(totalDuration) : "—");
+  setText("stat-time-avg", avgDuration == null ? "—" : formatDuration(avgDuration));
+  setText("stat-time-live", session.currentStartTime !== null
+    ? formatDuration(liveDuration)
+    : "—");
 }
 
 /**
@@ -595,6 +725,12 @@ function renderWordList() {
     const entry = session.words[i];
     const li = document.createElement("li");
     li.className = "word-item";
+    if (Number.isFinite(entry.durationMs) && entry.durationMs > 0) {
+      li.title = `Trouvé en ${formatDuration(entry.durationMs)}`;
+      if (!entry.found) {
+        li.title = `Manqué après ${formatDuration(entry.durationMs)}`;
+      }
+    }
 
     const left = document.createElement("span");
     left.className = "word-item-text";
@@ -711,6 +847,15 @@ function closeDefinition() {
 // =============================================================================
 
 function goBetween() {
+  // Calcule la duree de la partie qui vient de se terminer (si on a un
+  // startTime — sinon on stocke null, signalant une duree non mesurable).
+  let durationMs = null;
+  if (session.currentStartTime !== null) {
+    durationMs = Date.now() - session.currentStartTime;
+    session.currentStartTime = null;
+  }
+  stopLiveTimer();
+
   // Enregistre la partie dans la session (stats + word list).
   // On le fait ici et nulle part ailleurs pour eviter le double comptage :
   // c'est le seul point d'entree de la vue "between".
@@ -721,6 +866,7 @@ function goBetween() {
       attempts: game.attempts.length,
       wordLength: game.wordLength,
       maxAttempts: game.maxAttempts,
+      durationMs,
     });
   }
 
@@ -761,6 +907,8 @@ async function startNewWord() {
     renderCurrentRow();
     updateStatus();
     showView("in_game");
+    // Demarre le chrono pour cette partie (et lance le timer live)
+    startTimer();
   } catch (err) {
     showError(err.message || "Impossible de tirer un mot.");
   } finally {

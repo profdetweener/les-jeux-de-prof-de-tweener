@@ -167,7 +167,11 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 /* --- Motus : grille --- */
 .motus-header {
   display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 16px;
+  margin: 0 auto 16px;
+  width: 100%;
+  /* Aligne le header sur la meme largeur que la grille (qui est centree
+     avec margin:0 auto et a une max-width calculee). */
+  max-width: calc(56px * var(--motus-cols, 7) + 6px * (var(--motus-cols, 7) - 1));
 }
 .motus-status-line { font-weight: 600; font-size: 15px; }
 .motus-word-info { color: var(--gris-texte); font-size: 13px; }
@@ -270,6 +274,12 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 .kb-key.kb-good { background: var(--rouge); color: var(--blanc); border-color: var(--rouge); }
 .kb-key.kb-misplaced { background: var(--jaune); color: var(--blanc); border-color: var(--jaune); }
 .kb-key.kb-absent { background: var(--blanc); color: var(--gris-texte); border-color: var(--gris-clair); }
+/* 4e situation : bien placée + autre instance ailleurs dans le mot.
+   Meme gradient diagonal que la case rouge-vers-jaune. */
+.kb-key.kb-good.kb-has-more {
+  background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
+  border-color: var(--rouge);
+}
 
 .motus-guest-notice {
   text-align: center;
@@ -379,6 +389,15 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.stat-item-wide {
+  grid-column: 1 / -1; /* occupe les 2 colonnes */
+  padding-top: 6px;
+  border-top: 1px solid var(--beige-fonce);
+  margin-top: 4px;
+}
+.stat-item-wide .stat-value {
+  color: var(--bleu-accent); /* met l'accent sur le timer live */
 }
 .stat-label {
   font-size: 11px;
