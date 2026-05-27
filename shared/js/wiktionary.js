@@ -1,26 +1,39 @@
 /**
  * Récupération de définitions via Wiktionary FR, avec stratégie de fallback.
  *
- * 1) On essaie d'abord l'endpoint REST structuré :
- *      https://fr.wiktionary.org/api/rest_v1/page/definition/{mot}
- *    C'est rapide et propre quand ça marche, mais cet endpoint est experimental
- *    et renvoie souvent HTTP 501 sur certaines entrées (formes verbales rares,
- *    structures d'article inhabituelles).
+ * Le mot reçu en entrée peut être stocké côté worker en ASCII sans accents
+ * (ex. "ABIME", "ARETE", "ACCES") alors que la page Wiktionary FR correspondante
+ * existe sous la forme accentuée ("abîme", "arête", "accès"). On a donc une
+ * étape de RÉSOLUTION en plus du simple fetch.
  *
- * 2) Si l'endpoint REST echoue (501, 500, JSON cassé, etc., mais PAS 404),
- *    on tombe sur l'API MediaWiki Action :
- *      https://fr.wiktionary.org/w/api.php?action=parse&page={mot}&prop=text&format=json
- *    qui renvoie le HTML complet de la page. On parse ce HTML pour en extraire
- *    les définitions sous les sections "Nom commun", "Verbe", "Adjectif", etc.
+ * Pipeline pour un mot donné :
  *
- * 3) Si 404 sur l'un comme sur l'autre, le mot n'existe pas dans le wiktionnaire.
+ *   1) Tentative directe sur la forme reçue (lowercase) via l'endpoint REST :
+ *        https://fr.wiktionary.org/api/rest_v1/page/definition/{mot}
+ *      Rapide quand ça marche. Renvoie souvent 501 sur les formes verbales rares,
+ *      raison pour laquelle on a toujours un fallback HTML.
  *
- * Cache en mémoire (par mot, en majuscules) : évite de spammer l'API si on
- * rouvre plusieurs fois la même définition pendant la session.
+ *   2) Si 404 sur le REST, on demande à MediaWiki opensearch de proposer des
+ *      titres existants qui commencent par notre forme ASCII (les redirections
+ *      sans-accent → avec-accent ne sont PAS faites systématiquement sur fr.wikt,
+ *      donc on ne peut pas compter dessus). On dé-accentue les suggestions et
+ *      on garde la première qui matche exactement notre ASCII et la bonne
+ *      longueur. On retente le REST sur cette forme accentuée.
+ *
+ *   3) Si le REST a renvoyé autre chose qu'un 404 (501, 500, JSON cassé...),
+ *      on passe au fallback HTML via action=parse sur le titre qu'on a sous
+ *      la main (ASCII si on n'a pas encore résolu, accentué sinon). On parse le
+ *      HTML pour extraire les définitions sous "Nom commun", "Verbe", etc.
+ *
+ *   4) Si à la fin de tout ça on n'a rien, le mot n'a pas de page exploitable.
+ *
+ * Cache en mémoire (par clé uppercase) : on ne refait jamais le travail deux
+ * fois dans la même session, et les requêtes concurrentes sur le même mot
+ * sont dédupliquées via PENDING.
  */
 
 const CACHE = new Map();
-const PENDING = new Map(); // requêtes en cours, dédupliquées
+const PENDING = new Map();
 
 const REST_ENDPOINT = "https://fr.wiktionary.org/api/rest_v1/page/definition/";
 const MEDIAWIKI_ENDPOINT = "https://fr.wiktionary.org/w/api.php";
@@ -45,16 +58,17 @@ const RECOGNIZED_POS = [
 ];
 
 // =============================================================================
-// Utilitaires
+// Utilitaires texte
 // =============================================================================
 
 /**
- * Nettoie une chaîne contenant du HTML léger : enlève les balises, normalise
- * les espaces. Préserve le texte des liens internes du wiktionnaire.
- *
- * @param {string} html
- * @returns {string}
+ * Retire les diacritiques (accents, cédilles, trémas...) d'une chaîne.
+ * "abîme" → "abime", "façon" → "facon", "œuf" → "œuf" (les ligatures restent).
  */
+function deaccent(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function stripHtml(html) {
   if (!html) return "";
   const tmp = document.createElement("div");
@@ -64,15 +78,21 @@ function stripHtml(html) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-/**
- * Nettoie un élément DOM en supprimant les éléments parasites du Wiktionnaire
- * (références, modèles d'entête, exemples — qui sont parsés à part).
- */
 function cleanDefinitionElement(el) {
-  // Cite-bookgang/references, edit links, etc.
   el.querySelectorAll(
     ".mw-editsection, .reference, .cite-bracket, .noprint, sup.reference"
   ).forEach((n) => n.remove());
+}
+
+// =============================================================================
+// Erreur structurée pour piloter le fallback depuis fetchDefinition
+// =============================================================================
+
+class RestError extends Error {
+  constructor(code, msg) {
+    super(msg);
+    this.code = code;
+  }
 }
 
 // =============================================================================
@@ -85,14 +105,12 @@ async function fetchViaRest(lower) {
   try {
     res = await fetch(url, { headers: { Accept: "application/json" } });
   } catch (e) {
-    // Problème réseau — on signale pour que l'appelant tente le fallback
     throw new RestError("NETWORK", "Réseau indisponible");
   }
   if (res.status === 404) {
     throw new RestError("NOT_FOUND", "Aucune définition trouvée pour ce mot.");
   }
   if (!res.ok) {
-    // 501, 500, autre → fallback recommandé
     throw new RestError("UPSTREAM", `Erreur Wiktionary (HTTP ${res.status})`);
   }
 
@@ -123,25 +141,99 @@ async function fetchViaRest(lower) {
   return entries;
 }
 
-class RestError extends Error {
-  constructor(code, msg) {
-    super(msg);
-    this.code = code;
+// =============================================================================
+// Résolution ASCII → forme accentuée via opensearch
+// =============================================================================
+
+/**
+ * Cherche sur le Wiktionnaire FR un titre de page qui, une fois dé-accentué,
+ * correspond exactement à l'entrée ASCII donnée. Utilisé quand notre dico
+ * stocke "ABIME" et que la page existe sous "abîme".
+ *
+ * Algorithme :
+ *   - On demande à opensearch des suggestions commençant par notre forme ASCII.
+ *     opensearch fait du préfixe insensible à la casse mais SENSIBLE aux
+ *     accents, donc on ne lui passe pas l'ASCII directement (il chercherait
+ *     une page "abime" qui n'existe pas).
+ *   - Astuce : opensearch matche aussi les redirections, et son champ "search"
+ *     accepte des termes pas trop stricts. Mais en pratique le moyen le plus
+ *     fiable c'est de demander un préfixe court (les 2-3 premières lettres) et
+ *     de filtrer les suggestions côté client. Pour rester rapide on demande
+ *     `limit=20` avec le mot complet d'abord ; si ça ne donne rien on
+ *     re-tente sur un préfixe.
+ *   - On dé-accentue chaque suggestion ; on garde la première qui matche
+ *     exactement l'ASCII (longueur + caractères).
+ *
+ * @param {string} asciiLower mot en ASCII lowercase (ex. "abime")
+ * @returns {Promise<string|null>} forme accentuée trouvée (ex. "abîme"), ou null
+ */
+async function resolveAccentedTitle(asciiLower) {
+  // Première passe : opensearch avec le mot complet. Si une redirection existe,
+  // ou si l'orthographe sans accent matche, on tombe dessus directement.
+  const candidates1 = await opensearchSuggestions(asciiLower, 20);
+  const hit1 = pickAsciiMatch(candidates1, asciiLower);
+  if (hit1) return hit1;
+
+  // Deuxième passe : avec un préfixe plus court (les 3 premières lettres dé-accentuées
+  // — ici c'est déjà l'ASCII). Plus de candidats à filtrer mais on couvre les cas
+  // où la forme accentuée diverge dès les premières lettres.
+  if (asciiLower.length > 3) {
+    const candidates2 = await opensearchSuggestions(asciiLower.slice(0, 3), 50);
+    const hit2 = pickAsciiMatch(candidates2, asciiLower);
+    if (hit2) return hit2;
   }
+
+  return null;
+}
+
+async function opensearchSuggestions(query, limit) {
+  const params = new URLSearchParams({
+    action: "opensearch",
+    search: query,
+    namespace: "0",
+    limit: String(limit),
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  });
+  const url = `${MEDIAWIKI_ENDPOINT}?${params.toString()}`;
+  let res;
+  try {
+    res = await fetch(url);
+  } catch {
+    return [];
+  }
+  if (!res.ok) return [];
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    return [];
+  }
+  // opensearch renvoie [query, titres[], descriptions[], urls[]]
+  return Array.isArray(data) && Array.isArray(data[1]) ? data[1] : [];
+}
+
+/**
+ * Parmi une liste de titres Wiktionary, trouve celui qui correspond exactement
+ * à `asciiLower` une fois dé-accentué et mis en minuscules. Le titre retenu doit
+ * en plus être en un seul mot (pas de locution avec espaces) pour éviter les
+ * faux positifs.
+ */
+function pickAsciiMatch(titles, asciiLower) {
+  for (const t of titles) {
+    if (!t || typeof t !== "string") continue;
+    if (/[\s_]/.test(t)) continue; // on veut un mot simple
+    const normalized = deaccent(t).toLowerCase();
+    if (normalized === asciiLower) return t;
+  }
+  return null;
 }
 
 // =============================================================================
 // Stratégie 2 : fallback via API MediaWiki Action (action=parse)
 // =============================================================================
 
-/**
- * Récupère le HTML complet de la page wiktionnaire et en extrait les
- * définitions structurées. Plus lent et plus fragile que le REST, mais
- * fonctionne sur les entrées que le REST refuse.
- *
- * @param {string} lower
- * @returns {Promise<Array<{partOfSpeech: string, definitions: Array}>>}
- */
 async function fetchViaMediawiki(lower) {
   const params = new URLSearchParams({
     action: "parse",
@@ -150,7 +242,6 @@ async function fetchViaMediawiki(lower) {
     format: "json",
     formatversion: "2",
     redirects: "1",
-    // Origin=* pour le CORS de l'API publique
     origin: "*",
   });
   const url = `${MEDIAWIKI_ENDPOINT}?${params.toString()}`;
@@ -171,7 +262,6 @@ async function fetchViaMediawiki(lower) {
     throw new Error("Réponse Wiktionary illisible.");
   }
 
-  // Erreur structurée renvoyée par MediaWiki (ex. page inexistante)
   if (data.error) {
     if (data.error.code === "missingtitle") {
       throw new Error("Aucune définition trouvée pour ce mot.");
@@ -182,33 +272,13 @@ async function fetchViaMediawiki(lower) {
     throw new Error("Aucune définition trouvée pour ce mot.");
   }
 
-  const html = data.parse.text;
-  return parseMediawikiHtml(html);
+  return parseMediawikiHtml(data.parse.text);
 }
 
-/**
- * Parse le HTML d'une page Wiktionnaire FR et extrait les définitions par
- * section reconnue (Nom commun, Verbe, etc.) sous la langue Français.
- *
- * Structure typique du wiki :
- *   <h2><span id="Français">Français</span></h2>
- *   <h3><span id="Nom_commun">Nom commun</span></h3>
- *   ...
- *   <ol>
- *     <li>Définition 1.<ul><li>Exemple : ...</li></ul></li>
- *     <li>Définition 2.</li>
- *   </ol>
- *   <h3><span id="Verbe">Verbe</span></h3>
- *   ...
- *
- * @param {string} html
- * @returns {Array<{partOfSpeech: string, definitions: Array}>}
- */
 function parseMediawikiHtml(html) {
   const container = document.createElement("div");
   container.innerHTML = html;
 
-  // Trouve le h2 "Français". Si absent (page sans section FR), on échoue.
   const headings = Array.from(container.querySelectorAll("h2, h3, h4"));
   const frIndex = headings.findIndex((h) => {
     const id = h.querySelector(".mw-headline, span[id]")?.id || "";
@@ -219,27 +289,23 @@ function parseMediawikiHtml(html) {
     throw new Error("Aucune section française pour ce mot.");
   }
 
-  // Récupère toutes les sous-sections (h3) jusqu'au h2 suivant.
   const entries = [];
   for (let i = frIndex + 1; i < headings.length; i++) {
     const h = headings[i];
-    if (h.tagName === "H2") break; // changement de langue
+    if (h.tagName === "H2") break;
     if (h.tagName !== "H3") continue;
     const headlineEl = h.querySelector(".mw-headline, span[id]");
     const headlineText = (headlineEl?.textContent || h.textContent).trim();
-    // On ne garde que les sections POS reconnues
     const recognized = RECOGNIZED_POS.find((pos) =>
       headlineText.toLowerCase().startsWith(pos.toLowerCase())
     );
     if (!recognized) continue;
 
-    // Cherche le premier <ol> qui suit ce h3 (avant le prochain h2/h3)
     let ol = null;
     let n = h.nextElementSibling;
     while (n) {
       if (/^H[234]$/.test(n.tagName)) break;
       if (n.tagName === "OL") { ol = n; break; }
-      // L'ol peut aussi être imbriqué dans un wrapper
       const inner = n.querySelector?.(":scope > ol");
       if (inner) { ol = inner; break; }
       n = n.nextElementSibling;
@@ -250,14 +316,11 @@ function parseMediawikiHtml(html) {
     for (const li of Array.from(ol.children)) {
       if (li.tagName !== "LI") continue;
       const liClone = li.cloneNode(true);
-      // Extrait les exemples (généralement dans des <ul> imbriqués) avant
-      // de cleaner le texte principal.
       const exampleEls = Array.from(liClone.querySelectorAll(":scope > ul li, :scope > dl dd"));
       const examples = exampleEls.map((ex) => {
         cleanDefinitionElement(ex);
         return stripHtml(ex.innerHTML);
       }).filter(Boolean);
-      // Retire les exemples du texte principal
       liClone.querySelectorAll(":scope > ul, :scope > dl").forEach((n) => n.remove());
       cleanDefinitionElement(liClone);
       const text = stripHtml(liClone.innerHTML);
@@ -282,18 +345,15 @@ function parseMediawikiHtml(html) {
 // =============================================================================
 
 /**
- * Récupère la définition d'un mot. Renvoie un objet structuré :
- *   {
- *     word: "MAISON",
- *     entries: [
- *       { partOfSpeech: "Nom commun", definitions: [{ text, examples: [...] }, ...] },
- *       ...
- *     ],
- *     sourceUrl: "https://fr.wiktionary.org/wiki/maison"
- *   }
+ * Récupère la définition d'un mot.
  *
- * @param {string} word
+ * @param {string} word peut être en majuscules ASCII (forme stockée côté worker),
+ *                       en minuscules, accentué ou non. La fonction gère tout.
  * @returns {Promise<{word: string, entries: Array, sourceUrl: string}>}
+ *
+ * Le `word` renvoyé est l'entrée d'origine, en uppercase (utilisé comme clé de cache).
+ * Le `sourceUrl` pointe vers la VRAIE page trouvée (forme accentuée si on l'a résolue),
+ * donc le bouton "voir sur Wiktionary" envoie bien sur la bonne page.
  */
 export async function fetchDefinition(word) {
   const key = word.toUpperCase();
@@ -302,18 +362,51 @@ export async function fetchDefinition(word) {
 
   const promise = (async () => {
     const lower = word.toLowerCase();
+
+    // Tentative 1 : REST direct
     let entries;
+    let resolvedTitle = lower; // titre de la page Wiktionary effectivement utilisé
+    let restErr;
     try {
       entries = await fetchViaRest(lower);
     } catch (err) {
-      // Sur NOT_FOUND on tente quand meme MediaWiki car certaines entrees
-      // existent en HTML mais pas dans le REST. C'est l'inverse aussi vrai.
-      // Sur tout le reste (UPSTREAM, PARSE, NO_FR, EMPTY, NETWORK), on tente.
+      restErr = err;
+    }
+
+    // Tentative 2 : si NOT_FOUND / EMPTY / NO_FR, c'est probablement un problème
+    // d'accent (la page sans accent n'existe pas, ou existe mais en coquille vide
+    // qui renvoie vers la forme accentuée). On résout l'ASCII vers la vraie forme
+    // via opensearch, puis on re-tente le REST sur la forme résolue.
+    //
+    // NB : on ne déclenche PAS sur UPSTREAM (501) ni PARSE — ces codes signalent
+    // que la page existe mais le REST a un problème ; le fallback MediaWiki est
+    // plus pertinent dans ce cas, et il marchera avec le titre ASCII tel quel.
+    const accentRetryCodes = new Set(["NOT_FOUND", "EMPTY", "NO_FR"]);
+    if (!entries && restErr instanceof RestError && accentRetryCodes.has(restErr.code)) {
       try {
-        entries = await fetchViaMediawiki(lower);
+        const resolved = await resolveAccentedTitle(lower);
+        if (resolved && resolved.toLowerCase() !== lower) {
+          resolvedTitle = resolved.toLowerCase();
+          try {
+            entries = await fetchViaRest(resolvedTitle);
+          } catch (err) {
+            // On garde restErr du premier essai pour pas perdre l'info "NOT_FOUND"
+            // initial, mais on retombera sur le fallback MediaWiki avec resolvedTitle.
+            restErr = err;
+          }
+        }
+      } catch {
+        // resolveAccentedTitle ne lève pas en principe (il renvoie null), mais on
+        // ne fait rien si jamais : on laisse le fallback MediaWiki tenter sa chance.
+      }
+    }
+
+    // Tentative 3 : fallback MediaWiki action=parse. On utilise resolvedTitle qui
+    // sera la forme accentuée si on l'a trouvée, sinon le lower d'origine.
+    if (!entries) {
+      try {
+        entries = await fetchViaMediawiki(resolvedTitle);
       } catch (err2) {
-        // Si les deux echouent, on remonte le message le plus informatif :
-        // celui du fallback est generalement plus clair pour l'utilisateur.
         throw err2 instanceof Error ? err2 : new Error(String(err2));
       }
     }
@@ -321,7 +414,7 @@ export async function fetchDefinition(word) {
     const result = {
       word: key,
       entries,
-      sourceUrl: `https://fr.wiktionary.org/wiki/${encodeURIComponent(lower)}`,
+      sourceUrl: `https://fr.wiktionary.org/wiki/${encodeURIComponent(resolvedTitle)}`,
     };
     CACHE.set(key, result);
     return result;
