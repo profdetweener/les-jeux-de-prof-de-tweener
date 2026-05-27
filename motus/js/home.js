@@ -61,16 +61,29 @@ const storage = (() => {
 })();
 
 // --- Detection du mode (Creer ou Rejoindre) via le hash de l'URL ---
+// On tolere plusieurs formats :
+//   #ABC123       (forme canonique)
+//   #join=ABC123  (forme verbeuse, anciennement utilisee)
+//   ?code=ABC123  (forme query string, anciennement utilisee par buildInviteUrl)
 function parseInviteCode() {
-  // Hash peut etre "#ABC123" ou "#join=ABC123" (tolerance). On normalise en uppercase.
+  // 1. On essaie d'abord le hash
   let raw = (window.location.hash || "").replace(/^#/, "").trim();
-  // Forme "join=XXX" ou autre cle=valeur : on extrait apres le "="
   if (raw.includes("=")) {
     const parts = raw.split("=");
     raw = parts[parts.length - 1];
   }
   raw = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (CODE_RE.test(raw)) return raw;
+
+  // 2. Sinon on regarde la query string (compat ancien lien ?code=ABC123)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get("code") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (CODE_RE.test(q)) return q;
+  } catch {
+    /* ignore */
+  }
+
   return null;
 }
 
@@ -85,6 +98,9 @@ if (savedPseudo) {
 }
 
 // --- Application du mode UI (Creer ou Rejoindre) ---
+// La page join.html n'a plus de mode "Creer" : la creation se fait via le menu
+// principal Motus (chill / competitif). Si on arrive ici sans code, on affiche
+// un message et on desactive le bouton.
 if (isJoinMode) {
   subtitleCreate.style.display = "none";
   subtitleJoin.style.display = "block";
@@ -93,7 +109,10 @@ if (isJoinMode) {
 } else {
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
-  btnAction.textContent = "Créer une partie";
+  btnAction.textContent = "Aucune partie à rejoindre";
+  btnAction.disabled = true;
+  const pseudoGroup = document.getElementById("pseudo-group");
+  if (pseudoGroup) pseudoGroup.style.display = "none";
 }
 
 // --- Banniere "Reprendre la partie" ---

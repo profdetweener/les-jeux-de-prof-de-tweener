@@ -197,8 +197,10 @@ setInterval(() => conn.send({ type: "ping" }), 25000);
 
 function buildInviteUrl(code) {
   const url = new URL(window.location.href);
-  url.pathname = url.pathname.replace(/room\.html$/, "index.html");
-  url.search = `?code=${encodeURIComponent(code)}`;
+  // Lien canonique : join.html#ABC123 (le code dans le hash, accueil en clair).
+  url.pathname = url.pathname.replace(/room\.html$/, "join.html");
+  url.search = "";
+  url.hash = code;
   return url.toString();
 }
 const inviteUrl = buildInviteUrl(roomCode);

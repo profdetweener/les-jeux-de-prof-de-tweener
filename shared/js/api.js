@@ -68,3 +68,70 @@ export async function pingWorker() {
     return false;
   }
 }
+
+// ===========================================================================
+// Motus chill — endpoints REST stateless
+// ===========================================================================
+
+/**
+ * Tire un nouveau mot pour le mode chill solo. Renvoie un token opaque a
+ * conserver pour les essais suivants et la 1ere lettre du mot.
+ *
+ * @param {number} wordLength entre 5 et 10
+ * @param {number} maxAttempts entre 4 et 8
+ * @returns {Promise<{token: string, firstLetter: string, wordLength: number, maxAttempts: number}>}
+ */
+export async function motusChillDraw(wordLength, maxAttempts) {
+  const res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/draw`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ wordLength, maxAttempts }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Erreur tirage (HTTP ${res.status})`);
+  }
+  return await res.json();
+}
+
+/**
+ * Soumet un essai pour validation et coloration.
+ *
+ * @param {string} token le token recu lors du draw
+ * @param {string} guess l'essai (sera normalise cote serveur)
+ * @returns {Promise<{attempt: object, status: "in_progress"|"found", revealedWord: string|null}>}
+ * @throws {Error & {code?: string}} avec un code parmi INVALID_GUESS_LENGTH,
+ *         INVALID_GUESS_LETTERS, INVALID_GUESS_FIRST_LETTER, WORD_NOT_IN_DICTIONARY
+ */
+export async function motusChillGuess(token, guess) {
+  const res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/guess`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, guess }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || `Erreur essai (HTTP ${res.status})`);
+    if (data.code) err.code = data.code;
+    throw err;
+  }
+  return data;
+}
+
+/**
+ * Demande la revelation du mot apres epuisement des essais.
+ * @param {string} token
+ * @returns {Promise<{revealedWord: string}>}
+ */
+export async function motusChillReveal(token) {
+  const res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/reveal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Erreur revelation (HTTP ${res.status})`);
+  }
+  return await res.json();
+}

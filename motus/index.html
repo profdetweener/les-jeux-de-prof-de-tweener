@@ -4,56 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
-  <title>Motus multijoueur</title>
+  <title>Motus — Choisis ton mode</title>
+  <link rel="stylesheet" href="../shared/css/landing.css">
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Si on arrive ici avec un lien d'invitation (hash ou query string),
+    // on redirige vers join.html pour preserver le code. Utile pour la
+    // compat ascendante des liens generes par d'anciennes versions qui
+    // pointaient vers motus/index.html?code=XXX.
+    (function () {
+      var raw = (location.hash || "").replace(/^#/, "");
+      if (raw.indexOf("=") !== -1) raw = raw.split("=").pop();
+      raw = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      var code = /^[A-Z0-9]{4,6}$/.test(raw) ? raw : null;
+      if (!code) {
+        try {
+          var q = new URLSearchParams(location.search).get("code") || "";
+          q = q.toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (/^[A-Z0-9]{4,6}$/.test(q)) code = q;
+        } catch (e) {}
+      }
+      if (code) {
+        location.replace("join.html#" + code);
+      }
+    })();
+  </script>
 </head>
 <body>
-  <header class="app-header">
+  <header class="landing-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
-    <h1>🟥 Motus multijoueur</h1>
-    <span class="header-info" id="server-status">connexion au serveur…</span>
+    <h1>🟥 Motus</h1>
+    <span class="header-tagline">choisis ton mode de jeu</span>
   </header>
 
-  <main>
-    <div class="card">
-      <h2>Bienvenue !</h2>
-      <p class="subtitle" id="subtitle-create">Choisis un pseudo et crée une nouvelle partie.</p>
-      <p class="subtitle" id="subtitle-join" style="display: none;">
-        Tu es invité à rejoindre la partie <strong id="join-code-label">—</strong>. Choisis ton pseudo pour entrer.
+  <main class="landing-main">
+
+    <section class="landing-intro">
+      <h2>Quel mode aujourd'hui ?</h2>
+      <p>
+        Motus chill : tu joues seul, idéal en stream — les viewers proposent
+        oralement ou dans le tchat. Motus compétitif arrive bientôt.
       </p>
+    </section>
 
-      <div class="resume-banner" id="resume-banner">
-        <div class="resume-banner-text">
-          <strong>Tu étais dans une partie</strong>
-          <span>Code <span id="resume-banner-code">—</span> · Pseudo <span id="resume-banner-pseudo">—</span></span>
+    <div class="games-grid">
+
+      <a href="chill.html" class="game-card">
+        <div class="game-card-emoji">🟧</div>
+        <h3 class="game-card-title">Motus chill</h3>
+        <p class="game-card-tagline">
+          Mode solo / stream. Tu tapes les essais, les viewers proposent
+          des mots oralement ou dans le chat. Pas de pression, pas de timer.
+        </p>
+        <div class="game-card-meta">
+          <span>1 joueur</span>
+          <span class="dot">·</span>
+          <span>5-15 min</span>
         </div>
-        <div class="resume-banner-actions">
-          <button class="btn btn-primary btn-sm" id="resume-banner-btn">Reprendre</button>
-          <button class="btn btn-secondary btn-sm" id="resume-banner-dismiss" aria-label="Fermer">×</button>
+        <div class="game-card-cta">
+          Lancer <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <div class="game-card coming-soon">
+        <div class="game-card-badge">Bientôt</div>
+        <div class="game-card-emoji">⚔️</div>
+        <h3 class="game-card-title">Motus compétitif</h3>
+        <p class="game-card-tagline">
+          Même mot pour tous, chacun sa grille. Tu vois la progression colorée
+          de tes adversaires sans voir leurs mots — le stress monte.
+        </p>
+        <div class="game-card-meta">
+          <span>2-8 joueurs</span>
+          <span class="dot">·</span>
+          <span>10-30 min</span>
         </div>
       </div>
 
-      <div class="alert alert-error" id="error-box"></div>
-
-      <div class="form-group">
-        <label for="pseudo-input">Ton pseudo</label>
-        <input type="text" id="pseudo-input" placeholder="Ex : Max" maxlength="20" autocomplete="off">
-      </div>
-
-      <button class="btn btn-primary btn-block" id="btn-action">
-        Créer une partie
-      </button>
     </div>
-  </main>
 
-  <div class="toast-container" id="toast-container"></div>
+  </main>
 
   <footer class="app-footer">
     <a href="regles.html">Règles du jeu</a>
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
   </footer>
-
-  <script type="module" src="js/home.js"></script>
 </body>
 </html>

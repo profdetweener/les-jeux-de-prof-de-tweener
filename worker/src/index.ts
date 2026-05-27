@@ -20,12 +20,16 @@
  */
 
 import { ROOM_CONFIG } from "./shared/types";
+import { handleChillRoute } from "./motus/chill";
 export { PetitBacRoom } from "./petitbac/room";
 export { MotusRoom } from "./motus/room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
   MOTUS_ROOMS: DurableObjectNamespace;
+  // Secret HMAC pour le mode chill stateless. Fallback dev "dev-secret-do-not-use-in-prod".
+  // En prod, definir via : npx wrangler secret put CHILL_SECRET
+  CHILL_SECRET?: string;
 }
 
 const CORS_HEADERS = {
@@ -166,6 +170,13 @@ export default {
       url.pathname.startsWith("/room/")
     ) {
       const res = await handleGameRoutes(request, url.pathname, env.ROOMS);
+      if (res) return res;
+    }
+
+    if (url.pathname.startsWith("/motus/chill/")) {
+      const subPath = url.pathname.slice("/motus/chill".length);
+      const secret = env.CHILL_SECRET || "dev-secret-do-not-use-in-prod";
+      const res = await handleChillRoute(request, subPath, secret);
       if (res) return res;
     }
 
