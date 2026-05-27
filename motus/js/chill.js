@@ -6,10 +6,12 @@
  *   - POST /motus/chill/draw   pour tirer un nouveau mot
  *   - POST /motus/chill/guess  pour valider et colorer un essai
  *
- * Mecaniques notables (Livraison 2.1) :
+ * Mecaniques notables (Livraison 2.2) :
  *   - La 1ere lettre est affichee uniquement sur la ligne courante (pas toutes).
- *   - Les lettres trouvees "good" (avec ou sans hasMore) sont reportees a la
- *     bonne position sur la ligne suivante, en lettres verrouillees blanches.
+ *   - Les lettres trouvees "good" lors d'essais precedents sont affichees en
+ *     "hint" sur la ligne courante TANT QUE l'utilisateur n'a rien tape. Des
+ *     qu'il commence a taper, les hints disparaissent et la saisie est libre
+ *     (sauf la 1ere lettre, toujours imposee par les regles Motus).
  *   - L'animation des couleurs apres un essai joue lettre par lettre, avec
  *     un petit delai entre chaque case.
  */
@@ -29,9 +31,9 @@ const DEFAULT_WORD_LEN = 7;
 const DEFAULT_ATTEMPTS = 6;
 
 // Delai entre 2 cases lors de l'animation de feedback (ms)
-const REVEAL_DELAY_MS = 220;
+const REVEAL_DELAY_MS = 400;
 // Delai apres la derniere case revelee avant de passer a la suite (ms)
-const POST_REVEAL_DELAY_MS = 300;
+const POST_REVEAL_DELAY_MS = 400;
 
 const KEYBOARD_ROWS = [
   ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -49,27 +51,34 @@ const config = {
 };
 
 const game = {
-  token: null,         // token signe du worker
-  firstLetter: null,   // premiere lettre imposee (= letter[0] du mot cible)
+  token: null,
+  firstLetter: null,
   wordLength: 0,
   maxAttempts: 0,
-  attempts: [],        // [{guess, feedback}]
-  status: "idle",      // idle | in_progress | submitting | animating | found | exhausted
+  attempts: [],
+  status: "idle",
   revealedWord: null,
 
   /**
-   * Pour la ligne courante (= attempts.length), liste des positions verrouillees
-   * avec leur lettre. Inclut toujours la position 0 (premiere lettre du mot) et,
-   * apres au moins un essai, toutes les positions "good" des essais precedents.
-   * Forme : array de longueur wordLength, chaque case vaut soit une lettre A-Z
-   * soit la chaine vide.
+   * Positions VRAIMENT verrouillees pour la ligne courante : l'utilisateur
+   * ne peut pas y ecrire ni effacer. En pratique : uniquement la position 0
+   * (1ere lettre imposee par les regles Motus). Forme : array de longueur
+   * wordLength, lettre ou chaine vide.
    */
   lockedRow: [],
 
   /**
+   * Positions affichees comme "hint" (lettres deja trouvees "good" lors des
+   * essais precedents). Visuellement identique a lockedRow (style locked-letter),
+   * mais ne contraint pas la saisie. Affiche uniquement quand la ligne est vide
+   * (l'utilisateur n'a encore rien tape). Forme : array de longueur wordLength.
+   */
+  hintRow: [],
+
+  /**
    * Buffer de saisie de la ligne courante (longueur fixe wordLength).
-   * Les positions verrouillees contiennent la lettre (toujours egale a lockedRow[i]).
-   * Les positions libres contiennent "" tant que l'utilisateur n'a pas tape.
+   * Les positions verrouillees contiennent leur lettre. Les positions libres
+   * contiennent "" tant que l'utilisateur n'a pas tape.
    */
   typingBuffer: [],
 };
@@ -228,107 +237,114 @@ async function animateAttemptRow(rowIndex, attempt) {
 }
 
 // =============================================================================
-// Gestion de la ligne courante : lettres verrouillees + buffer
+// Gestion de la ligne courante : verrouillage, hints, buffer
 // =============================================================================
 
 /**
- * Calcule les positions verrouillees pour la ligne d'index donne, en se basant
- * sur les essais precedents. Position 0 toujours verrouillee avec firstLetter.
- * Autres positions verrouillees si une lettre "good" y a deja ete trouvee.
+ * Calcule les positions VRAIMENT verrouillees. Conformement aux regles Motus,
+ * seule la position 0 est imposee (= 1ere lettre du mot cible).
  */
 function computeLockedRow() {
   const locked = new Array(game.wordLength).fill("");
   locked[0] = game.firstLetter;
-  for (const attempt of game.attempts) {
-    attempt.feedback.forEach((fb, col) => {
-      if (fb.status === "good") {
-        locked[col] = fb.letter;
-      }
-    });
-  }
   return locked;
 }
 
 /**
- * Affiche les lettres verrouillees sur la ligne courante (uniquement).
- * Ne touche pas aux lignes precedentes ni suivantes.
+ * Calcule les positions a afficher comme "hint" (suggestion visuelle, pas
+ * contrainte) : ce sont les positions ou une lettre "good" a deja ete revelee
+ * lors d'un essai precedent. Inclut aussi la position 0 (1ere lettre).
  */
-function paintLockedRow() {
+function computeHintRow() {
+  const hint = new Array(game.wordLength).fill("");
+  hint[0] = game.firstLetter;
+  for (const attempt of game.attempts) {
+    attempt.feedback.forEach((fb, col) => {
+      if (fb.status === "good") {
+        hint[col] = fb.letter;
+      }
+    });
+  }
+  return hint;
+}
+
+/**
+ * Vrai si l'utilisateur n'a encore tape aucune lettre sur la ligne courante
+ * (= toutes les positions libres sont vides). Sert a decider si on affiche
+ * les hints ou non.
+ */
+function isRowUntouched() {
+  for (let i = 0; i < game.wordLength; i++) {
+    // On ignore les positions verrouillees (elles sont remplies par definition)
+    if (game.lockedRow[i] !== "") continue;
+    if (game.typingBuffer[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Affiche le contenu de la ligne courante en se basant sur :
+ *   - typingBuffer (priorite)
+ *   - hintRow (uniquement si la ligne est intacte)
+ *   - vide sinon
+ *
+ * Une position verrouillee ou un hint utilisent le style locked-letter
+ * (texte bleu sombre sur fond blanc). Une lettre tapee par l'utilisateur
+ * utilise le style typing (texte avec bordure bleu accent).
+ */
+function renderCurrentRow() {
   const idx = game.attempts.length;
   const rowEl = els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
   if (!rowEl) return;
   const cells = rowEl.querySelectorAll(".motus-cell");
+  const showHints = isRowUntouched();
 
   for (let col = 0; col < game.wordLength; col++) {
     const cell = cells[col];
-    cell.classList.remove("filled", "typing", "status-good", "status-misplaced", "status-absent", "has-more");
+    cell.classList.remove("filled", "typing", "status-good", "status-misplaced", "status-absent", "has-more", "locked-letter");
+
     if (game.lockedRow[col]) {
       cell.textContent = game.lockedRow[col];
       cell.classList.add("locked-letter");
-    } else {
-      cell.textContent = "";
-    }
-  }
-}
-
-/**
- * Affiche les lettres "en cours de saisie" sur la ligne courante.
- * Les positions verrouillees gardent leur classe locked-letter ; les positions
- * libres remplies par l'utilisateur prennent la classe typing.
- */
-function renderTypingRow() {
-  const idx = game.attempts.length;
-  const rowEl = els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
-  if (!rowEl) return;
-  const cells = rowEl.querySelectorAll(".motus-cell");
-
-  for (let col = 0; col < game.wordLength; col++) {
-    const cell = cells[col];
-    const isLocked = game.lockedRow[col] !== "";
-    cell.classList.remove("filled", "status-good", "status-misplaced", "status-absent", "has-more");
-
-    if (isLocked) {
-      cell.textContent = game.lockedRow[col];
-      cell.classList.add("locked-letter");
-      cell.classList.remove("typing");
     } else if (game.typingBuffer[col]) {
       cell.textContent = game.typingBuffer[col];
       cell.classList.add("typing");
-      cell.classList.remove("locked-letter");
+    } else if (showHints && game.hintRow[col]) {
+      cell.textContent = game.hintRow[col];
+      cell.classList.add("locked-letter");
     } else {
       cell.textContent = "";
-      cell.classList.remove("locked-letter", "typing");
     }
   }
 }
 
 /**
- * Initialise le buffer de saisie pour la ligne courante : les positions
- * verrouillees prennent leur lettre, les autres restent vides.
+ * Reinitialise le buffer de saisie : les positions verrouillees prennent
+ * leur lettre, les autres restent vides.
  */
 function resetTypingBuffer() {
   game.typingBuffer = game.lockedRow.map((l) => l);
 }
 
 /**
- * Construit la chaine effective a envoyer au serveur a partir du buffer.
- * Les positions verrouillees sont deja remplies, donc la chaine est complete
- * si toutes les positions libres ont ete remplies par l'utilisateur.
+ * Construit la chaine effective a envoyer au serveur.
  */
 function buildGuessString() {
   return game.typingBuffer.join("");
 }
 
 /**
- * Vrai si toutes les positions du buffer sont remplies (verrouillees ou non).
+ * Vrai si toutes les positions du buffer sont remplies (verrouillees ou tapees).
  */
 function isBufferComplete() {
   return game.typingBuffer.every((c) => c !== "");
 }
 
 /**
- * Renvoie l'indice de la prochaine position libre apres ou egale a `from`,
- * ou -1 s'il n'y en a plus.
+ * Renvoie l'indice de la prochaine position libre apres ou egale a `from`.
+ * Une position est "libre" si elle n'est pas verrouillee ET pas deja remplie
+ * dans le buffer. Les hints ne comptent PAS comme remplissage (ils ne sont
+ * pas dans typingBuffer).
  */
 function nextFreePos(from) {
   for (let i = from; i < game.wordLength; i++) {
@@ -338,8 +354,8 @@ function nextFreePos(from) {
 }
 
 /**
- * Renvoie l'indice de la derniere position libre remplie (la plus a droite),
- * ou -1 si tout est vide ou tout verrouille.
+ * Renvoie l'indice de la derniere position remplie (non verrouillee) du
+ * buffer, ou -1 si rien n'est rempli librement.
  */
 function lastFilledFreePos() {
   for (let i = game.wordLength - 1; i >= 0; i--) {
@@ -367,7 +383,7 @@ function onKeyPress(key) {
     const idx = lastFilledFreePos();
     if (idx !== -1) {
       game.typingBuffer[idx] = "";
-      renderTypingRow();
+      renderCurrentRow();
     }
     return;
   }
@@ -375,7 +391,7 @@ function onKeyPress(key) {
     const pos = nextFreePos(0);
     if (pos === -1) return; // plus de place libre
     game.typingBuffer[pos] = key;
-    renderTypingRow();
+    renderCurrentRow();
   }
 }
 
@@ -424,8 +440,9 @@ async function submitGuess() {
     // Cas standard : on prepare la ligne suivante
     game.status = "in_progress";
     game.lockedRow = computeLockedRow();
+    game.hintRow = computeHintRow();
     resetTypingBuffer();
-    paintLockedRow();
+    renderCurrentRow();
     updateStatus();
   } catch (err) {
     // Le serveur a refuse l'essai (mot pas dans le dico, etc.)
@@ -511,10 +528,11 @@ async function startNewWord() {
     game.maxAttempts = res.maxAttempts;
 
     rebuildGrid();
-    // Initialise la ligne courante avec la 1ere lettre verrouillee
+    // Initialise la ligne courante : 1ere lettre verrouillee, pas de hints (1er tour)
     game.lockedRow = computeLockedRow();
+    game.hintRow = computeHintRow();
     resetTypingBuffer();
-    paintLockedRow();
+    renderCurrentRow();
     updateStatus();
     showView("in_game");
   } catch (err) {

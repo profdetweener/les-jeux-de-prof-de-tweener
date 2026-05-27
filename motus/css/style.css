@@ -246,12 +246,12 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   display: flex; gap: 4px; justify-content: center;
 }
 .kb-key {
-  flex: 1 1 0;
-  min-width: 28px; max-width: 48px;
+  width: 40px;
   height: 48px;
-  background: var(--blanc);
-  color: var(--bleu-nuit);
-  border: 2px solid var(--beige-fonce);
+  flex-shrink: 0;
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border: 2px solid var(--bleu-nuit);
   border-radius: var(--rayon-sm);
   font-family: inherit;
   font-size: 14px; font-weight: 700;
@@ -261,16 +261,15 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   transition: background 0.1s, color 0.1s, transform 0.05s;
 }
 .kb-key:active { transform: scale(0.94); }
-.kb-key:hover:not(:disabled) { background: var(--beige); }
+.kb-key:hover:not(:disabled) { background: var(--bleu-nuit-clair); }
 .kb-key-wide {
-  flex: 1.6 1 0;
-  max-width: 80px;
+  width: 64px;
   font-size: 11px;
   letter-spacing: 0.5px;
 }
 .kb-key.kb-good { background: var(--rouge); color: var(--blanc); border-color: var(--rouge); }
 .kb-key.kb-misplaced { background: var(--jaune); color: var(--blanc); border-color: var(--jaune); }
-.kb-key.kb-absent { background: var(--gris-cell); color: var(--bleu-nuit); border-color: var(--gris-cell); opacity: 0.6; }
+.kb-key.kb-absent { background: var(--blanc); color: var(--gris-texte); border-color: var(--gris-clair); }
 
 .motus-guest-notice {
   text-align: center;
@@ -349,11 +348,14 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   .form-row { grid-template-columns: 1fr; }
   .motus-cell { font-size: 22px; }
   .between-word { font-size: 28px; letter-spacing: 2px; }
-  .kb-key { font-size: 13px; max-width: 36px; height: 44px; }
-  .kb-key-wide { font-size: 10px; max-width: 56px; }
+  .kb-row { gap: 3px; }
+  .kb-key { width: 32px; height: 44px; font-size: 13px; }
+  .kb-key-wide { width: 52px; font-size: 10px; }
 }
 @media (max-width: 380px) {
   .motus-cell { font-size: 18px; }
   .between-word { font-size: 22px; letter-spacing: 1px; }
-  .kb-key { font-size: 12px; height: 40px; }
+  .kb-row { gap: 2px; }
+  .kb-key { width: 28px; height: 40px; font-size: 12px; }
+  .kb-key-wide { width: 44px; font-size: 9px; }
 }
