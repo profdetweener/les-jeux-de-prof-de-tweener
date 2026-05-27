@@ -275,16 +275,82 @@ async function fetchViaMediawiki(lower) {
   return parseMediawikiHtml(data.parse.text);
 }
 
+/**
+ * Parse le HTML d'une page Wiktionnaire FR et extrait les définitions par
+ * section reconnue (Nom commun, Verbe, etc.) sous la langue Français.
+ *
+ * IMPORTANT — deux formats à gérer :
+ *
+ *   ANCIEN (MediaWiki avant 1.43, jusqu'à mi-2024) :
+ *     <h2><span class="mw-headline" id="Français">Français</span></h2>
+ *     ...
+ *     <h3><span class="mw-headline" id="Nom_commun">Nom commun</span></h3>
+ *     <ol>...</ol>
+ *
+ *   NOUVEAU (MediaWiki 1.43+, à partir de juillet 2024) :
+ *     <div class="mw-heading mw-heading2"><h2 id="Français">Français</h2></div>
+ *     ...
+ *     <div class="mw-heading mw-heading3"><h3 id="Nom_commun">Nom commun</h3></div>
+ *     <ol>...</ol>
+ *
+ * Différence cruciale : dans le nouveau format, le <h3> est enveloppé dans un
+ * <div class="mw-heading">. Donc `h3.nextElementSibling` est null (le h3 est
+ * seul dans son wrapper) — il faut prendre le sibling du DIV pour atteindre
+ * le <ol> qui suit.
+ *
+ * Stratégie : on collecte la liste plate d'éléments "intéressants" au niveau
+ * racine du contenu (les anciens headings simples + les wrappers .mw-heading
+ * + les <ol> + les <p>/<div> top-level), puis on parcourt cette liste en
+ * traitant chaque heading comme un délimiteur de section et chaque <ol>
+ * comme un candidat pour la section courante.
+ */
 function parseMediawikiHtml(html) {
   const container = document.createElement("div");
   container.innerHTML = html;
 
-  const headings = Array.from(container.querySelectorAll("h2, h3, h4"));
-  const frIndex = headings.findIndex((h) => {
-    const id = h.querySelector(".mw-headline, span[id]")?.id || "";
-    const txt = h.textContent.trim();
-    return id === "Français" || txt.startsWith("Français");
-  });
+  // L'API parse renvoie souvent un wrapper <div class="mw-parser-output"> ;
+  // on travaille à l'intérieur s'il existe pour éviter les éléments noise
+  // (NavFrames, TOC, etc.) qui pourraient être à côté.
+  const root = container.querySelector(".mw-parser-output") || container;
+
+  // Récupère tous les enfants directs ET les headings (qui peuvent être
+  // enveloppés). On normalise chaque heading vers la forme { tag, id, text, element }
+  // où `element` est l'élément racine de la section (le DIV.mw-heading dans le
+  // nouveau format, le H lui-même dans l'ancien). C'est cet element dont on
+  // utilisera nextElementSibling pour trouver le contenu.
+
+  /** @type {Array<{level: number, id: string, text: string, anchor: Element}>} */
+  const headings = [];
+
+  // Cherche tous les headings (avec ou sans wrapper) par DFS limité.
+  // Sélecteur unique qui matche les deux formats grâce à :is() :
+  //   - .mw-heading > hN  (nouveau format)
+  //   - hN sans wrapper .mw-heading (ancien format)
+  const allH = root.querySelectorAll("h2, h3, h4");
+  for (const h of allH) {
+    const level = parseInt(h.tagName.substring(1), 10);
+    // Texte du heading : on essaie d'abord le .mw-headline (ancien), puis l'id
+    // sur le h lui-même (nouveau), puis fallback sur textContent.
+    const headlineEl = h.querySelector(".mw-headline");
+    const id = headlineEl?.id || h.id || "";
+    // textContent du heading inclut .mw-editsection ; on clone et on nettoie
+    // pour récupérer juste le titre.
+    const hClone = h.cloneNode(true);
+    hClone.querySelectorAll(".mw-editsection").forEach((n) => n.remove());
+    const text = (hClone.textContent || "").trim();
+
+    // L'anchor — l'élément dont on doit parcourir les nextElementSibling pour
+    // trouver le contenu — est le wrapper .mw-heading s'il existe, sinon le h.
+    const wrapper = h.closest(".mw-heading");
+    const anchor = wrapper || h;
+
+    headings.push({ level, id, text, anchor });
+  }
+
+  // Localise la section "Français"
+  const frIndex = headings.findIndex(
+    (h) => h.level === 2 && (h.id === "Français" || h.text.startsWith("Français"))
+  );
   if (frIndex === -1) {
     throw new Error("Aucune section française pour ce mot.");
   }
@@ -292,19 +358,23 @@ function parseMediawikiHtml(html) {
   const entries = [];
   for (let i = frIndex + 1; i < headings.length; i++) {
     const h = headings[i];
-    if (h.tagName === "H2") break;
-    if (h.tagName !== "H3") continue;
-    const headlineEl = h.querySelector(".mw-headline, span[id]");
-    const headlineText = (headlineEl?.textContent || h.textContent).trim();
+    if (h.level === 2) break; // fin de la section Français (changement de langue)
+    if (h.level !== 3) continue;
+
     const recognized = RECOGNIZED_POS.find((pos) =>
-      headlineText.toLowerCase().startsWith(pos.toLowerCase())
+      h.text.toLowerCase().startsWith(pos.toLowerCase())
     );
     if (!recognized) continue;
 
+    // Cherche le premier <ol> qui suit ce h3 (en avançant via nextElementSibling
+    // depuis l'anchor : le wrapper .mw-heading dans le nouveau format, le h3
+    // dans l'ancien). On s'arrête au prochain wrapper de heading ou heading nu.
     let ol = null;
-    let n = h.nextElementSibling;
+    let n = h.anchor.nextElementSibling;
     while (n) {
+      // Stop si on tombe sur le heading suivant (sous l'une ou l'autre forme)
       if (/^H[234]$/.test(n.tagName)) break;
+      if (n.classList && n.classList.contains("mw-heading")) break;
       if (n.tagName === "OL") { ol = n; break; }
       const inner = n.querySelector?.(":scope > ol");
       if (inner) { ol = inner; break; }
@@ -316,6 +386,8 @@ function parseMediawikiHtml(html) {
     for (const li of Array.from(ol.children)) {
       if (li.tagName !== "LI") continue;
       const liClone = li.cloneNode(true);
+      // Extrait les exemples (généralement <ul>/<dl> imbriqués) avant de
+      // cleaner le texte principal.
       const exampleEls = Array.from(liClone.querySelectorAll(":scope > ul li, :scope > dl dd"));
       const examples = exampleEls.map((ex) => {
         cleanDefinitionElement(ex);
