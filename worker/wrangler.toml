@@ -1,0 +1,25 @@
+# Nouveau worker dedie aux "Jeux du Prof de Tweener".
+# On ne reutilise pas l'ancien worker "petitbac" : on en cree un nouveau a
+# cote, comme ca l'ancien continue de tourner pendant que tu valides le
+# nouveau site. Tu pourras desactiver l'ancien quand tu veux.
+name = "tweener-jeux"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+
+# ===========================================
+# Durable Objects
+# ===========================================
+# PetitBacRoom : une instance par room de Petit Bac.
+# Maintient l'etat de la room en memoire et gere les WebSockets.
+#
+# A terme on ajoutera MotusRoom dans son propre binding MOTUS_ROOMS.
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "PetitBacRoom"
+
+# Comme c'est un nouveau worker, on declare la classe directement sous son
+# nom final (pas besoin de migration `renamed_classes`).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PetitBacRoom"]

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Règles — Petit Bac</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🎲 Petit Bac multijoueur</h1>
+    <a href="index.html" class="header-info" style="color: var(--beige); text-decoration: none;">← Retour</a>
+  </header>
+
+  <main>
+    <div class="card legal-page">
+      <h2>Comment jouer ?</h2>
+
+      <p class="rules-intro">
+        Le Petit Bac est un jeu de rapidité et de vocabulaire. À chaque manche,
+        une lettre est tirée au sort, et tous les joueurs doivent trouver
+        un mot commençant par cette lettre dans chaque catégorie. Le plus
+        complet et le plus original gagne.
+      </p>
+
+      <section>
+        <h3>1. Création de la partie</h3>
+        <p>
+          Un joueur (l'<strong>hôte</strong>) crée la partie depuis l'accueil et
+          obtient un <strong>lien d'invitation</strong> à partager (WhatsApp, SMS, Discord…).
+          Quiconque ouvre ce lien arrive directement sur la page « Rejoindre la partie » :
+          il n'a plus qu'à choisir son pseudo.
+        </p>
+        <p>
+          L'hôte configure ensuite la partie :
+        </p>
+        <ul>
+          <li><strong>Catégories</strong> à remplir (entre 2 et 12) : Pays, Animal, Prénom, Métier, etc. Tu peux choisir parmi des préréglages ou ajouter les tiennes.</li>
+          <li><strong>Nombre de manches</strong> : choix manuel ou illimité.</li>
+          <li><strong>Durée d'une manche</strong> : entre 30 secondes et 5 minutes.</li>
+          <li><strong>Fin de manche</strong> : « STOP ou timer » (un joueur peut interrompre la manche dès qu'il a fini) ou « Timer uniquement » (tout le monde joue jusqu'au bout du chrono, sans STOP possible).</li>
+          <li><strong>Barème de score</strong> : combien de points pour chaque type de réponse (modifiable, mais les valeurs par défaut sont équilibrées).</li>
+          <li>
+            <strong>Malus tricheur (bouton STOP)</strong> : nombre de points retirés (par catégorie tricheuse) au joueur qui a fait STOP sans avoir répondu de bonne foi.
+            Exemple : si la lettre est A et que quelqu'un écrit juste « A » dans toutes les cases puis fait STOP, c'est syntaxiquement valide mais c'est de la triche.
+            Pendant la phase de vote, un compteur partagé permet d'ajuster combien de catégories sont jugées tricheuses ; le malus est ensuite appliqué automatiquement au score de la manche du stoppeur. Mettre 0 désactive cette option.
+          </li>
+          <li>
+            <strong>Lettres à utiliser</strong> : choisis quelles lettres peuvent être tirées au sort. Par défaut, on exclut quelques lettres difficiles (K, Q, W, X, Y, Z). Un bouton permet de désactiver d'un coup les lettres déjà sorties dans la room (très pratique pour ne pas retomber dessus quand on enchaîne les parties).
+          </li>
+        </ul>
+        <p>
+          Quand au moins 2 joueurs sont connectés, l'hôte lance la partie.
+        </p>
+      </section>
+
+      <section>
+        <h3>2. Pendant la manche</h3>
+        <p>
+          Une <strong>lettre est tirée au sort</strong> (parmi celles activées par l'hôte), et le chrono démarre.
+          Tu dois remplir chaque catégorie avec un mot qui commence par cette
+          lettre.
+        </p>
+        <p>
+          Le bouton <strong>STOP — j'ai terminé</strong> ne s'active que lorsque
+          <strong>toutes tes cases sont remplies</strong> ET que <strong>toutes commencent
+          par la bonne lettre</strong>. Un joueur peut alors cliquer dessus
+          pour <strong>arrêter la manche pour tout le monde</strong>. Sinon,
+          la manche se termine automatiquement quand le chrono atteint zéro.
+        </p>
+        <p>
+          En mode <strong>« Timer uniquement »</strong>, le bouton STOP n'est pas affiché :
+          tout le monde joue jusqu'à la fin du chrono.
+        </p>
+        <p class="legal-note">
+          Astuce : la touche <strong>Entrée</strong> (ou Tab) passe au champ
+          suivant. Sur la dernière case, Entrée déclenche directement
+          <strong>STOP</strong> si la grille est valide.
+        </p>
+      </section>
+
+      <section>
+        <h3>3. Validation collaborative des réponses</h3>
+        <p>
+          Une fois la manche terminée, toutes les réponses de tous les joueurs
+          s'affichent côte à côte. Chacun peut alors voter sur chaque réponse
+          via <strong>3 boutons</strong> :
+        </p>
+        <ul class="rules-vote-legend">
+          <li>
+            <span class="vote-demo vote-demo-unique">✓</span>
+            <strong>Unique</strong> — la réponse est valable et n'est pas en
+            doublon avec celle d'un autre joueur.
+          </li>
+          <li>
+            <span class="vote-demo vote-demo-duplicate">≈</span>
+            <strong>Doublon</strong> — la réponse est valable, mais un autre
+            joueur a écrit la même chose.
+          </li>
+          <li>
+            <span class="vote-demo vote-demo-reject">✗</span>
+            <strong>Rejetée</strong> — la réponse n'est pas valable
+            (faute, hors-catégorie, contestée).
+          </li>
+        </ul>
+        <p>
+          La validation est <strong>collaborative et en temps réel</strong> :
+          chaque joueur peut modifier l'état de chaque cellule, et le dernier
+          choix fait foi. Pas de vote majoritaire ni de calcul automatique —
+          c'est aux joueurs de se mettre d'accord. En cas de désaccord, parlez-vous !
+        </p>
+        <p>
+          Les réponses <strong>vides</strong> ou qui <strong>ne commencent
+          pas par la bonne lettre</strong> sont automatiquement marquées
+          rejetées : pas besoin de voter dessus.
+        </p>
+        <p>
+          Quand tout le monde est d'accord, l'hôte clique sur
+          <strong>Calculer les scores</strong>.
+        </p>
+      </section>
+
+      <section>
+        <h3>4. Calcul des scores</h3>
+        <p>Chaque cellule rapporte un nombre de points selon son état :</p>
+        <ul>
+          <li>
+            <strong>Seul à répondre</strong> dans la catégorie (= aucun autre
+            joueur n'a une réponse valable pour cette catégorie) → 15 points
+            par défaut.
+          </li>
+          <li>
+            <strong>Unique</strong> (réponse valable, plusieurs joueurs ont
+            répondu mais avec des mots différents) → 10 points par défaut.
+          </li>
+          <li>
+            <strong>En doublon</strong> (réponse valable mais identique à un
+            autre joueur) → 5 points par défaut.
+          </li>
+          <li>
+            <strong>Vide ou rejetée</strong> → 0 point par défaut.
+          </li>
+        </ul>
+        <p>
+          Le total de la manche s'ajoute au score cumulé. La manche suivante
+          peut alors démarrer.
+        </p>
+      </section>
+
+      <section>
+        <h3>5. Fin de partie</h3>
+        <p>
+          Quand le nombre de manches prévu est atteint, la partie se termine
+          et le <strong>classement final</strong> s'affiche. L'hôte peut aussi
+          terminer la partie à tout moment depuis la phase de validation ou
+          de scoring.
+        </p>
+      </section>
+
+      <section>
+        <h3>Reconnexion en cours de partie</h3>
+        <p>
+          Si tu fermes accidentellement l'onglet ou que ta connexion saute,
+          aucun stress : reviens sur l'accueil, une bannière
+          <strong>« Reprendre la partie »</strong> apparaîtra automatiquement
+          tant que la partie est en cours. Tes réponses et ton score sont
+          conservés.
+        </p>
+        <p>
+          La capitalisation et les accents de ton pseudo sont ignorés pour la
+          reconnexion : tu peux retaper « max » ou « MAX » au lieu de « Max »,
+          ça reconnecte sur le même joueur.
+        </p>
+      </section>
+
+      <div style="margin-top: 32px; text-align: center;">
+        <a href="index.html" class="btn btn-primary">Lancer une partie →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="index.html">Accueil</a>
+    <span class="footer-sep">·</span>
+    <a href="regles.html" class="footer-current">Règles</a>
+    <span class="footer-sep">·</span>
+    <a href="mentions.html">Mentions légales</a>
+  </footer>
+</body>
+</html>

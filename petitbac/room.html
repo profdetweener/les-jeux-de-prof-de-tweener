@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <meta name="format-detection" content="telephone=no">
+  <title>Partie — Petit Bac</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="../index.html" class="app-header-home" title="Tous les jeux">←</a>
+    <h1>🎲 Petit Bac multijoueur</h1>
+    <span class="connection-status" id="connection-status">
+      <span class="dot"></span>
+      <span class="text">connexion…</span>
+    </span>
+  </header>
+
+  <main>
+    <!-- VUE 1 : LOBBY -->
+    <div class="card view" id="view-lobby" style="display: none;">
+      <div class="room-code-banner">
+        <span class="label">Lien d'invitation</span>
+        <div class="room-share">
+          <span class="invite-url" id="invite-url" title="Lien d'invitation">—</span>
+          <button class="copy-btn" id="copy-btn">Copier le lien</button>
+        </div>
+      </div>
+
+      <div class="alert alert-error" id="error-box"></div>
+      <div class="alert alert-info" id="info-box"></div>
+
+      <div class="players-section">
+        <h3>
+          Joueurs
+          <span class="count" id="players-count">0</span>
+        </h3>
+        <ul class="players-list" id="players-list"></ul>
+      </div>
+
+      <div class="host-actions" id="host-actions" style="display: none;">
+        <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
+
+        <div class="form-group">
+          <label>Catégories de la grille</label>
+          <div class="categories-presets" id="categories-presets"></div>
+          <div class="categories-custom">
+            <input
+              type="text"
+              id="custom-category-input"
+              placeholder="Ajouter une catégorie personnalisée"
+              maxlength="30"
+            >
+            <button class="btn btn-secondary btn-sm" id="add-category-btn">+ Ajouter</button>
+          </div>
+          <ul class="categories-selected" id="categories-selected"></ul>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rounds-input">Nombre de manches</label>
+            <div class="rounds-control">
+              <input type="number" id="rounds-input" value="5" min="1" max="100" step="1">
+              <label class="rounds-unlimited">
+                <input type="checkbox" id="rounds-unlimited-input">
+                <span>Illimité</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="timer-input">Durée par manche (sec)</label>
+            <input type="number" id="timer-input" value="90" min="30" max="300" step="10">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Barème de score</label>
+          <div class="scoring-grid">
+            <div>
+              <label class="sub-label" for="score-alone">Seul à répondre</label>
+              <input type="number" id="score-alone" value="15" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-unique">Unique (parmi plusieurs)</label>
+              <input type="number" id="score-unique" value="10" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-duplicate">En doublon</label>
+              <input type="number" id="score-duplicate" value="5" min="-100" max="100">
+            </div>
+            <div>
+              <label class="sub-label" for="score-invalid">Vide / invalide</label>
+              <input type="number" id="score-invalid" value="0" min="-100" max="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="end-mode-input">Fin de manche</label>
+            <select id="end-mode-input">
+              <option value="stop_or_timer" selected>STOP ou timer</option>
+              <option value="timer_only">Timer uniquement (pas de STOP)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="score-cheater">Malus tricheur (bouton STOP)</label>
+            <input type="number" id="score-cheater" value="0" min="0" max="100" step="1">
+            <p class="info-line" style="font-size: 12px; margin-top: 4px;">
+              Nombre de points retirés (par catégorie tricheuse) au joueur qui a fait STOP sans avoir répondu de bonne foi. Mettre 0 désactive cette option.
+            </p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Contrainte de longueur des mots</label>
+          <p class="info-line" style="font-size: 12px; margin-top: -4px; margin-bottom: 8px;">
+            Force les joueurs à réfléchir : un mot hors limite est traité comme une mauvaise lettre (impossible de faire STOP, 0 point au scoring).
+          </p>
+          <div class="length-constraint-row">
+            <label class="length-mode-option">
+              <input type="radio" name="length-mode" value="none" checked>
+              <span>Aucune</span>
+            </label>
+            <label class="length-mode-option">
+              <input type="radio" name="length-mode" value="min">
+              <span>Min</span>
+            </label>
+            <label class="length-mode-option">
+              <input type="radio" name="length-mode" value="max">
+              <span>Max</span>
+            </label>
+            <input
+              type="number"
+              id="length-value-input"
+              value="5"
+              min="1"
+              max="30"
+              step="1"
+              disabled
+              aria-label="Nombre de lettres"
+            >
+            <span class="length-unit" id="length-unit-label">lettres</span>
+          </div>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-group">
+          <label>Lettres à utiliser</label>
+          <p class="info-line" style="font-size: 12px; margin-top: -4px; margin-bottom: 8px;">
+            Clique sur une lettre pour l'activer / la désactiver. Il faut au moins 1 lettre sélectionnée.
+          </p>
+          <div class="letters-grid" id="letters-grid"></div>
+          <div class="letters-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-all">Toutes</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-none">Aucune</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-select-default">Défaut</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="letters-deselect-last" style="display: none;">
+              Désactiver les lettres déjà sorties
+            </button>
+          </div>
+          <p class="info-line letters-last-info" id="letters-last-info" style="display: none; font-size: 12px; margin-top: 6px;"></p>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-start-game">
+          🚀 Démarrer la partie
+        </button>
+        <p class="info-line" style="margin-top: 8px; text-align: center;">
+          Minimum 2 joueurs connectés
+        </p>
+      </div>
+
+      <!-- Vue lecture seule pour les non-hôtes : visualisation de la config en direct -->
+      <div class="guest-config" id="guest-config" style="display: none;">
+        <h3 style="margin-top: 24px;">📋 Configuration de la partie</h3>
+        <p class="info-line">L'hôte configure la partie. Les paramètres se mettent à jour en temps réel.</p>
+
+        <div class="form-group">
+          <label class="sub-label">Catégories</label>
+          <ul class="categories-selected" id="guest-categories"></ul>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Nombre de manches</label>
+            <div class="readonly-value" id="guest-rounds">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Durée par manche</label>
+            <div class="readonly-value" id="guest-timer">—</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="sub-label">Barème de score</label>
+          <div class="scoring-grid">
+            <div><label class="sub-label">Seul à répondre</label><div class="readonly-value" id="guest-score-alone">—</div></div>
+            <div><label class="sub-label">Unique (parmi plusieurs)</label><div class="readonly-value" id="guest-score-unique">—</div></div>
+            <div><label class="sub-label">En doublon</label><div class="readonly-value" id="guest-score-duplicate">—</div></div>
+            <div><label class="sub-label">Vide / invalide</label><div class="readonly-value" id="guest-score-invalid">—</div></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Fin de manche</label>
+            <div class="readonly-value" id="guest-end-mode">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Malus tricheur (bouton STOP)</label>
+            <div class="readonly-value" id="guest-score-cheater">—</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="sub-label">Contrainte de longueur des mots</label>
+          <div class="readonly-value" id="guest-length-constraint">—</div>
+        </div>
+
+        <hr class="config-sep">
+
+        <div class="form-group">
+          <label class="sub-label">Lettres utilisées</label>
+          <div class="letters-grid letters-grid-readonly" id="guest-letters"></div>
+        </div>
+
+        <p class="info-line" style="text-align: center; font-style: italic;">
+          ⏳ En attente du lancement de la partie par l'hôte…
+        </p>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Retour à l'accueil</a>
+      </div>
+    </div>
+
+    <!-- VUE 2 : MANCHE EN COURS -->
+    <div class="card view view-wide" id="view-round" style="display: none;">
+      <!-- Barre compacte fixee en haut sur mobile -->
+      <div class="round-sticky-bar" id="round-sticky-bar" aria-hidden="true">
+        <span class="rsb-letter" id="rsb-letter">?</span>
+        <span class="rsb-round">Manche <span id="rsb-round-num">1</span><span id="rsb-round-total"></span></span>
+        <span class="rsb-length" id="rsb-length" style="display: none;"></span>
+        <span class="rsb-timer" id="rsb-timer">--:--</span>
+      </div>
+
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="round-number">1</span>
+          <span class="round-total" id="round-total"></span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="letter-value">?</span>
+          <span class="letter-length-hint" id="letter-length-hint" style="display: none;"></span>
+        </div>
+        <div class="timer-display" id="timer-display">
+          <span class="timer-label">Temps restant</span>
+          <span class="timer-value" id="timer-value">--:--</span>
+        </div>
+      </div>
+
+      <form class="answers-form" id="answers-form" autocomplete="off"></form>
+
+      <div class="round-actions">
+        <button type="button" class="btn btn-danger btn-block" id="btn-stop">
+          🛑 STOP — j'ai terminé
+        </button>
+        <p class="info-line" id="submission-status"></p>
+      </div>
+    </div>
+
+    <!-- VUE 3 : VALIDATION -->
+    <div class="card view view-wide" id="view-validating" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="vr-round-number">1</span>
+          <span class="round-total" id="vr-round-total"></span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="vr-letter-value">?</span>
+        </div>
+        <div class="round-end-reason" id="round-end-reason"></div>
+      </div>
+
+      <p class="info-line" style="margin-bottom: 16px;">
+        🗳️ Vote pour ou contre chaque réponse des autres joueurs.
+        Une réponse acceptée à la majorité simple sera validée.
+      </p>
+
+      <!-- Zone de malus tricheur (visible uniquement si STOP + malus configuré) -->
+      <div class="cheater-panel" id="cheater-panel" style="display: none;">
+        <div class="cheater-panel-info">
+          <strong id="cheater-panel-title">Malus tricheur</strong>
+          <p id="cheater-panel-desc" class="info-line">
+            <span id="cheater-stopper">—</span> a stoppé la manche. Combien de catégories sont "tricheuses" (lettre OK mais réponse abusive type "A" seul) ?
+          </p>
+          <p class="info-line" id="cheater-panel-result"></p>
+        </div>
+        <div class="cheater-panel-controls">
+          <button class="cheater-btn" id="cheater-dec" type="button" aria-label="Diminuer">−</button>
+          <span class="cheater-count" id="cheater-count">0</span>
+          <button class="cheater-btn" id="cheater-inc" type="button" aria-label="Augmenter">+</button>
+        </div>
+      </div>
+
+      <div class="validation-table-wrap">
+        <table class="validation-table" id="validation-table"></table>
+      </div>
+
+      <div class="host-actions" id="validation-host-actions" style="display: none;">
+        <button class="btn btn-primary btn-block" id="btn-finish-validation">
+          ✅ Calculer les scores
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-validating" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="validation-waiting" style="text-align: center;">
+        En attente de l'hôte pour passer aux scores…
+      </p>
+    </div>
+
+    <!-- VUE 4 : SCORES -->
+    <div class="card view view-wide" id="view-scoring" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="sc-round-number">1</span>
+          <span class="round-total" id="sc-round-total"></span>
+          <span> &mdash; Résultats</span>
+        </div>
+        <div class="letter-display">
+          <span class="letter-label">Lettre</span>
+          <span class="letter-value" id="sc-letter-value">?</span>
+        </div>
+      </div>
+
+      <div class="scores-section">
+        <h3>Points de la manche</h3>
+        <table class="scores-table" id="round-scores-table"></table>
+      </div>
+
+      <div class="scores-section">
+        <h3>Classement cumulé</h3>
+        <ol class="ranking-list" id="cumulative-ranking"></ol>
+      </div>
+
+      <div class="host-actions" id="scoring-host-actions" style="display: none;">
+        <button class="btn btn-primary btn-block" id="btn-next-round">
+          Manche suivante →
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-scoring" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="scoring-waiting" style="text-align: center;">
+        En attente de l'hôte…
+      </p>
+    </div>
+
+    <!-- VUE 5 : FIN DE PARTIE -->
+    <div class="card view" id="view-finished" style="display: none;">
+      <h2 style="text-align: center;">🏆 Fin de la partie !</h2>
+      <ol class="ranking-list ranking-final" id="final-ranking"></ol>
+      <div class="host-actions" id="finished-host-actions" style="display: none; margin-top: 24px;">
+        <button class="btn btn-primary btn-block" id="btn-back-lobby">
+          🔄 Retour au lobby (rejouer)
+        </button>
+      </div>
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Quitter</a>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="mentions.html">Mentions légales</a>
+  </footer>
+
+  <script type="module" src="js/lobby.js"></script>
+</body>
+</html>

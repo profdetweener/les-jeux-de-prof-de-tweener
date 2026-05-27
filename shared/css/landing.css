@@ -1,0 +1,174 @@
+/* ==========================================================================
+   Les jeux du Prof de Tweener — Page d'accueil multi-jeux
+   Reprise des tokens de Petit Bac pour la coherence visuelle entre les jeux.
+   ========================================================================== */
+
+:root {
+  --bleu-nuit: #1a2540;
+  --bleu-nuit-clair: #2a3556;
+  --bleu-accent: #4a6fa5;
+  --beige: #f5ede0;
+  --beige-fonce: #e8dcc4;
+  --blanc: #ffffff;
+  --rouge: #c84545;
+  --vert: #4a8c5a;
+  --jaune: #d4a830;
+  --gris-texte: #5a5a5a;
+  --gris-clair: #d9d9d9;
+  --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
+  --ombre-forte: 0 8px 24px rgba(26, 37, 64, 0.2);
+  --rayon: 10px;
+  --rayon-sm: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--beige); color: var(--bleu-nuit);
+  min-height: 100vh; line-height: 1.5;
+}
+body { display: flex; flex-direction: column; }
+
+/* --- Header --- */
+.landing-header {
+  background: var(--bleu-nuit); color: var(--beige);
+  padding: 18px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--ombre);
+}
+.landing-header h1 {
+  margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.3px;
+}
+.landing-header .header-tagline {
+  font-size: 14px; opacity: 0.85;
+  font-family: "Menlo", "Consolas", monospace;
+}
+
+/* --- Main --- */
+.landing-main {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 16px 32px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.landing-intro {
+  text-align: center; max-width: 580px;
+  margin-bottom: 40px;
+}
+.landing-intro h2 {
+  margin: 0 0 10px;
+  font-size: 28px; font-weight: 700;
+}
+.landing-intro p {
+  margin: 0;
+  font-size: 16px; color: var(--gris-texte);
+  line-height: 1.6;
+}
+
+/* --- Grille des jeux --- */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 48px;
+}
+
+.game-card {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+  text-decoration: none; color: inherit;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+.game-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ombre-forte);
+}
+.game-card.coming-soon {
+  cursor: default;
+  opacity: 0.7;
+}
+.game-card.coming-soon:hover {
+  transform: none;
+  box-shadow: var(--ombre);
+}
+.game-card-emoji {
+  font-size: 40px; line-height: 1;
+  margin-bottom: 4px;
+}
+.game-card-title {
+  margin: 0;
+  font-size: 22px; font-weight: 700;
+  color: var(--bleu-nuit);
+}
+.game-card-tagline {
+  margin: 0;
+  font-size: 14px; color: var(--gris-texte);
+  line-height: 1.5;
+  flex: 1;
+}
+.game-card-meta {
+  display: flex; gap: 10px;
+  font-size: 12px; color: var(--gris-texte);
+  font-weight: 500;
+  align-items: center;
+  margin-top: 4px;
+}
+.game-card-meta .dot { opacity: 0.4; }
+.game-card-cta {
+  margin-top: 10px;
+  font-size: 14px; font-weight: 600;
+  color: var(--rouge);
+  display: flex; align-items: center; gap: 6px;
+}
+.game-card-cta .arrow {
+  transition: transform 0.15s ease-out;
+}
+.game-card:hover .arrow { transform: translateX(3px); }
+
+.game-card-badge {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: var(--beige-fonce);
+  color: var(--bleu-nuit);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* --- Footer --- */
+.landing-footer {
+  background: var(--bleu-nuit); color: var(--beige);
+  padding: 16px 24px;
+  display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+  font-size: 13px;
+}
+.landing-footer a {
+  color: var(--beige); text-decoration: none; opacity: 0.85;
+}
+.landing-footer a:hover {
+  text-decoration: underline; opacity: 1;
+}
+
+/* --- Mobile --- */
+@media (max-width: 600px) {
+  .landing-header { padding: 14px 16px; }
+  .landing-header h1 { font-size: 17px; }
+  .landing-header .header-tagline { font-size: 11px; }
+  .landing-main { padding: 28px 14px 24px; }
+  .landing-intro h2 { font-size: 22px; }
+  .landing-intro p { font-size: 14px; }
+  .games-grid { gap: 14px; }
+  .game-card { padding: 22px 18px; }
+}
