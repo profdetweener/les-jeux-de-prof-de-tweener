@@ -337,6 +337,253 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 .footer-sep { opacity: 0.5; }
 
 /* ===========================================
+   Mode chill : layout 2 colonnes (sidebar + jeu)
+   =========================================== */
+.game-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.game-main {
+  min-width: 0; /* permet à la grille de se rétrécir si besoin */
+}
+
+/* --- Sidebar --- */
+.game-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.sidebar-section {
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 16px;
+}
+.sidebar-section h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bleu-nuit);
+}
+
+/* --- Stats grid --- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gris-texte);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.stat-value {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--bleu-nuit);
+  line-height: 1.1;
+}
+.stat-streak-best {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--beige-fonce);
+  font-size: 12px;
+  color: var(--gris-texte);
+}
+.stat-streak-best span {
+  font-weight: 700;
+  color: var(--bleu-nuit);
+}
+
+/* --- Word list (mots de la session) --- */
+.word-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.word-list-empty {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--gris-texte);
+  padding: 4px 0;
+}
+.word-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.word-item:hover { background: var(--beige-fonce); }
+.word-item-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.word-item-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--blanc);
+}
+.word-item-status.found { background: var(--vert); }
+.word-item-status.missed { background: var(--rouge); }
+.word-item-word {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bleu-nuit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.word-item-attempts {
+  font-size: 11px;
+  color: var(--gris-texte);
+  margin-left: 4px;
+}
+.word-item-info {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--bleu-accent);
+  background: var(--blanc);
+  color: var(--bleu-accent);
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.word-item-info:hover { background: var(--bleu-accent); color: var(--blanc); }
+
+/* --- Modale définition --- */
+.definition-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 37, 64, 0.55);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fade-in 0.15s ease-out;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.definition-modal {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 28px 28px 20px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.definition-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gris-texte);
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 1;
+}
+.definition-close:hover { background: var(--beige); color: var(--bleu-nuit); }
+.definition-title {
+  margin: 0 0 16px;
+  font-family: Georgia, serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--bleu-nuit);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.definition-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--bleu-nuit);
+}
+.definition-body .def-pos {
+  font-style: italic;
+  color: var(--bleu-accent);
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.definition-body .def-pos:first-child { margin-top: 0; }
+.definition-body ol {
+  margin: 0 0 8px;
+  padding-left: 24px;
+}
+.definition-body ol li { margin-bottom: 6px; }
+.definition-body .def-example {
+  display: block;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--gris-texte);
+  margin-top: 2px;
+}
+.definition-loading,
+.definition-error {
+  font-style: italic;
+  color: var(--gris-texte);
+  text-align: center;
+  padding: 20px 0;
+}
+.definition-error { color: var(--rouge); font-style: normal; }
+.definition-source {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--beige-fonce);
+  font-size: 12px;
+  color: var(--gris-texte);
+  text-align: right;
+}
+.definition-source a { color: var(--bleu-accent); }
+
+/* ===========================================
    Mobile
    =========================================== */
 @media (max-width: 720px) {
@@ -351,6 +598,12 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   .kb-row { gap: 3px; }
   .kb-key { width: 32px; height: 44px; font-size: 13px; }
   .kb-key-wide { width: 52px; font-size: 10px; }
+
+  /* En mobile : pas de sidebar, on cache et on retombe sur 1 seule colonne */
+  .game-layout { grid-template-columns: 1fr; gap: 0; }
+  .game-sidebar { display: none; }
+  .definition-modal { padding: 24px 20px 16px; }
+  .definition-title { font-size: 22px; }
 }
 @media (max-width: 380px) {
   .motus-cell { font-size: 18px; }

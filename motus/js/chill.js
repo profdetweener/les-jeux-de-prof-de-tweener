@@ -18,6 +18,7 @@
 
 import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js";
 import { showToast } from "../../shared/js/toast.js";
+import { fetchDefinition, prefetchDefinition } from "../../shared/js/wiktionary.js";
 
 // =============================================================================
 // Bornes et defauts (alignes avec MOTUS_CONFIG cote worker)
@@ -84,6 +85,34 @@ const game = {
 };
 
 let keyButtons = {};
+
+// =============================================================================
+// Etat de la session (in-memory, perdu au reload)
+//
+// On enregistre chaque partie TERMINEE (trouvée ou ratée) dans `session.words`
+// dans l'ordre chronologique. Les stats sont des compteurs derives recalcules
+// a chaque fois pour eviter les desyncs.
+// =============================================================================
+
+const session = {
+  /**
+   * Liste des mots joues, du plus ancien au plus recent.
+   * Forme : { word: "MAISON", found: true, attempts: 3, wordLength: 6 }
+   * - attempts = nombre d'essais consommes (1..maxAttempts si found,
+   *              = maxAttempts si raté).
+   */
+  words: [],
+
+  /**
+   * Serie en cours (mots trouves consecutifs). Reset a chaque mot rate.
+   */
+  currentStreak: 0,
+
+  /**
+   * Meilleure serie de la session.
+   */
+  bestStreak: 0,
+};
 
 // =============================================================================
 // References DOM (resolues a l'init)
@@ -483,6 +512,9 @@ function updateStatus() {
 
 document.addEventListener("keydown", (e) => {
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  // Si la modale de définition est ouverte, on lui laisse la priorité
+  // (Escape sera géré par son propre handler, le reste est ignoré).
+  if (els.definitionOverlay && els.definitionOverlay.style.display !== "none") return;
   if (!canType()) return;
   if (e.key === "Enter") { onKeyPress("ENTER"); e.preventDefault(); return; }
   if (e.key === "Backspace") { onKeyPress("DEL"); e.preventDefault(); return; }
@@ -494,10 +526,204 @@ document.addEventListener("keydown", (e) => {
 });
 
 // =============================================================================
+// Session : enregistrement d'une partie et mise a jour des stats
+// =============================================================================
+
+/**
+ * Enregistre la partie qui vient de se terminer (appel depuis goBetween).
+ * @param {{found: boolean, word: string, attempts: number, wordLength: number}} entry
+ */
+function recordSessionWord(entry) {
+  session.words.push(entry);
+  if (entry.found) {
+    session.currentStreak += 1;
+    if (session.currentStreak > session.bestStreak) {
+      session.bestStreak = session.currentStreak;
+    }
+  } else {
+    session.currentStreak = 0;
+  }
+  renderStats();
+  renderWordList();
+  // Prefetch de la def pour rendre le clic sur (i) instantane si l'utilisateur
+  // ouvre tout de suite. Silencieux en cas d'echec.
+  prefetchDefinition(entry.word);
+}
+
+/**
+ * Recalcule et affiche toutes les stats a partir de session.words.
+ */
+function renderStats() {
+  const total = session.words.length;
+  const foundList = session.words.filter((w) => w.found);
+  const foundCount = foundList.length;
+  const rate = total > 0 ? Math.round((foundCount / total) * 100) : null;
+  const avgAttempts = foundCount > 0
+    ? foundList.reduce((s, w) => s + w.attempts, 0) / foundCount
+    : null;
+  const best = foundCount > 0
+    ? Math.min(...foundList.map((w) => w.attempts))
+    : null;
+
+  setText("stat-games", String(total));
+  setText("stat-found", String(foundCount));
+  setText("stat-rate", rate == null ? "—" : `${rate}%`);
+  setText("stat-avg", avgAttempts == null ? "—" : avgAttempts.toFixed(1));
+  setText("stat-best", best == null ? "—" : `${best} essai${best > 1 ? "s" : ""}`);
+  setText("stat-streak", String(session.currentStreak));
+  setText("stat-streak-best", String(session.bestStreak));
+}
+
+/**
+ * Reconstruit la liste des mots joues dans la sidebar.
+ */
+function renderWordList() {
+  const ul = els.wordList;
+  if (!ul) return;
+  ul.innerHTML = "";
+
+  if (session.words.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "word-list-empty";
+    empty.textContent = "Aucun mot joué pour l'instant.";
+    ul.appendChild(empty);
+    return;
+  }
+
+  // Plus recent en haut pour confort de lecture
+  for (let i = session.words.length - 1; i >= 0; i--) {
+    const entry = session.words[i];
+    const li = document.createElement("li");
+    li.className = "word-item";
+
+    const left = document.createElement("span");
+    left.className = "word-item-text";
+
+    const status = document.createElement("span");
+    status.className = `word-item-status ${entry.found ? "found" : "missed"}`;
+    status.textContent = entry.found ? "✓" : "✗";
+    status.setAttribute("aria-label", entry.found ? "trouvé" : "manqué");
+
+    const word = document.createElement("span");
+    word.className = "word-item-word";
+    word.textContent = entry.word;
+
+    const attempts = document.createElement("span");
+    attempts.className = "word-item-attempts";
+    if (entry.found) {
+      attempts.textContent = `${entry.attempts}/${entry.maxAttempts}`;
+    } else {
+      attempts.textContent = "raté";
+    }
+
+    left.appendChild(status);
+    left.appendChild(word);
+    left.appendChild(attempts);
+
+    const info = document.createElement("button");
+    info.type = "button";
+    info.className = "word-item-info";
+    info.textContent = "i";
+    info.setAttribute("aria-label", `Voir la définition de ${entry.word}`);
+    info.addEventListener("click", () => openDefinition(entry.word));
+
+    li.appendChild(left);
+    li.appendChild(info);
+    ul.appendChild(li);
+  }
+}
+
+function setText(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+
+// =============================================================================
+// Modale de definition (Wiktionary)
+// =============================================================================
+
+let lastFocusedBeforeModal = null;
+
+async function openDefinition(word) {
+  const overlay = els.definitionOverlay;
+  const title = els.definitionTitle;
+  const body = els.definitionBody;
+  const sourceLink = els.definitionSourceLink;
+  if (!overlay || !title || !body) return;
+
+  lastFocusedBeforeModal = document.activeElement;
+
+  title.textContent = word.toUpperCase();
+  body.innerHTML = `<p class="definition-loading">Chargement de la définition…</p>`;
+  sourceLink.href = `https://fr.wiktionary.org/wiki/${encodeURIComponent(word.toLowerCase())}`;
+  overlay.style.display = "";
+  // Focus le bouton de fermeture pour accessibilite
+  setTimeout(() => els.definitionClose?.focus(), 0);
+
+  try {
+    const def = await fetchDefinition(word);
+    sourceLink.href = def.sourceUrl;
+    renderDefinitionEntries(def.entries, body);
+  } catch (err) {
+    body.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "definition-error";
+    p.textContent = err.message || "Définition indisponible.";
+    body.appendChild(p);
+  }
+}
+
+function renderDefinitionEntries(entries, container) {
+  container.innerHTML = "";
+  for (const entry of entries) {
+    const pos = document.createElement("p");
+    pos.className = "def-pos";
+    pos.textContent = entry.partOfSpeech;
+    container.appendChild(pos);
+
+    const ol = document.createElement("ol");
+    for (const def of entry.definitions) {
+      const li = document.createElement("li");
+      li.textContent = def.text;
+      for (const ex of def.examples) {
+        const exEl = document.createElement("span");
+        exEl.className = "def-example";
+        exEl.textContent = `« ${ex} »`;
+        li.appendChild(exEl);
+      }
+      ol.appendChild(li);
+    }
+    container.appendChild(ol);
+  }
+}
+
+function closeDefinition() {
+  const overlay = els.definitionOverlay;
+  if (!overlay) return;
+  overlay.style.display = "none";
+  if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === "function") {
+    lastFocusedBeforeModal.focus();
+  }
+}
+
+// =============================================================================
 // Transitions de vues
 // =============================================================================
 
 function goBetween() {
+  // Enregistre la partie dans la session (stats + word list).
+  // On le fait ici et nulle part ailleurs pour eviter le double comptage :
+  // c'est le seul point d'entree de la vue "between".
+  if (game.firstLetter && game.revealedWord) {
+    recordSessionWord({
+      found: game.status === "found",
+      word: game.revealedWord,
+      attempts: game.attempts.length,
+      wordLength: game.wordLength,
+      maxAttempts: game.maxAttempts,
+    });
+  }
+
   if (game.status === "found") {
     els.betweenSummary.textContent = "Tu as trouvé le mot ! 🎉";
     els.betweenSummary.className = "between-summary success";
@@ -591,11 +817,25 @@ function bindElements() {
   els.betweenWord = $("between-word");
   els.nextWordBtn = $("next-word-btn");
   els.backToConfigBtn = $("back-to-config-btn");
+
+  // Sidebar stats + word list
+  els.wordList = $("word-list");
+
+  // Modale definition
+  els.definitionOverlay = $("definition-overlay");
+  els.definitionTitle = $("definition-title");
+  els.definitionBody = $("definition-body");
+  els.definitionSourceLink = $("definition-source-link");
+  els.definitionClose = $("definition-close");
 }
 
 async function init() {
   bindElements();
   buildKeyboard();
+
+  // Affiche les stats à zéro et la liste vide au démarrage
+  renderStats();
+  renderWordList();
 
   pingWorker().then((ok) => {
     els.serverStatus.textContent = ok ? "✓ serveur en ligne" : "✗ serveur injoignable";
@@ -614,6 +854,22 @@ async function init() {
 
   els.backToConfigBtn.addEventListener("click", () => {
     showView("config");
+  });
+
+  // Fermeture de la modale définition : bouton, clic overlay, touche Escape
+  if (els.definitionClose) {
+    els.definitionClose.addEventListener("click", closeDefinition);
+  }
+  if (els.definitionOverlay) {
+    els.definitionOverlay.addEventListener("click", (e) => {
+      // Ferme seulement si on clique sur le fond, pas sur le contenu de la modale
+      if (e.target === els.definitionOverlay) closeDefinition();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && els.definitionOverlay && els.definitionOverlay.style.display !== "none") {
+      closeDefinition();
+    }
   });
 
   showView("config");
