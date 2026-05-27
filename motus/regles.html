@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motus — Règles du jeu</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🟥 Motus multijoueur</h1>
+    <a href="index.html" class="header-info" style="color: var(--beige); text-decoration: none;">← Retour</a>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Règles du jeu</h2>
+
+      <p class="subtitle">Une variante multijoueur du classique « Motus », pensée pour le stream.</p>
+
+      <h3>But</h3>
+      <p>Deviner un mot français en un nombre limité d'essais. La première lettre est donnée.</p>
+
+      <h3>Mode coop / stream</h3>
+      <p>
+        Seul l'hôte tape les essais sur son clavier. Tous les autres joueurs voient la grille en temps réel
+        mais n'ont pas de clavier — ils proposent leurs mots à l'oral ou dans le chat. Idéal en stream.
+      </p>
+
+      <h3>Comment ça marche</h3>
+      <p>L'hôte choisit la longueur du mot (5 à 10 lettres) et le nombre d'essais (4 à 8). Le serveur tire un mot au hasard, en révèle la première lettre.</p>
+      <p>À chaque essai, chaque lettre est colorée selon sa situation :</p>
+
+      <ul style="line-height: 2;">
+        <li>
+          <span style="display:inline-block;width:24px;height:24px;background:#c84545;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
+          <strong>Rouge</strong> : lettre bien placée et nulle part ailleurs dans le mot.
+        </li>
+        <li>
+          <span style="display:inline-block;width:24px;height:24px;background:linear-gradient(135deg,#c84545 50%,#d4a830 50%);border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
+          <strong>Rouge + jaune en diagonale</strong> : lettre bien placée, mais il y a encore au moins une autre occurrence ailleurs dans le mot.
+        </li>
+        <li>
+          <span style="display:inline-block;width:24px;height:24px;background:#d4a830;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
+          <strong>Jaune</strong> : lettre présente dans le mot, mais mal placée.
+        </li>
+        <li>
+          <span style="display:inline-block;width:24px;height:24px;background:#d3d1c7;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
+          <strong>Gris</strong> : lettre absente du mot.
+        </li>
+      </ul>
+
+      <p style="margin-top: 16px;">
+        La diagonale rouge/jaune est une variante de notre cru qui te dit clairement : « cette lettre est bien là,
+        mais il en reste une autre quelque part ». Sur le Motus classique, on doit le deviner soi-même — ici on te
+        le signale.
+      </p>
+
+      <h3>Validation des essais</h3>
+      <p>
+        Chaque essai doit faire la bonne longueur, commencer par la lettre donnée, et exister dans le dictionnaire français.
+        Sinon, le serveur le refuse sans consommer d'essai.
+      </p>
+
+      <h3>Fin de manche</h3>
+      <p>
+        Soit le mot est trouvé, soit tous les essais sont épuisés. L'hôte peut ensuite lancer le mot suivant ou
+        revenir au lobby.
+      </p>
+
+      <p style="margin-top: 24px;">
+        <a href="index.html" class="btn btn-secondary">Retour à l'accueil</a>
+      </p>
+    </div>
+  </main>
+</body>
+</html>

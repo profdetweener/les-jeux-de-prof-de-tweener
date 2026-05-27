@@ -21,10 +21,11 @@
 
 import { ROOM_CONFIG } from "./shared/types";
 export { PetitBacRoom } from "./petitbac/room";
+export { MotusRoom } from "./motus/room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
-  MOTUS_ROOMS?: DurableObjectNamespace;
+  MOTUS_ROOMS: DurableObjectNamespace;
 }
 
 const CORS_HEADERS = {
@@ -140,7 +141,7 @@ export default {
       return jsonResponse({
         status: "ok",
         service: "les-jeux-de-prof-de-tweener",
-        games: ["petitbac"],
+        games: ["petitbac", "motus"],
         timestamp: new Date().toISOString(),
       });
     }
@@ -169,10 +170,9 @@ export default {
     }
 
     if (url.pathname.startsWith("/motus/")) {
-      return jsonResponse(
-        { error: "Motus n'est pas encore disponible." },
-        { status: 503 }
-      );
+      const subPath = url.pathname.slice("/motus".length);
+      const res = await handleGameRoutes(request, subPath, env.MOTUS_ROOMS);
+      if (res) return res;
     }
 
     return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
