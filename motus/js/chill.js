@@ -6,11 +6,12 @@
  *   - POST /motus/chill/draw   pour tirer un nouveau mot
  *   - POST /motus/chill/guess  pour valider et colorer un essai
  *
- * Le mot est cache cote serveur via un token signe (HMAC). Le client envoie
- * le token avec chaque essai ; le serveur le verifie et renvoie la coloration.
- *
- * Le rendu (grille + clavier) reprend la meme logique visuelle que view-game.js
- * en multijoueur, mais simplifie pour le cas solo.
+ * Mecaniques notables (Livraison 2.1) :
+ *   - La 1ere lettre est affichee uniquement sur la ligne courante (pas toutes).
+ *   - Les lettres trouvees "good" (avec ou sans hasMore) sont reportees a la
+ *     bonne position sur la ligne suivante, en lettres verrouillees blanches.
+ *   - L'animation des couleurs apres un essai joue lettre par lettre, avec
+ *     un petit delai entre chaque case.
  */
 
 import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js";
@@ -26,6 +27,11 @@ const MIN_ATTEMPTS = 4;
 const MAX_ATTEMPTS = 8;
 const DEFAULT_WORD_LEN = 7;
 const DEFAULT_ATTEMPTS = 6;
+
+// Delai entre 2 cases lors de l'animation de feedback (ms)
+const REVEAL_DELAY_MS = 220;
+// Delai apres la derniere case revelee avant de passer a la suite (ms)
+const POST_REVEAL_DELAY_MS = 300;
 
 const KEYBOARD_ROWS = [
   ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -44,15 +50,30 @@ const config = {
 
 const game = {
   token: null,         // token signe du worker
-  firstLetter: null,   // premiere lettre imposee
+  firstLetter: null,   // premiere lettre imposee (= letter[0] du mot cible)
   wordLength: 0,
   maxAttempts: 0,
   attempts: [],        // [{guess, feedback}]
-  status: "idle",      // idle | in_progress | found | exhausted
+  status: "idle",      // idle | in_progress | submitting | animating | found | exhausted
   revealedWord: null,
+
+  /**
+   * Pour la ligne courante (= attempts.length), liste des positions verrouillees
+   * avec leur lettre. Inclut toujours la position 0 (premiere lettre du mot) et,
+   * apres au moins un essai, toutes les positions "good" des essais precedents.
+   * Forme : array de longueur wordLength, chaque case vaut soit une lettre A-Z
+   * soit la chaine vide.
+   */
+  lockedRow: [],
+
+  /**
+   * Buffer de saisie de la ligne courante (longueur fixe wordLength).
+   * Les positions verrouillees contiennent la lettre (toujours egale a lockedRow[i]).
+   * Les positions libres contiennent "" tant que l'utilisateur n'a pas tape.
+   */
+  typingBuffer: [],
 };
 
-let typingBuffer = "";
 let keyButtons = {};
 
 // =============================================================================
@@ -120,7 +141,7 @@ function updateKeyColor(letter, status) {
 }
 
 // =============================================================================
-// Construction et rendu de la grille
+// Construction de la grille (vide, pas de pre-remplissage)
 // =============================================================================
 
 function rebuildGrid() {
@@ -137,22 +158,23 @@ function rebuildGrid() {
       cell.className = "motus-cell";
       cell.dataset.row = String(row);
       cell.dataset.col = String(col);
-      if (col === 0) {
-        cell.textContent = game.firstLetter;
-        cell.classList.add("locked-letter");
-      }
       rowEl.appendChild(cell);
     }
     els.grid.appendChild(rowEl);
   }
-
-  for (let i = 0; i < game.attempts.length; i++) {
-    paintAttemptRow(i, game.attempts[i]);
-  }
-  renderCurrentTypingRow();
 }
 
-function paintAttemptRow(rowIndex, attempt) {
+// =============================================================================
+// Rendu des essais deja faits (re-painting sans animation, ex. apres erreur)
+// =============================================================================
+
+function repaintAllPastAttempts() {
+  for (let i = 0; i < game.attempts.length; i++) {
+    repaintAttemptRowInstant(i, game.attempts[i]);
+  }
+}
+
+function repaintAttemptRowInstant(rowIndex, attempt) {
   const rowEl = els.grid.querySelector(`.motus-row[data-row="${rowIndex}"]`);
   if (!rowEl) return;
   const cells = rowEl.querySelectorAll(".motus-cell");
@@ -163,12 +185,75 @@ function paintAttemptRow(rowIndex, attempt) {
     cell.classList.remove("locked-letter", "typing");
     cell.classList.add("filled", `status-${fb.status}`);
     if (fb.hasMore) cell.classList.add("has-more");
+    updateKeyColor(fb.letter, fb.status);
   });
-  attempt.feedback.forEach((fb) => updateKeyColor(fb.letter, fb.status));
 }
 
-function renderCurrentTypingRow() {
-  if (game.status !== "in_progress") return;
+// =============================================================================
+// Animation lettre par lettre du feedback
+// =============================================================================
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function animateAttemptRow(rowIndex, attempt) {
+  const rowEl = els.grid.querySelector(`.motus-row[data-row="${rowIndex}"]`);
+  if (!rowEl) return;
+  const cells = rowEl.querySelectorAll(".motus-cell");
+
+  // D'abord on s'assure que toutes les cases affichent la lettre tapee sans
+  // coloration (etat de transition juste apres la soumission).
+  attempt.feedback.forEach((fb, col) => {
+    const cell = cells[col];
+    if (!cell) return;
+    cell.textContent = fb.letter;
+    // Retire d'eventuels states de saisie
+    cell.classList.remove("typing");
+  });
+
+  // Puis on revele case par case
+  for (let col = 0; col < attempt.feedback.length; col++) {
+    const fb = attempt.feedback[col];
+    const cell = cells[col];
+    if (!cell) continue;
+    cell.classList.remove("locked-letter");
+    cell.classList.add("filled", `status-${fb.status}`);
+    if (fb.hasMore) cell.classList.add("has-more");
+    updateKeyColor(fb.letter, fb.status);
+    await sleep(REVEAL_DELAY_MS);
+  }
+  // Petit temps mort pour digerer le resultat avant la prochaine ligne
+  await sleep(POST_REVEAL_DELAY_MS);
+}
+
+// =============================================================================
+// Gestion de la ligne courante : lettres verrouillees + buffer
+// =============================================================================
+
+/**
+ * Calcule les positions verrouillees pour la ligne d'index donne, en se basant
+ * sur les essais precedents. Position 0 toujours verrouillee avec firstLetter.
+ * Autres positions verrouillees si une lettre "good" y a deja ete trouvee.
+ */
+function computeLockedRow() {
+  const locked = new Array(game.wordLength).fill("");
+  locked[0] = game.firstLetter;
+  for (const attempt of game.attempts) {
+    attempt.feedback.forEach((fb, col) => {
+      if (fb.status === "good") {
+        locked[col] = fb.letter;
+      }
+    });
+  }
+  return locked;
+}
+
+/**
+ * Affiche les lettres verrouillees sur la ligne courante (uniquement).
+ * Ne touche pas aux lignes precedentes ni suivantes.
+ */
+function paintLockedRow() {
   const idx = game.attempts.length;
   const rowEl = els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
   if (!rowEl) return;
@@ -177,41 +262,90 @@ function renderCurrentTypingRow() {
   for (let col = 0; col < game.wordLength; col++) {
     const cell = cells[col];
     cell.classList.remove("filled", "typing", "status-good", "status-misplaced", "status-absent", "has-more");
-    if (col === 0) {
-      cell.textContent = game.firstLetter;
+    if (game.lockedRow[col]) {
+      cell.textContent = game.lockedRow[col];
       cell.classList.add("locked-letter");
-    } else if (col < typingBuffer.length) {
-      cell.textContent = typingBuffer[col];
-      cell.classList.add("typing");
     } else {
       cell.textContent = "";
     }
   }
 }
 
-function flashCurrentRow() {
+/**
+ * Affiche les lettres "en cours de saisie" sur la ligne courante.
+ * Les positions verrouillees gardent leur classe locked-letter ; les positions
+ * libres remplies par l'utilisateur prennent la classe typing.
+ */
+function renderTypingRow() {
   const idx = game.attempts.length;
   const rowEl = els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
   if (!rowEl) return;
-  rowEl.classList.add("flash-error");
-  setTimeout(() => rowEl.classList.remove("flash-error"), 400);
+  const cells = rowEl.querySelectorAll(".motus-cell");
+
+  for (let col = 0; col < game.wordLength; col++) {
+    const cell = cells[col];
+    const isLocked = game.lockedRow[col] !== "";
+    cell.classList.remove("filled", "status-good", "status-misplaced", "status-absent", "has-more");
+
+    if (isLocked) {
+      cell.textContent = game.lockedRow[col];
+      cell.classList.add("locked-letter");
+      cell.classList.remove("typing");
+    } else if (game.typingBuffer[col]) {
+      cell.textContent = game.typingBuffer[col];
+      cell.classList.add("typing");
+      cell.classList.remove("locked-letter");
+    } else {
+      cell.textContent = "";
+      cell.classList.remove("locked-letter", "typing");
+    }
+  }
 }
 
-function updateStatus() {
-  if (!game.firstLetter) {
-    els.statusLine.textContent = "";
-    els.wordInfo.textContent = "";
-    return;
+/**
+ * Initialise le buffer de saisie pour la ligne courante : les positions
+ * verrouillees prennent leur lettre, les autres restent vides.
+ */
+function resetTypingBuffer() {
+  game.typingBuffer = game.lockedRow.map((l) => l);
+}
+
+/**
+ * Construit la chaine effective a envoyer au serveur a partir du buffer.
+ * Les positions verrouillees sont deja remplies, donc la chaine est complete
+ * si toutes les positions libres ont ete remplies par l'utilisateur.
+ */
+function buildGuessString() {
+  return game.typingBuffer.join("");
+}
+
+/**
+ * Vrai si toutes les positions du buffer sont remplies (verrouillees ou non).
+ */
+function isBufferComplete() {
+  return game.typingBuffer.every((c) => c !== "");
+}
+
+/**
+ * Renvoie l'indice de la prochaine position libre apres ou egale a `from`,
+ * ou -1 s'il n'y en a plus.
+ */
+function nextFreePos(from) {
+  for (let i = from; i < game.wordLength; i++) {
+    if (game.lockedRow[i] === "" && !game.typingBuffer[i]) return i;
   }
-  els.wordInfo.textContent = `${game.wordLength} lettres`;
-  if (game.status === "in_progress") {
-    els.statusLine.textContent = `Essai ${game.attempts.length + 1} / ${game.maxAttempts}`;
-  } else if (game.status === "found") {
-    const n = game.attempts.length;
-    els.statusLine.textContent = `Trouvé en ${n} essai${n > 1 ? "s" : ""} !`;
-  } else if (game.status === "exhausted") {
-    els.statusLine.textContent = "Essais épuisés.";
+  return -1;
+}
+
+/**
+ * Renvoie l'indice de la derniere position libre remplie (la plus a droite),
+ * ou -1 si tout est vide ou tout verrouille.
+ */
+function lastFilledFreePos() {
+  for (let i = game.wordLength - 1; i >= 0; i--) {
+    if (game.lockedRow[i] === "" && game.typingBuffer[i]) return i;
   }
+  return -1;
 }
 
 // =============================================================================
@@ -230,57 +364,50 @@ function onKeyPress(key) {
     return;
   }
   if (key === "DEL") {
-    // On ne laisse pas effacer la 1ere lettre verrouillee
-    if (typingBuffer.length > 1) {
-      typingBuffer = typingBuffer.slice(0, -1);
-    } else {
-      typingBuffer = "";
+    const idx = lastFilledFreePos();
+    if (idx !== -1) {
+      game.typingBuffer[idx] = "";
+      renderTypingRow();
     }
-    renderCurrentTypingRow();
     return;
   }
   if (/^[A-Z]$/.test(key)) {
-    if (typingBuffer.length === 0) {
-      typingBuffer = game.firstLetter;
-    }
-    if (typingBuffer.length < game.wordLength) {
-      typingBuffer += key;
-      renderCurrentTypingRow();
-    }
+    const pos = nextFreePos(0);
+    if (pos === -1) return; // plus de place libre
+    game.typingBuffer[pos] = key;
+    renderTypingRow();
   }
 }
 
 async function submitGuess() {
   if (!canType()) return;
-  if (typingBuffer.length !== game.wordLength) {
+  if (!isBufferComplete()) {
     flashCurrentRow();
     return;
   }
-  const guess = typingBuffer;
+  const guess = buildGuessString();
 
-  // Desactive temporairement la saisie pendant le round-trip serveur
   game.status = "submitting";
   try {
     const res = await motusChillGuess(game.token, guess);
-    // Reactive
-    game.status = "in_progress";
 
     game.attempts.push(res.attempt);
-    paintAttemptRow(game.attempts.length - 1, res.attempt);
-    typingBuffer = "";
-    renderCurrentTypingRow();
+    const rowIndex = game.attempts.length - 1;
 
+    // Animation lettre par lettre (bloque la saisie)
+    game.status = "animating";
+    await animateAttemptRow(rowIndex, res.attempt);
+
+    // Cas mot trouve : on saute la suite et passe a la vue between
     if (res.status === "found") {
       game.status = "found";
       game.revealedWord = res.revealedWord;
       updateStatus();
-      setTimeout(() => goBetween(), 900);
+      goBetween();
       return;
     }
 
-    // Essais epuises ? Le serveur renvoie in_progress meme dans ce cas, c'est
-    // le client qui detecte. Si on vient d'utiliser le dernier essai, on demande
-    // au serveur de reveler le mot.
+    // Cas essais epuises : on demande le mot au serveur
     if (game.attempts.length >= game.maxAttempts) {
       try {
         const reveal = await motusChillReveal(game.token);
@@ -290,16 +417,46 @@ async function submitGuess() {
       }
       game.status = "exhausted";
       updateStatus();
-      setTimeout(() => goBetween(), 900);
+      goBetween();
       return;
     }
 
+    // Cas standard : on prepare la ligne suivante
+    game.status = "in_progress";
+    game.lockedRow = computeLockedRow();
+    resetTypingBuffer();
+    paintLockedRow();
     updateStatus();
   } catch (err) {
+    // Le serveur a refuse l'essai (mot pas dans le dico, etc.)
     game.status = "in_progress";
     showToast(err.message || "Essai refuse", { type: "error" });
-    // Garde le buffer pour que l'utilisateur puisse corriger sans tout retaper
     flashCurrentRow();
+  }
+}
+
+function flashCurrentRow() {
+  const idx = game.attempts.length;
+  const rowEl = els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
+  if (!rowEl) return;
+  rowEl.classList.add("flash-error");
+  setTimeout(() => rowEl.classList.remove("flash-error"), 400);
+}
+
+function updateStatus() {
+  if (!game.firstLetter) {
+    els.statusLine.textContent = "";
+    els.wordInfo.textContent = "";
+    return;
+  }
+  els.wordInfo.textContent = `${game.wordLength} lettres`;
+  if (game.status === "in_progress" || game.status === "submitting" || game.status === "animating") {
+    els.statusLine.textContent = `Essai ${game.attempts.length + 1} / ${game.maxAttempts}`;
+  } else if (game.status === "found") {
+    const n = game.attempts.length;
+    els.statusLine.textContent = `Trouvé en ${n} essai${n > 1 ? "s" : ""} !`;
+  } else if (game.status === "exhausted") {
+    els.statusLine.textContent = "Essais épuisés.";
   }
 }
 
@@ -308,9 +465,8 @@ async function submitGuess() {
 // =============================================================================
 
 document.addEventListener("keydown", (e) => {
-  // Si on est dans un input (config), on ne capture pas
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
-  if (game.status !== "in_progress") return;
+  if (!canType()) return;
   if (e.key === "Enter") { onKeyPress("ENTER"); e.preventDefault(); return; }
   if (e.key === "Backspace") { onKeyPress("DEL"); e.preventDefault(); return; }
   const ch = e.key.toUpperCase();
@@ -341,10 +497,8 @@ async function startNewWord() {
   game.attempts = [];
   game.status = "in_progress";
   game.revealedWord = null;
-  typingBuffer = "";
   resetKeyboardColors();
 
-  // Desactive le bouton pendant le tirage pour eviter double-clic
   els.startBtn.disabled = true;
   const previousLabel = els.startBtn.textContent;
   els.startBtn.textContent = "Tirage…";
@@ -357,6 +511,10 @@ async function startNewWord() {
     game.maxAttempts = res.maxAttempts;
 
     rebuildGrid();
+    // Initialise la ligne courante avec la 1ere lettre verrouillee
+    game.lockedRow = computeLockedRow();
+    resetTypingBuffer();
+    paintLockedRow();
     updateStatus();
     showView("in_game");
   } catch (err) {
@@ -380,7 +538,6 @@ function clampInt(v, min, max, fallback) {
 function readConfigFromInputs() {
   config.wordLength = clampInt(els.wordLengthInput.value, MIN_WORD_LEN, MAX_WORD_LEN, DEFAULT_WORD_LEN);
   config.maxAttempts = clampInt(els.maxAttemptsInput.value, MIN_ATTEMPTS, MAX_ATTEMPTS, DEFAULT_ATTEMPTS);
-  // Reflete les valeurs corrigees dans les inputs
   els.wordLengthInput.value = String(config.wordLength);
   els.maxAttemptsInput.value = String(config.maxAttempts);
 }
@@ -422,27 +579,21 @@ async function init() {
   bindElements();
   buildKeyboard();
 
-  // Indique l'etat du serveur (purement informatif)
   pingWorker().then((ok) => {
     els.serverStatus.textContent = ok ? "✓ serveur en ligne" : "✗ serveur injoignable";
-    if (!ok) {
-      showError("Impossible de joindre le serveur. Vérifie ta connexion.");
-    }
+    if (!ok) showError("Impossible de joindre le serveur. Vérifie ta connexion.");
   });
 
-  // Lance la partie depuis l'ecran de config
   els.startBtn.addEventListener("click", () => {
     clearError();
     readConfigFromInputs();
     startNewWord();
   });
 
-  // Mot suivant : on garde la meme config, on tire un nouveau mot
   els.nextWordBtn.addEventListener("click", () => {
     startNewWord();
   });
 
-  // Retour a la config (pour changer longueur du mot ou nb d'essais)
   els.backToConfigBtn.addEventListener("click", () => {
     showView("config");
   });
