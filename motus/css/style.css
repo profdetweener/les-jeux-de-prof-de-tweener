@@ -175,6 +175,32 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 }
 .motus-status-line { font-weight: 600; font-size: 15px; }
 .motus-word-info { color: var(--gris-texte); font-size: 13px; }
+.motus-first-letter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gris-texte);
+}
+.motus-first-letter::before {
+  content: "Lettre :";
+}
+.motus-first-letter::after {
+  content: attr(data-letter);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border-radius: 4px;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
 
 .motus-grid {
   display: flex; flex-direction: column; gap: 6px;

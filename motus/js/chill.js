@@ -82,6 +82,18 @@ const game = {
    * contiennent "" tant que l'utilisateur n'a pas tape.
    */
   typingBuffer: [],
+
+  /**
+   * Drapeau "l'utilisateur a deja interagi avec la ligne courante" (au moins
+   * une touche pressee ou un DEL). Sert a savoir si la pre-saisie de la 1ere
+   * lettre a deja ete consommee : on ne peut pas se contenter de regarder
+   * typingBuffer[0] === firstLetter, car cette egalite peut se reproduire
+   * apres saisie (cas D-O-U-C-E ou D est la firstLetter mais aussi la touche
+   * tapee en premier par l'utilisateur).
+   *
+   * Reset a chaque nouvelle ligne dans resetTypingBuffer().
+   */
+  rowDirty: false,
 };
 
 let keyButtons = {};
@@ -333,24 +345,15 @@ function computeHintRow() {
 }
 
 /**
- * Vrai si l'utilisateur n'a encore rien tape "de son propre chef" sur la
- * ligne courante : on ignore la position 0 si elle contient encore la lettre
- * imposee (= etat initial juste apres resetTypingBuffer). Toutes les autres
- * positions doivent etre vides.
+ * Vrai si l'utilisateur n'a encore appuyé sur aucune touche depuis le debut
+ * de la ligne courante. Determine via le drapeau game.rowDirty.
  *
  * Sert a decider si on affiche les hints (lettres "good" des essais
- * precedents) sur les positions libres.
+ * precedents) et si la 1ere frappe doit consommer la pre-saisie de la 1ere
+ * lettre.
  */
 function isRowUntouched() {
-  for (let i = 0; i < game.wordLength; i++) {
-    if (i === 0) {
-      // Position 0 : intacte si elle contient encore la 1ere lettre imposee
-      if (game.typingBuffer[0] !== game.firstLetter) return false;
-      continue;
-    }
-    if (game.typingBuffer[i]) return false;
-  }
-  return true;
+  return !game.rowDirty;
 }
 
 /**
@@ -397,14 +400,15 @@ function renderCurrentRow() {
 }
 
 /**
- * Reinitialise le buffer de saisie. Comme aucune position n'est verrouillee,
- * on commence avec toutes les cases vides — sauf la position 0 qu'on
- * pre-remplit avec la 1ere lettre imposee (pure commodite, l'utilisateur peut
- * l'effacer pour la retaper s'il veut).
+ * Reinitialise le buffer de saisie pour une nouvelle ligne. Pre-remplit
+ * la position 0 avec la 1ere lettre imposee (pure commodite, l'utilisateur
+ * peut l'effacer pour la retaper s'il veut). Reset egalement le drapeau
+ * rowDirty.
  */
 function resetTypingBuffer() {
   game.typingBuffer = new Array(game.wordLength).fill("");
   game.typingBuffer[0] = game.firstLetter;
+  game.rowDirty = false;
 }
 
 /**
@@ -460,6 +464,8 @@ function onKeyPress(key) {
     return;
   }
   if (key === "DEL") {
+    // Toute interaction (y compris DEL) marque la ligne comme touchee.
+    game.rowDirty = true;
     const idx = lastFilledFreePos();
     if (idx !== -1) {
       game.typingBuffer[idx] = "";
@@ -468,12 +474,13 @@ function onKeyPress(key) {
     return;
   }
   if (/^[A-Z]$/.test(key)) {
-    // Geste instinctif : si la ligne est encore "intacte" (= seule la pre-saisie
-    // de la 1ere lettre est presente), la 1ere frappe utilisateur efface cette
-    // pre-saisie et redemarre la ligne en position 0. Le joueur tape ainsi le
-    // mot complet, premiere lettre comprise.
-    if (isRowUntouched() && game.typingBuffer[0] === game.firstLetter) {
+    // Geste instinctif : a la TOUTE PREMIERE frappe de la ligne, on vide la
+    // pre-saisie de la position 0 pour permettre au joueur de taper le mot
+    // complet sans decalage. Ne se produit qu'une seule fois par ligne, grace
+    // au drapeau rowDirty.
+    if (!game.rowDirty) {
       game.typingBuffer[0] = "";
+      game.rowDirty = true;
     }
     const pos = nextFreePos(0);
     if (pos === -1) return; // plus de place libre
@@ -551,9 +558,11 @@ function updateStatus() {
   if (!game.firstLetter) {
     els.statusLine.textContent = "";
     els.wordInfo.textContent = "";
+    if (els.firstLetterBadge) els.firstLetterBadge.dataset.letter = "";
     return;
   }
   els.wordInfo.textContent = `${game.wordLength} lettres`;
+  if (els.firstLetterBadge) els.firstLetterBadge.dataset.letter = game.firstLetter;
   if (game.status === "in_progress" || game.status === "submitting" || game.status === "animating") {
     els.statusLine.textContent = `Essai ${game.attempts.length + 1} / ${game.maxAttempts}`;
   } else if (game.status === "found") {
@@ -960,6 +969,7 @@ function bindElements() {
   els.keyboard = $("motus-keyboard");
   els.statusLine = $("motus-status");
   els.wordInfo = $("motus-word-info");
+  els.firstLetterBadge = $("motus-first-letter");
 
   els.betweenSummary = $("between-summary");
   els.betweenWord = $("between-word");
