@@ -22,8 +22,11 @@ import type {
   GameFormat,
   GameMode,
   MotusConfig,
+  OpponentState,
   PlayerInfo,
+  PlayerRoundStatus,
   RoomPhase,
+  RoundResult,
   ScoringMode,
   ServerMessage,
   WordState,
@@ -82,11 +85,31 @@ export class MotusRoom {
   // Etat de partie
   private phase: RoomPhase;
   private config: MotusConfig;
-  // Mot en cours (in_game ou between_words)
+  // Mot en cours (in_game ou between_words) — mode coop
   private targetWord: string | null;
   private attempts: Attempt[];
   private wordStatus: "in_progress" | "found" | "exhausted";
   private foundBy: string | null;
+
+  // ===== Etat mode COMPETITIVE =====
+  // Tout en memoire : une manche est courte et le DO reste actif tant qu'il y
+  // a des connexions. La reconnexion d'un joueur retrouve son etat.
+  private compRoundIndex: number;          // 1-based, 0 = pas encore commence
+  private compWord: string | null;         // mot de la manche en cours
+  private compDeadlineTs: number | null;   // fin de manche (ms)
+  /** Etat par joueur pour la manche en cours : pseudo -> data. */
+  private compPlayers: Map<
+    string,
+    {
+      attempts: Attempt[];
+      status: "playing" | "found" | "exhausted";
+      foundAtMs: number | null;            // pour l'ordre d'arrivee
+    }
+  >;
+  /** Ordre d'arrivee (pseudos qui ont trouve, dans l'ordre). */
+  private compFinishOrder: string[];
+  /** Score cumule par joueur sur la partie. pseudo -> points. */
+  private compScores: Map<string, number>;
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -100,6 +123,12 @@ export class MotusRoom {
     this.attempts = [];
     this.wordStatus = "in_progress";
     this.foundBy = null;
+    this.compRoundIndex = 0;
+    this.compWord = null;
+    this.compDeadlineTs = null;
+    this.compPlayers = new Map();
+    this.compFinishOrder = [];
+    this.compScores = new Map();
   }
 
   /**
@@ -221,6 +250,9 @@ export class MotusRoom {
       case "next_word":
         this.handleNextWord(ws);
         return;
+      case "next_round":
+        this.handleNextRound(ws);
+        return;
       case "end_game":
         this.handleEndGame(ws);
         return;
@@ -302,7 +334,47 @@ export class MotusRoom {
       phase: this.phase,
       config: this.config,
       currentWord: this.snapshotCurrentWord(),
+      compRound: this.snapshotCompRound(session.pseudo),
     });
+  }
+
+  /**
+   * Construit l'etat de la manche comp pour un joueur donne (reconnexion).
+   * Renvoie null si pas de manche comp en cours (in_round).
+   */
+  private snapshotCompRound(pseudo: string) {
+    if (this.phase !== "in_round" || !this.compWord || this.compDeadlineTs === null) {
+      return null;
+    }
+    const mine = this.compPlayers.get(pseudo);
+    const opponentStates = [];
+    for (const [p, st] of this.compPlayers) {
+      if (p === pseudo) continue;
+      opponentStates.push({
+        playerId: p,
+        rows: st.attempts.map((a) => ({
+          feedback: a.feedback.map((f) => f.status),
+          hasMore: a.feedback.map((f) => f.hasMore),
+        })),
+        status: st.status,
+        attemptsUsed: st.attempts.length,
+      });
+    }
+    const totalRounds =
+      this.config.format === "fixed_rounds" ? (this.config.maxRounds ?? 0) : null;
+    return {
+      roundIndex: this.compRoundIndex,
+      totalRounds,
+      firstLetter: this.compWord[0],
+      wordLength: this.compWord.length,
+      maxAttempts: this.config.maxAttempts,
+      timerSeconds: this.config.timerSeconds ?? 90,
+      deadlineTs: this.compDeadlineTs,
+      opponents: [...this.compPlayers.keys()].filter((p) => p !== pseudo),
+      myAttempts: mine ? mine.attempts : [],
+      myStatus: (mine ? mine.status : "playing") as PlayerRoundStatus,
+      opponentStates,
+    };
   }
 
   private handleKick(ws: WebSocket, targetPseudo: string): void {
@@ -368,6 +440,15 @@ export class MotusRoom {
         this.hostPseudo = null;
       }
     }
+
+    // Mode comp : retire le joueur des structures et reverifie si la manche
+    // peut se terminer (il bloquait peut-etre la condition everyone_done).
+    this.compPlayers.delete(pseudo);
+    this.compScores.delete(pseudo);
+    this.compFinishOrder = this.compFinishOrder.filter((p) => p !== pseudo);
+    if (this.phase === "in_round") {
+      this.maybeEndCompRound();
+    }
   }
 
   // =========================================================================
@@ -419,14 +500,12 @@ export class MotusRoom {
     this.config = norm.config;
     this.broadcast({ type: "config_update", config: this.config });
 
-    // En mode comp, la mecanique de manche arrive en Livraison 2 — on refuse
-    // poliment ici. Le lobby et la sync de config sont OK, tout est cable.
     if (this.config.mode === "competitive") {
-      this.sendError(
-        ws,
-        "WRONG_PHASE",
-        "Mode competitif : la mecanique de partie arrive bientot."
-      );
+      // Demarrage de la partie competitive : reset des scores, manche 1.
+      this.compScores = new Map();
+      for (const p of this.players.keys()) this.compScores.set(p, 0);
+      this.compRoundIndex = 0;
+      this.startCompRound();
       return;
     }
 
@@ -458,12 +537,295 @@ export class MotusRoom {
   }
 
   // =========================================================================
+  // Mode COMPETITIVE : manche, scoring, boucle
+  // =========================================================================
+
+  /**
+   * Demarre une nouvelle manche competitive. Tire un mot (commun a tous),
+   * reset l'etat par joueur, arme l'alarme du timer, diffuse round_started.
+   */
+  private startCompRound(): void {
+    const word = pickRandomWord(this.config.wordLength);
+    if (!word) {
+      this.broadcastError("INVALID_CONFIG", "Aucun mot disponible pour cette longueur.");
+      return;
+    }
+    this.compRoundIndex += 1;
+    this.compWord = word;
+    this.compFinishOrder = [];
+    this.compPlayers = new Map();
+    for (const pseudo of this.players.keys()) {
+      this.compPlayers.set(pseudo, { attempts: [], status: "playing", foundAtMs: null });
+    }
+
+    const timerSec = this.config.timerSeconds ?? 90;
+    this.compDeadlineTs = Date.now() + timerSec * 1000;
+    this.phase = "in_round";
+
+    // Arme l'alarme pour la fin de manche au timer
+    this.state.storage.setAlarm(this.compDeadlineTs);
+
+    const totalRounds =
+      this.config.format === "fixed_rounds" ? (this.config.maxRounds ?? 0) : null;
+    const allPseudos = [...this.players.keys()];
+
+    // Chaque joueur reçoit la liste de SES adversaires (tous sauf lui)
+    for (const [pseudo, session] of this.players) {
+      if (!session.ws) continue;
+      const opponents = allPseudos.filter((p) => p !== pseudo);
+      this.sendMessage(session.ws, {
+        type: "round_started",
+        roundIndex: this.compRoundIndex,
+        totalRounds,
+        firstLetter: word[0],
+        wordLength: word.length,
+        maxAttempts: this.config.maxAttempts,
+        timerSeconds: timerSec,
+        deadlineTs: this.compDeadlineTs,
+        opponents,
+      });
+    }
+  }
+
+  /**
+   * Essai d'un joueur en mode competitive. Valide, colore, met a jour son etat,
+   * lui renvoie sa ligne complete et diffuse aux autres les couleurs only.
+   */
+  private handleCompGuess(ws: WebSocket, me: string, rawGuess: string): void {
+    if (this.phase !== "in_round" || !this.compWord) {
+      this.sendError(ws, "WRONG_PHASE", "Aucune manche en cours.");
+      return;
+    }
+    const mine = this.compPlayers.get(me);
+    if (!mine || mine.status !== "playing") {
+      this.sendError(ws, "WRONG_PHASE", "Tu as deja termine cette manche.");
+      return;
+    }
+
+    const guess = normalizeGuess(rawGuess);
+    if (guess.length !== this.compWord.length) {
+      this.sendError(ws, "INVALID_GUESS_LENGTH", `Le mot doit faire ${this.compWord.length} lettres.`);
+      return;
+    }
+    if (!/^[A-Z]+$/.test(guess)) {
+      this.sendError(ws, "INVALID_GUESS_LETTERS", "Seules les lettres A-Z sont acceptees.");
+      return;
+    }
+    if (guess[0] !== this.compWord[0]) {
+      this.sendError(ws, "INVALID_GUESS_FIRST_LETTER", `Le mot doit commencer par ${this.compWord[0]}.`);
+      return;
+    }
+    if (!isPlayableWord(guess)) {
+      this.sendError(ws, "WORD_NOT_IN_DICTIONARY", `"${guess}" n'est pas dans le dictionnaire.`);
+      return;
+    }
+
+    const attempt = colorize(this.compWord, guess);
+    mine.attempts.push(attempt);
+    const attemptIndex = mine.attempts.length - 1;
+
+    const allGood = attempt.feedback.every((f) => f.status === "good");
+    if (allGood) {
+      mine.status = "found";
+      mine.foundAtMs = Date.now();
+      this.compFinishOrder.push(me);
+    } else if (mine.attempts.length >= this.config.maxAttempts) {
+      mine.status = "exhausted";
+    }
+
+    // Renvoie au joueur sa ligne complete (lettres + couleurs)
+    this.sendMessage(ws, {
+      type: "guess_result",
+      attempt,
+      attemptIndex,
+      myStatus: mine.status,
+    });
+
+    // Diffuse aux autres : couleurs only
+    const row = {
+      feedback: attempt.feedback.map((f) => f.status),
+      hasMore: attempt.feedback.map((f) => f.hasMore),
+    };
+    for (const [pseudo, session] of this.players) {
+      if (pseudo === me || !session.ws) continue;
+      this.sendMessage(session.ws, {
+        type: "opponent_progress",
+        playerId: me,
+        row,
+        rowIndex: attemptIndex,
+        status: mine.status,
+        attemptsUsed: mine.attempts.length,
+      });
+    }
+
+    // La manche doit-elle se terminer ?
+    this.maybeEndCompRound();
+  }
+
+  /**
+   * Verifie si la manche doit se terminer selon endCondition, et le cas echeant
+   * la termine. Appele apres chaque essai et a l'expiration du timer.
+   */
+  private maybeEndCompRound(): void {
+    if (this.phase !== "in_round") return;
+    const states = [...this.compPlayers.values()];
+    const someoneFound = states.some((s) => s.status === "found");
+    const allDone = states.every((s) => s.status !== "playing");
+
+    let shouldEnd = false;
+    switch (this.config.endCondition) {
+      case "first_finds":
+        shouldEnd = someoneFound || allDone;
+        break;
+      case "everyone_done":
+        shouldEnd = allDone;
+        break;
+      case "timer_only":
+        // Ne se termine que par le timer (ou si tout le monde a fini avant).
+        shouldEnd = allDone;
+        break;
+    }
+    if (shouldEnd) this.endCompRound();
+  }
+
+  /**
+   * Termine la manche : calcule les scores, met a jour le cumul, diffuse
+   * round_ended. Annule l'alarme. Passe en between_rounds ou finished.
+   */
+  private endCompRound(): void {
+    if (this.phase !== "in_round" || !this.compWord) return;
+    this.phase = "between_rounds";
+    this.state.storage.deleteAlarm();
+
+    const word = this.compWord;
+    const scoring = this.config.scoring ?? "binary";
+    const maxAttempts = this.config.maxAttempts;
+    const nbFinders = this.compFinishOrder.length;
+
+    // Calcule les points de la manche par joueur
+    const results: RoundResult[] = [];
+    for (const [pseudo, st] of this.compPlayers) {
+      const found = st.status === "found";
+      const rank = found ? this.compFinishOrder.indexOf(pseudo) + 1 : null;
+      let pts = 0;
+      if (found) {
+        const attemptsLeft = Math.max(0, maxAttempts - st.attempts.length);
+        switch (scoring) {
+          case "binary":
+            pts = rank === 1 ? 1 : 0;
+            break;
+          case "attempts_left":
+            // +1 garanti pour avoir trouve, + le nb d'essais economises
+            pts = attemptsLeft + 1;
+            break;
+          case "position": {
+            // Le 1er marque nbFinders, le 2e nbFinders-1, etc.
+            pts = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
+            break;
+          }
+          case "combo": {
+            const posBonus = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
+            pts = attemptsLeft + 1 + posBonus;
+            break;
+          }
+        }
+      }
+      const prevTotal = this.compScores.get(pseudo) ?? 0;
+      const newTotal = prevTotal + pts;
+      this.compScores.set(pseudo, newTotal);
+      results.push({
+        playerId: pseudo,
+        found,
+        attemptsUsed: st.attempts.length,
+        finishRank: rank,
+        roundPoints: pts,
+        totalPoints: newTotal,
+      });
+    }
+
+    // Tri par score cumule decroissant
+    results.sort((a, b) => b.totalPoints - a.totalPoints);
+
+    // La partie est-elle finie ?
+    const isLast = this.isCompGameOver();
+    const totalRounds =
+      this.config.format === "fixed_rounds" ? (this.config.maxRounds ?? 0) : null;
+
+    this.broadcast({
+      type: "round_ended",
+      revealedWord: word,
+      results,
+      roundIndex: this.compRoundIndex,
+      totalRounds,
+      isLastRound: isLast,
+    });
+
+    if (isLast) {
+      this.phase = "finished";
+      this.broadcast({ type: "game_ended", results });
+    }
+  }
+
+  /**
+   * Determine si la partie competitive est terminee selon le format.
+   */
+  private isCompGameOver(): boolean {
+    switch (this.config.format) {
+      case "fixed_rounds":
+        return this.compRoundIndex >= (this.config.maxRounds ?? 0);
+      case "first_to_points": {
+        const target = this.config.pointsTarget ?? 0;
+        for (const v of this.compScores.values()) {
+          if (v >= target) return true;
+        }
+        return false;
+      }
+      case "unlimited":
+      default:
+        return false; // l'hote arrete via end_game
+    }
+  }
+
+  private handleNextRound(ws: WebSocket): void {
+    const me = this.pseudoOf(ws);
+    if (!me || me !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Seul l'hote peut lancer la manche suivante.");
+      return;
+    }
+    if (this.phase !== "between_rounds") {
+      this.sendError(ws, "WRONG_PHASE", "Pas en intermanche.");
+      return;
+    }
+    this.startCompRound();
+  }
+
+  /**
+   * Handler d'alarme : declenche la fin de manche au timer (mode comp).
+   */
+  async alarm(): Promise<void> {
+    if (this.phase === "in_round" && this.config.mode === "competitive") {
+      // Marque tous les joueurs encore "playing" comme exhausted (temps ecoule)
+      for (const st of this.compPlayers.values()) {
+        if (st.status === "playing") st.status = "exhausted";
+      }
+      this.endCompRound();
+    }
+  }
+
+  // =========================================================================
   // Saisie d'un essai (mode coop : host uniquement)
   // =========================================================================
 
   private handleSubmitGuess(ws: WebSocket, rawGuess: string): void {
     const me = this.pseudoOf(ws);
     if (!me) return;
+
+    // Mode competitive : chaque joueur a sa propre grille
+    if (this.config.mode === "competitive") {
+      this.handleCompGuess(ws, me, rawGuess);
+      return;
+    }
+
     if (this.phase !== "in_game" || !this.targetWord) {
       this.sendError(ws, "WRONG_PHASE", "Aucune partie en cours.");
       return;
@@ -558,6 +920,34 @@ export class MotusRoom {
       this.sendError(ws, "NOT_HOST", "Seul l'hote peut terminer la partie.");
       return;
     }
+
+    // En mode comp : si la partie est en cours, on cloture proprement avec le
+    // classement final avant de revenir au lobby.
+    if (this.config.mode === "competitive" && this.compScores.size > 0) {
+      const finalResults: RoundResult[] = [];
+      for (const [pseudo, total] of this.compScores) {
+        finalResults.push({
+          playerId: pseudo,
+          found: false,
+          attemptsUsed: 0,
+          finishRank: null,
+          roundPoints: 0,
+          totalPoints: total,
+        });
+      }
+      finalResults.sort((a, b) => b.totalPoints - a.totalPoints);
+      this.broadcast({ type: "game_ended", results: finalResults });
+    }
+
+    // Cleanup etat comp + alarme
+    this.state.storage.deleteAlarm();
+    this.compRoundIndex = 0;
+    this.compWord = null;
+    this.compDeadlineTs = null;
+    this.compPlayers = new Map();
+    this.compFinishOrder = [];
+    this.compScores = new Map();
+
     // Retour au lobby pour une nouvelle partie
     this.phase = "lobby";
     this.targetWord = null;
@@ -785,25 +1175,20 @@ export class MotusRoom {
       return { ok: false, error: "Format de partie invalide." };
     }
 
-    // timerSeconds : null autorise sauf si endCondition === timer_only
-    let timerSeconds: number | null = null;
-    if (raw.timerSeconds !== null && raw.timerSeconds !== undefined) {
-      const t = Number(raw.timerSeconds);
-      if (
-        !Number.isInteger(t) ||
-        t < COMP_CONFIG.MIN_TIMER_SEC ||
-        t > COMP_CONFIG.MAX_TIMER_SEC
-      ) {
-        return {
-          ok: false,
-          error: `Timer invalide (${COMP_CONFIG.MIN_TIMER_SEC}-${COMP_CONFIG.MAX_TIMER_SEC}s).`,
-        };
-      }
-      timerSeconds = t;
+    // timerSeconds : TOUJOURS obligatoire (un joueur AFK ne doit pas bloquer
+    // la manche). On exige un entier dans les bornes.
+    const t = Number(raw.timerSeconds);
+    if (
+      !Number.isInteger(t) ||
+      t < COMP_CONFIG.MIN_TIMER_SEC ||
+      t > COMP_CONFIG.MAX_TIMER_SEC
+    ) {
+      return {
+        ok: false,
+        error: `Timer obligatoire (${COMP_CONFIG.MIN_TIMER_SEC}-${COMP_CONFIG.MAX_TIMER_SEC}s).`,
+      };
     }
-    if (endCondition === "timer_only" && timerSeconds === null) {
-      return { ok: false, error: "Le timer est obligatoire avec 'Fin par timer'." };
-    }
+    const timerSeconds: number = t;
 
     // maxRounds : pertinent uniquement si format === fixed_rounds
     let maxRounds = 0;

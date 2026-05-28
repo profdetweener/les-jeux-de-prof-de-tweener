@@ -126,7 +126,7 @@ export const COMP_PRESETS: Record<
 > = {
   speed: {
     endCondition: "first_finds",
-    timerSeconds: null,
+    timerSeconds: 60,
     scoring: "binary",
     format: "fixed_rounds",
     maxRounds: 5,
@@ -140,7 +140,7 @@ export const COMP_PRESETS: Record<
   },
   marathon: {
     endCondition: "everyone_done",
-    timerSeconds: null,
+    timerSeconds: 180,
     scoring: "attempts_left",
     format: "unlimited",
     maxRounds: 0,
@@ -221,6 +221,42 @@ export interface WordState {
 }
 
 // ===========================================
+// Etat de manche COMPETITIVE
+// ===========================================
+
+export type PlayerRoundStatus = "playing" | "found" | "exhausted";
+
+/**
+ * Etat d'un joueur dans la manche en cours, diffuse aux AUTRES joueurs.
+ * On ne transmet QUE les couleurs (statut de chaque lettre), jamais les
+ * lettres — c'est le coeur du mode comp (voir la progression coloree d'un
+ * adversaire sans lire son mot).
+ */
+export interface OpponentRow {
+  feedback: LetterStatus[];    // longueur === wordLength
+  hasMore: boolean[];          // 4e couleur par case, cote adverse aussi
+}
+
+export interface OpponentState {
+  playerId: string;            // pseudo
+  rows: OpponentRow[];         // une entree par essai soumis
+  status: PlayerRoundStatus;
+  attemptsUsed: number;
+}
+
+/**
+ * Resultat d'un joueur pour une manche terminee (recap entre manches).
+ */
+export interface RoundResult {
+  playerId: string;
+  found: boolean;
+  attemptsUsed: number;
+  finishRank: number | null;   // 1 = premier a avoir trouve. null si pas trouve
+  roundPoints: number;         // points gagnes CETTE manche
+  totalPoints: number;         // score cumule apres cette manche
+}
+
+// ===========================================
 // Messages CLIENT -> SERVEUR
 // ===========================================
 
@@ -234,7 +270,8 @@ export type ClientMessage =
   // Pendant la manche
   | { type: "submit_guess"; guess: string }         // host (mode coop)
   // Entre manches
-  | { type: "next_word" }                            // host : demarre le prochain mot
+  | { type: "next_word" }                            // host : demarre le prochain mot (coop)
+  | { type: "next_round" }                           // host : demarre la manche suivante (comp)
   | { type: "end_game" };                            // host : termine la partie
 
 // ===========================================
@@ -254,9 +291,28 @@ export type ServerMessage =
       config: MotusConfig | null;
       /**
        * Mot en cours s'il y en a un (in_game ou between_words). null sinon.
-       * Permet la reconnexion en plein milieu d'une manche.
+       * Permet la reconnexion en plein milieu d'une manche (mode coop).
        */
       currentWord: WordState | null;
+      /**
+       * Etat de la manche competitive en cours, pour la reconnexion (mode comp).
+       * null si pas de manche comp en cours.
+       */
+      compRound?: {
+        roundIndex: number;
+        totalRounds: number | null;
+        firstLetter: string;
+        wordLength: number;
+        maxAttempts: number;
+        timerSeconds: number;
+        deadlineTs: number;
+        opponents: string[];
+        /** Mes propres essais (lettres + couleurs). */
+        myAttempts: Attempt[];
+        myStatus: PlayerRoundStatus;
+        /** Etat colore des adversaires (couleurs only). */
+        opponentStates: OpponentState[];
+      } | null;
     }
   | {
       type: "room_state";
@@ -291,6 +347,50 @@ export type ServerMessage =
        */
       revealedWord: string | null;
       foundBy: string | null;
+    }
+  // ===== Mode COMPETITIVE =====
+  // Demarrage d'une manche : meme mot pour tous, on n'envoie que la 1ere lettre.
+  | {
+      type: "round_started";
+      roundIndex: number;        // 1-based
+      totalRounds: number | null; // null si illimite
+      firstLetter: string;
+      wordLength: number;
+      maxAttempts: number;
+      timerSeconds: number;
+      deadlineTs: number;        // timestamp ms de fin de manche (Date.now()-based)
+      /** Liste des adversaires (pseudos) pour preparer les miniatures. */
+      opponents: string[];
+    }
+  // Reponse a MON essai : ma ligne complete (lettres + couleurs).
+  | {
+      type: "guess_result";
+      attempt: Attempt;
+      attemptIndex: number;
+      myStatus: PlayerRoundStatus;
+    }
+  // Progression d'un ADVERSAIRE : couleurs only (jamais les lettres).
+  | {
+      type: "opponent_progress";
+      playerId: string;
+      row: OpponentRow;
+      rowIndex: number;
+      status: PlayerRoundStatus;
+      attemptsUsed: number;
+    }
+  // Fin de manche : mot revele + resultats + scores cumules.
+  | {
+      type: "round_ended";
+      revealedWord: string;
+      results: RoundResult[];     // trie par totalPoints desc
+      roundIndex: number;
+      totalRounds: number | null;
+      isLastRound: boolean;       // true si la partie est finie apres cette manche
+    }
+  // Fin de partie : classement final.
+  | {
+      type: "game_ended";
+      results: RoundResult[];     // classement final (totalPoints desc)
     };
 
 // ===========================================

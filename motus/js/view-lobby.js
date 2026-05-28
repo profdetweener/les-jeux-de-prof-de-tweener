@@ -35,7 +35,7 @@ const MAX_ATTEMPTS = 8;
 const COMP_PRESETS = {
   speed: {
     endCondition: "first_finds",
-    timerSeconds: null,
+    timerSeconds: 60,
     scoring: "binary",
     format: "fixed_rounds",
     maxRounds: 5,
@@ -49,7 +49,7 @@ const COMP_PRESETS = {
   },
   marathon: {
     endCondition: "everyone_done",
-    timerSeconds: null,
+    timerSeconds: 180,
     scoring: "attempts_left",
     format: "unlimited",
     maxRounds: 0,
@@ -241,8 +241,7 @@ export function initLobbyView(state, conn) {
     onAdvancedFieldChanged();
   });
   timerSel.addEventListener("change", () => {
-    const v = timerSel.value;
-    compConfig.timerSeconds = v === "" ? null : parseInt(v, 10);
+    compConfig.timerSeconds = parseInt(timerSel.value, 10);
     onAdvancedFieldChanged();
   });
   formatSel.addEventListener("change", () => {
@@ -287,8 +286,10 @@ export function initLobbyView(state, conn) {
    * Applique les contraintes de coherence apres un changement de endCondition :
    *   1. grise les options de scoring non autorisees
    *   2. si le scoring courant n'est plus autorise, bascule sur le 1er autorise
-   *   3. rend le timer obligatoire si endCondition === timer_only (retire l'option
-   *      "Aucun" et force une valeur par defaut si besoin)
+   *
+   * Le timer est TOUJOURS obligatoire (on ne veut pas qu'un joueur AFK bloque
+   * la manche). Il n'y a donc plus d'option "Aucun" — on garantit juste une
+   * valeur par defaut si jamais elle manquait.
    */
   function applyCoherenceRules() {
     const allowed = ALLOWED_SCORINGS[compConfig.endCondition] || ["binary"];
@@ -303,13 +304,8 @@ export function initLobbyView(state, conn) {
       scoringSel.value = compConfig.scoring;
     }
 
-    // 3. Timer obligatoire en mode timer_only
-    const timerRequired = compConfig.endCondition === "timer_only";
-    // L'option "Aucun" (value="") est desactivee si le timer est requis
-    for (const opt of timerSel.options) {
-      if (opt.value === "") opt.disabled = timerRequired;
-    }
-    if (timerRequired && (compConfig.timerSeconds === null || compConfig.timerSeconds === undefined)) {
+    // Garantit un timer valide (jamais null/undefined)
+    if (compConfig.timerSeconds === null || compConfig.timerSeconds === undefined) {
       compConfig.timerSeconds = 90;
       timerSel.value = "90";
     }
@@ -324,9 +320,7 @@ export function initLobbyView(state, conn) {
     compMaxAttemptsInput.value = String(compConfig.maxAttempts);
     endConditionSel.value = compConfig.endCondition;
     scoringSel.value = compConfig.scoring;
-    timerSel.value = compConfig.timerSeconds === null || compConfig.timerSeconds === undefined
-      ? ""
-      : String(compConfig.timerSeconds);
+    timerSel.value = String(compConfig.timerSeconds || 90);
     formatSel.value = compConfig.format;
     maxRoundsInput.value = String(compConfig.maxRounds || 5);
     pointsTargetInput.value = String(compConfig.pointsTarget || 10);
@@ -528,7 +522,7 @@ export function initLobbyView(state, conn) {
       ["Mot", `${compConfig.wordLength} lettres, ${compConfig.maxAttempts} essais`],
       ["Fin de manche", END_CONDITION_LABELS[compConfig.endCondition] || "—"],
       ["Score", SCORING_LABELS[compConfig.scoring] || "—"],
-      ["Timer", compConfig.timerSeconds ? `${compConfig.timerSeconds}s` : "—"],
+      ["Timer", `${compConfig.timerSeconds}s`],
       ["Format", FORMAT_LABELS[compConfig.format] || "—"],
     ];
     if (compConfig.format === "fixed_rounds") {

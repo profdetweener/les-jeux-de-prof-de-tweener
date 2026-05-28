@@ -17,6 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
+import { initCompView } from "./view-comp.js";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -67,18 +68,20 @@ const views = {
   lobby: document.getElementById("view-lobby"),
   in_game: document.getElementById("view-in-game"),
   between_words: document.getElementById("view-between"),
+  in_round: document.getElementById("view-comp-game"),
+  between_rounds: document.getElementById("view-comp-recap"),
+  comp_final: document.getElementById("view-comp-final"),
 };
 
 function showView(phase) {
-  // Phases sans vue dediee dans cette livraison : on retombe sur lobby.
-  // (in_round / between_rounds / finished arrivent en L2/L3 — pour l'instant
-  // mode comp n'a pas encore de mecanique de partie cote front.)
   let target = phase;
-  if (!views[target]) {
-    target = phase === "finished" ? "lobby" : "lobby";
+  // En mode comp, la phase serveur "finished" affiche le podium final.
+  if (phase === "finished") {
+    target = state.config?.mode === "competitive" ? "comp_final" : "lobby";
   }
+  if (!views[target]) target = "lobby";
   for (const [name, el] of Object.entries(views)) {
-    el.style.display = name === target ? "" : "none";
+    if (el) el.style.display = name === target ? "" : "none";
   }
 }
 
@@ -113,6 +116,7 @@ conn.onStatus((status, detail) => setConnectionUI(status, detail));
 
 const lobbyView = initLobbyView(state, conn);
 const gameView = initGameView(state, conn);
+const compView = initCompView(state, conn);
 
 // Met a jour le titre du header selon le mode de la room.
 const roomTitleEl = document.getElementById("room-title");
@@ -141,6 +145,11 @@ conn.on("joined", (msg) => {
   updateRoomTitle();
   lobbyView.refresh();
   gameView.refresh();
+
+  // Reconnexion en pleine manche comp : on restaure la grille avant d'afficher
+  if (state.phase === "in_round" && msg.compRound) {
+    compView.restoreFromSnapshot(msg.compRound);
+  }
   showView(state.phase);
 });
 
@@ -191,6 +200,37 @@ conn.on("guess_resolved", (msg) => {
     state.phase = "between_words";
     setTimeout(() => showView("between_words"), 1200);
   }
+});
+
+// ===== Messages mode COMPETITIVE =====
+conn.on("round_started", (msg) => {
+  state.phase = "in_round";
+  showView("in_round");
+  compView.onRoundStarted(msg);
+});
+
+conn.on("guess_result", (msg) => {
+  compView.onGuessResult(msg);
+});
+
+conn.on("opponent_progress", (msg) => {
+  compView.onOpponentProgress(msg);
+});
+
+conn.on("round_ended", (msg) => {
+  state.phase = "between_rounds";
+  compView.onRoundEnded(msg);
+  // Si c'est la derniere manche, game_ended suit immediatement et affichera le
+  // podium — on ne montre pas le recap intermediaire pour eviter un flash.
+  if (!msg.isLastRound) {
+    setTimeout(() => showView("between_rounds"), 1000);
+  }
+});
+
+conn.on("game_ended", (msg) => {
+  state.phase = "finished";
+  compView.onGameEnded(msg);
+  setTimeout(() => showView("finished"), 1200);
 });
 
 conn.on("kicked", (msg) => {

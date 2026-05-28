@@ -888,3 +888,187 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   font-style: italic;
   margin: 4px 0 12px;
 }
+
+/* ===========================================================================
+   Mode compétitif — vue de jeu
+   =========================================================================== */
+
+.comp-game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.comp-round-info { font-weight: 700; color: var(--bleu-nuit); }
+.comp-attempt-info { font-size: 14px; color: var(--gris-texte); }
+.comp-timer {
+  font-family: Georgia, serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--bleu-nuit);
+  padding: 2px 12px;
+  border-radius: var(--rayon-sm);
+  background: var(--beige);
+}
+.comp-timer-urgent {
+  color: var(--blanc);
+  background: var(--rouge);
+  animation: comp-pulse 1s infinite;
+}
+@keyframes comp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Layout : grille principale + miniatures adverses */
+.comp-game-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.comp-main { flex: 1; min-width: 0; }
+.comp-self-notice {
+  text-align: center;
+  font-weight: 600;
+  color: var(--bleu-nuit);
+  margin: 8px 0;
+}
+
+.comp-opponents {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 180px;
+  flex: none;
+}
+
+/* Sur mobile : miniatures au-dessus, en ligne horizontale scrollable */
+@media (max-width: 720px) {
+  .comp-game-layout { flex-direction: column-reverse; }
+  .comp-opponents {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .opp-card { flex: none; width: 120px; }
+}
+
+.opp-card {
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 8px;
+}
+.opp-card.opp-done { opacity: 0.7; }
+.opp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.opp-name {
+  font-weight: 600;
+  color: var(--bleu-nuit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+.opp-status { font-size: 12px; color: var(--gris-texte); flex: none; }
+
+.opp-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.opp-row {
+  display: grid;
+  grid-template-columns: repeat(var(--opp-cols), minmax(0, 1fr));
+  gap: 2px;
+}
+.opp-cell {
+  aspect-ratio: 1;
+  background: var(--blanc);
+  border: 1px solid var(--gris-clair);
+  border-radius: 2px;
+}
+/* Couleurs des miniatures (pas de texte, juste le fond) */
+.opp-cell.status-good { background: var(--rouge); border-color: var(--rouge); }
+.opp-cell.status-misplaced { background: var(--jaune); border-color: var(--jaune); }
+.opp-cell.status-absent { background: var(--gris-clair); border-color: var(--gris-clair); }
+.opp-cell.status-good.has-more {
+  background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
+  border-color: var(--rouge);
+}
+
+/* ===========================================================================
+   Mode compétitif — récap & final
+   =========================================================================== */
+
+.comp-recap-word {
+  text-align: center;
+  font-size: 16px;
+  margin: 8px 0 18px;
+  color: var(--gris-texte);
+}
+.comp-recap-word strong {
+  color: var(--rouge);
+  font-family: Georgia, serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.comp-scoreboard {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.comp-scoreboard th,
+.comp-scoreboard td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--beige-fonce);
+}
+.comp-scoreboard th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris-texte);
+}
+.comp-scoreboard td:nth-child(2) { text-align: left; font-weight: 600; color: var(--bleu-nuit); }
+.comp-scoreboard tbody tr:first-child td { color: var(--bleu-nuit); }
+
+/* Podium */
+.comp-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+.podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 12px 14px;
+  min-width: 90px;
+}
+.podium-1 { order: 2; background: #f6e6b8; padding-top: 22px; padding-bottom: 22px; }
+.podium-2 { order: 1; }
+.podium-3 { order: 3; }
+.podium-medal { font-size: 28px; }
+.podium-name {
+  font-weight: 700;
+  color: var(--bleu-nuit);
+  margin-top: 4px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.podium-score { font-size: 13px; color: var(--gris-texte); }
