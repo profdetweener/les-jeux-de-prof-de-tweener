@@ -357,10 +357,10 @@ export function initLobbyView(state, conn) {
       if (state.isHost && p.pseudo !== state.pseudo) {
         const kick = document.createElement("button");
         kick.className = "btn btn-secondary btn-sm";
-        kick.textContent = "kick";
-        kick.title = `Retirer ${p.pseudo}`;
+        kick.textContent = "Retirer";
+        kick.title = `Retirer ${p.pseudo} du salon`;
         kick.addEventListener("click", () => {
-          if (confirm(`Kicker ${p.pseudo} ?`)) {
+          if (confirm(`Retirer ${p.pseudo} du salon ?`)) {
             conn.send({ type: "kick", targetPseudo: p.pseudo });
           }
         });

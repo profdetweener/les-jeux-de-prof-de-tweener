@@ -15,13 +15,19 @@ import { CONFIG } from "./config.js";
 
 /**
  * Cree une nouvelle room pour le jeu indique et renvoie son code.
- * @param {string} game slug du jeu (ex: "petitbac")
+ *
+ * @param {string} game slug du jeu (ex: "petitbac", "motus")
+ * @param {object} [options] metadonnees a passer a la creation. Pour Motus :
+ *   { mode: "coop_stream" | "competitive" }. Ignore par Petit Bac.
  * @returns {Promise<string>} code de la room (ex: "ABC123")
  */
-export async function createRoom(game = "petitbac") {
-  const res = await fetch(`${CONFIG.WORKER_URL}/${game}/rooms`, {
-    method: "POST",
-  });
+export async function createRoom(game = "petitbac", options) {
+  const init = { method: "POST" };
+  if (options && typeof options === "object") {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(options);
+  }
+  const res = await fetch(`${CONFIG.WORKER_URL}/${game}/rooms`, init);
   if (!res.ok) {
     throw new Error(`Erreur creation room (HTTP ${res.status})`);
   }
