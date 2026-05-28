@@ -607,16 +607,19 @@ input.code-input::placeholder {
   padding: 16px;
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   font-size: 13px;
-  color: var(--gris-texte);
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  margin-top: auto;
 }
 .app-footer a {
-  color: var(--gris-texte);
+  color: var(--beige);
   text-decoration: none;
-  border-bottom: 1px dotted var(--gris-texte);
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
+  opacity: 0.9;
 }
-.app-footer a:hover { color: var(--bleu-nuit); border-bottom-color: var(--bleu-nuit); }
-.app-footer .footer-sep { margin: 0 8px; opacity: 0.5; }
-.app-footer .footer-current { font-weight: 600; color: var(--bleu-nuit); border-bottom-color: var(--bleu-nuit); }
+.app-footer a:hover { opacity: 1; border-bottom-color: var(--beige); }
+.app-footer .footer-sep { margin: 0 8px; opacity: 0.4; }
+.app-footer .footer-current { font-weight: 600; opacity: 1; border-bottom-color: var(--beige); }
 
 /* ==========================================================================
    Page mentions légales / politique de confidentialité

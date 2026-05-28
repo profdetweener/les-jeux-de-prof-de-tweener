@@ -796,3 +796,95 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   font-weight: 600;
   text-align: right;
 }
+
+/* ===========================================================================
+   Page règles — onglets horizontaux
+   =========================================================================== */
+
+.rules-card { max-width: 760px; }
+
+.rules-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 20px;
+  border-bottom: 2px solid var(--beige-fonce);
+}
+.rules-tab {
+  flex: 1;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--gris-texte);
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+}
+.rules-tab:hover { color: var(--bleu-nuit); }
+.rules-tab.is-active {
+  color: var(--bleu-nuit);
+  border-bottom-color: var(--bleu-nuit);
+}
+
+.rules-panel { animation: rules-fade 160ms ease-out; }
+@keyframes rules-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rules-panel h3 { margin: 0 0 10px; color: var(--bleu-nuit); }
+.rules-panel h4 {
+  margin: 16px 0 6px;
+  font-size: 14px;
+  color: var(--bleu-nuit);
+}
+.rules-panel p { margin: 0 0 12px; }
+
+/* Code couleur */
+.rules-colors {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rules-colors li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.color-chip {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+}
+
+/* Deux colonnes pour le mode comp (réduit le scroll vertical) */
+.rules-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px 28px;
+}
+@media (min-width: 620px) {
+  .rules-cols { grid-template-columns: 1fr 1fr; }
+}
+
+.rules-list {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.rules-list li { margin-bottom: 4px; }
+
+.rules-note {
+  font-size: 12.5px;
+  color: var(--gris-texte);
+  font-style: italic;
+  margin: 4px 0 12px;
+}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Motus — Règles du jeu</title>
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
   <header class="app-header">
@@ -13,110 +13,141 @@
   </header>
 
   <main>
-    <div class="card">
+    <div class="card rules-card">
       <h2>Règles du jeu</h2>
       <p class="subtitle">Deux modes : <strong>Chill 🏖️</strong> pour le stream en solo, <strong>Compétitif ⚔️</strong> pour s'affronter.</p>
 
-      <h3>Le principe commun</h3>
-      <p>
-        Deviner un mot français en un nombre limité d'essais. La première lettre est toujours donnée.
-        À chaque essai (qui doit faire la bonne longueur, commencer par la lettre donnée et exister dans
-        le dictionnaire), chaque lettre se colore :
-      </p>
-      <ul style="line-height: 2;">
-        <li>
-          <span style="display:inline-block;width:24px;height:24px;background:#c84545;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
-          <strong>Rouge</strong> : lettre bien placée et nulle part ailleurs dans le mot.
-        </li>
-        <li>
-          <span style="display:inline-block;width:24px;height:24px;background:linear-gradient(135deg,#c84545 50%,#d4a830 50%);border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
-          <strong>Rouge + jaune en diagonale</strong> : lettre bien placée, mais il en reste au moins une autre ailleurs dans le mot.
-        </li>
-        <li>
-          <span style="display:inline-block;width:24px;height:24px;background:#d4a830;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
-          <strong>Jaune</strong> : lettre présente dans le mot, mais mal placée.
-        </li>
-        <li>
-          <span style="display:inline-block;width:24px;height:24px;background:#d3d1c7;border-radius:4px;vertical-align:middle;margin-right:8px;"></span>
-          <strong>Gris</strong> : lettre absente du mot.
-        </li>
-      </ul>
-      <p style="margin-top: 12px;">
-        La diagonale rouge/jaune est une variante maison : elle te dit « cette lettre est bien là, mais il
-        en reste une autre quelque part ». Le Motus classique te laisse le deviner — ici on te le signale.
-      </p>
+      <!-- Onglets -->
+      <div class="rules-tabs" role="tablist">
+        <button class="rules-tab is-active" role="tab" data-tab="commun" aria-selected="true">Commun</button>
+        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">🏖️ Chill</button>
+        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">⚔️ Compétitif</button>
+      </div>
+
+      <!-- Panneau COMMUN -->
+      <section class="rules-panel is-active" data-panel="commun" role="tabpanel">
+        <h3>Le principe</h3>
+        <p>
+          Deviner un mot français en un nombre limité d'essais. La première lettre est toujours donnée.
+          Chaque essai doit faire la bonne longueur, commencer par la lettre donnée et exister dans le
+          dictionnaire — sinon il est refusé sans consommer d'essai.
+        </p>
+        <h3>Le code couleur</h3>
+        <ul class="rules-colors">
+          <li>
+            <span class="color-chip" style="background:#c84545;"></span>
+            <span><strong>Rouge</strong> — lettre bien placée et nulle part ailleurs.</span>
+          </li>
+          <li>
+            <span class="color-chip" style="background:linear-gradient(135deg,#c84545 50%,#d4a830 50%);"></span>
+            <span><strong>Rouge + jaune</strong> — bien placée, mais il en reste une autre ailleurs.</span>
+          </li>
+          <li>
+            <span class="color-chip" style="background:#d4a830;"></span>
+            <span><strong>Jaune</strong> — présente dans le mot, mais mal placée.</span>
+          </li>
+          <li>
+            <span class="color-chip" style="background:#d3d1c7;"></span>
+            <span><strong>Gris</strong> — absente du mot.</span>
+          </li>
+        </ul>
+        <p class="rules-note">
+          La diagonale rouge/jaune est une variante maison : « cette lettre est bien là, mais il en reste
+          une autre quelque part ». Le Motus classique te laisse le deviner — ici on te le signale.
+        </p>
+      </section>
+
+      <!-- Panneau CHILL -->
+      <section class="rules-panel" data-panel="chill" role="tabpanel" hidden>
+        <h3>🏖️ Mode chill — solo, idéal en stream</h3>
+        <p>
+          Tu joues seul et tu tapes les essais sur ton clavier. En stream, tes viewers proposent des mots
+          à l'oral ou dans le chat — à toi de décider quoi tenter. Pas de timer, pas de score, pas de
+          pression.
+        </p>
+        <p>
+          Tu choisis la longueur du mot (5 à 10 lettres) et le nombre d'essais (4 à 8). Après chaque mot,
+          tu peux afficher sa définition (tirée du Wiktionnaire) pour apprendre ou rebondir en stream.
+        </p>
+      </section>
+
+      <!-- Panneau COMPÉTITIF -->
+      <section class="rules-panel" data-panel="comp" role="tabpanel" hidden>
+        <h3>⚔️ Mode compétitif — 2 à 8 joueurs</h3>
+        <p>
+          Tout le monde reçoit le <strong>même mot</strong> au même moment, chacun sur sa propre grille.
+          Tu vois la progression <em>colorée</em> des adversaires (les couleurs de leurs cases) mais
+          <strong>pas leurs lettres</strong> — le suspense reste entier. L'hôte configure la partie ; il faut
+          au moins 2 joueurs pour démarrer.
+        </p>
+
+        <div class="rules-cols">
+          <div>
+            <h4>Présets</h4>
+            <ul class="rules-list">
+              <li><strong>⚡ Speed</strong> — le 1<sup>er</sup> qui trouve termine la manche. 1 pt pour lui. 5 manches.</li>
+              <li><strong>⏱️ Chrono</strong> — timer 90 s, tout le monde joue. Score Essais + Position. 5 manches.</li>
+              <li><strong>🏃 Marathon</strong> — la manche dure jusqu'à ce que tous aient fini. Score Essais. Illimité.</li>
+              <li><strong>🛠️ Custom</strong> — tu règles tout toi-même.</li>
+            </ul>
+
+            <h4>Fin de manche</h4>
+            <ul class="rules-list">
+              <li><strong>Premier trouvé</strong> — s'arrête dès qu'un joueur trouve.</li>
+              <li><strong>Tout le monde finit</strong> — continue tant qu'il reste des joueurs en course.</li>
+              <li><strong>Fin au timer</strong> — dure exactement la durée du timer.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Modes de score</h4>
+            <ul class="rules-list">
+              <li><strong>Binaire</strong> — 1 pt au premier, 0 aux autres.</li>
+              <li><strong>Essais</strong> — d'autant plus de points qu'il te restait d'essais (trouvé au 3<sup>e</sup>/6 → 4 pts).</li>
+              <li><strong>Position</strong> — selon l'ordre d'arrivée, dégressif et adapté au nombre de joueurs (à 2 : 2 puis 1).</li>
+              <li><strong>Essais + Position</strong> — efficacité + bonus d'ordre d'arrivée.</li>
+            </ul>
+            <p class="rules-note">
+              Avec « Premier trouvé », seuls Binaire et Essais sont possibles (on ignore ce qu'auraient fait les autres).
+            </p>
+
+            <h4>Format de partie</h4>
+            <ul class="rules-list">
+              <li><strong>Manches fixes</strong> — nombre défini à l'avance.</li>
+              <li><strong>Illimité</strong> — jusqu'à ce que l'hôte arrête.</li>
+              <li><strong>Premier à X points</strong> — s'arrête au seuil atteint.</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="rules-note">
+          Entre les manches, un récap s'affiche (qui a trouvé, en combien d'essais, classement cumulé).
+          C'est l'hôte qui lance la manche suivante.
+        </p>
+      </section>
+
     </div>
-
-    <div class="card">
-      <h2>🏖️ Mode chill</h2>
-      <p class="subtitle">Solo, idéal en stream.</p>
-      <p>
-        Tu joues seul et tu tapes les essais sur ton clavier. Si tu streames, tes viewers proposent des
-        mots à l'oral ou dans le chat — à toi de décider quoi tenter. Pas de timer, pas de score, pas de
-        pression. Tu choisis la longueur du mot (5 à 10 lettres) et le nombre d'essais (4 à 8).
-      </p>
-      <p>
-        Bonus : après chaque mot, tu peux afficher sa définition (tirée du Wiktionnaire) pour apprendre
-        ou rebondir en stream.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>⚔️ Mode compétitif</h2>
-      <p class="subtitle">2 à 8 joueurs, même mot pour tous, chacun sa grille.</p>
-      <p>
-        Tout le monde reçoit le <strong>même mot</strong> au même moment et le cherche sur sa propre grille.
-        Tu vois la progression <em>colorée</em> des adversaires (les couleurs de leurs cases) mais
-        <strong>pas leurs lettres</strong> — le suspense reste entier. L'hôte configure la partie avant de
-        lancer ; les autres voient le résumé en temps réel.
-      </p>
-
-      <h3>Présets</h3>
-      <p>Quatre formules prêtes à l'emploi. « Custom » débloque tous les réglages détaillés.</p>
-      <ul style="line-height: 1.9;">
-        <li><strong>⚡ Speed</strong> — le premier qui trouve termine la manche. 1 point pour lui, 0 pour les autres. 5 manches.</li>
-        <li><strong>⏱️ Chrono</strong> — timer de 90 s, tout le monde joue jusqu'au bout. Score « Essais + Position ». 5 manches.</li>
-        <li><strong>🏃 Marathon</strong> — la manche dure jusqu'à ce que tout le monde ait fini. Score à l'efficacité (essais). Manches illimitées.</li>
-        <li><strong>🛠️ Custom</strong> — tu règles tout toi-même (voir ci-dessous).</li>
-      </ul>
-
-      <h3>Condition de fin de manche</h3>
-      <ul style="line-height: 1.9;">
-        <li><strong>Premier trouvé</strong> — la manche s'arrête dès qu'un joueur trouve le mot. On ne connaît que le gagnant.</li>
-        <li><strong>Tout le monde finit</strong> — la manche continue tant qu'il reste des joueurs qui cherchent (ni trouvé, ni essais épuisés).</li>
-        <li><strong>Fin au timer</strong> — la manche dure exactement la durée du timer ; chacun joue jusqu'à la fin.</li>
-      </ul>
-
-      <h3>Modes de score</h3>
-      <p>Le score disponible dépend de la condition de fin (certains n'ont pas de sens autrement) :</p>
-      <ul style="line-height: 1.9;">
-        <li><strong>Binaire</strong> — 1 point au premier qui trouve, 0 aux autres.</li>
-        <li><strong>Essais</strong> — tu marques d'autant plus de points qu'il te restait d'essais en trouvant (par ex. trouvé au 3<sup>e</sup> essai sur 6 → 4 points). Récompense l'efficacité.</li>
-        <li><strong>Position</strong> — points selon l'ordre d'arrivée. Le 1<sup>er</sup> marque le maximum, puis c'est dégressif. Le barème s'adapte au nombre de joueurs (à 2 joueurs : 2 puis 1 ; à 4 joueurs : 4, 3, 2, 1…).</li>
-        <li><strong>Essais + Position</strong> — combine les deux : des points pour l'efficacité (essais restants) plus un bonus selon l'ordre d'arrivée.</li>
-      </ul>
-      <p style="font-size: 13px; color: var(--gris-texte);">
-        Avec « Premier trouvé », seuls <strong>Binaire</strong> et <strong>Essais</strong> sont proposés —
-        puisqu'on ignore ce qu'auraient fait les autres, un classement complet serait impossible.
-      </p>
-
-      <h3>Format de partie</h3>
-      <ul style="line-height: 1.9;">
-        <li><strong>Manches fixes</strong> — un nombre de manches défini à l'avance.</li>
-        <li><strong>Illimité</strong> — on enchaîne jusqu'à ce que l'hôte arrête la partie.</li>
-        <li><strong>Premier à X points</strong> — la partie s'arrête dès qu'un joueur atteint le seuil.</li>
-      </ul>
-
-      <h3>Entre les manches</h3>
-      <p>
-        Un récap s'affiche (qui a trouvé, en combien d'essais, le classement cumulé). C'est l'hôte qui
-        lance la manche suivante. Il faut au moins 2 joueurs pour démarrer.
-      </p>
-    </div>
-
-    <p style="margin: 8px 0 24px;">
-      <a href="index.html" class="btn btn-secondary">Retour au choix du mode</a>
-    </p>
   </main>
+
+  <script>
+    // Onglets : un seul panneau visible a la fois.
+    const tabs = document.querySelectorAll(".rules-tab");
+    const panels = document.querySelectorAll(".rules-panel");
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        const target = tab.dataset.tab;
+        for (const t of tabs) {
+          const active = t === tab;
+          t.classList.toggle("is-active", active);
+          t.setAttribute("aria-selected", active ? "true" : "false");
+        }
+        for (const p of panels) {
+          const show = p.dataset.panel === target;
+          p.classList.toggle("is-active", show);
+          p.hidden = !show;
+        }
+      });
+    }
+  </script>
 </body>
 </html>
