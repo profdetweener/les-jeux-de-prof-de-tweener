@@ -96,36 +96,16 @@
 
   <script type="module">
     /**
-     * Pour la carte "compétitif" : on ne navigue pas vers une page intermédiaire,
-     * on cree directement la room (mode gele à la creation) et on redirige vers
-     * le lobby. Le pseudo sera demande dans le lobby si absent — ou on peut
-     * juste rediriger vers join.html avec le code (pour que l'utilisateur
-     * choisisse son pseudo).
+     * La carte "compétitif" ne cree PAS la room tout de suite : elle redirige
+     * vers la page de creation (join.html) en mode "create" avec le mode voulu
+     * en parametre. La room sera creee une fois le pseudo saisi, evitant les
+     * rooms orphelines et le faux message "tu es invité".
      */
-    import { createRoom, pingWorker } from "../shared/js/api.js";
-    import { showToast } from "../shared/js/toast.js";
-
     const compCard = document.getElementById("comp-card");
     if (compCard) {
-      compCard.addEventListener("click", async (e) => {
+      compCard.addEventListener("click", (e) => {
         e.preventDefault();
-        compCard.classList.add("is-loading");
-        try {
-          const ok = await pingWorker();
-          if (!ok) {
-            showToast("Serveur injoignable. Réessaie dans un instant.", { type: "error" });
-            return;
-          }
-          const code = await createRoom("motus", { mode: "competitive" });
-          // On redirige vers join.html avec le code en hash : la page demandera
-          // le pseudo si absent, puis enverra vers room.html avec le bon code.
-          window.location.href = `join.html#${code}`;
-        } catch (err) {
-          console.error(err);
-          showToast("Impossible de créer la partie. Réessaie.", { type: "error" });
-        } finally {
-          compCard.classList.remove("is-loading");
-        }
+        window.location.href = "join.html?create=competitive";
       });
     }
   </script>

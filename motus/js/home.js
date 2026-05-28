@@ -90,6 +90,24 @@ function parseInviteCode() {
 const inviteCode = parseInviteCode();
 const isJoinMode = inviteCode !== null;
 
+// --- Detection du mode "Creer" via ?create=competitive|coop_stream ---
+// Quand on arrive depuis la carte "Motus competitif", l'URL est
+// `join.html?create=competitive`. On cree alors la room (avec le bon mode)
+// une fois le pseudo saisi. Si pas de code d'invitation ET pas de create,
+// on tombe sur l'ancien comportement "aucune partie a rejoindre".
+function parseCreateMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const c = params.get("create");
+    if (c === "competitive" || c === "coop_stream") return c;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+const createMode = parseCreateMode();
+const isCreateMode = !isJoinMode && createMode !== null;
+
 // --- Restauration du pseudo s'il existe deja ---
 const savedPseudo = storage.getItem("motus_pseudo");
 const savedRoom = storage.getItem("motus_room");
@@ -97,15 +115,23 @@ if (savedPseudo) {
   pseudoInput.value = savedPseudo;
 }
 
-// --- Application du mode UI (Creer ou Rejoindre) ---
-// La page join.html n'a plus de mode "Creer" : la creation se fait via le menu
-// principal Motus (chill / competitif). Si on arrive ici sans code, on affiche
-// un message et on desactive le bouton.
+// --- Application du mode UI (Rejoindre / Creer / rien) ---
 if (isJoinMode) {
   subtitleCreate.style.display = "none";
   subtitleJoin.style.display = "block";
   joinCodeLabel.textContent = inviteCode;
   btnAction.textContent = "Rejoindre la partie";
+} else if (isCreateMode) {
+  // Mode creation : on demande le pseudo, le bouton cree la room
+  subtitleCreate.style.display = "block";
+  subtitleJoin.style.display = "none";
+  const modeLabel = createMode === "competitive" ? "compétitive ⚔️" : "coop / stream";
+  subtitleCreate.innerHTML =
+    `Tu crées une partie <strong>${modeLabel}</strong>. Choisis ton pseudo pour démarrer le salon.`;
+  btnAction.textContent = "Créer la partie";
+  btnAction.disabled = false;
+  const pseudoGroup = document.getElementById("pseudo-group");
+  if (pseudoGroup) pseudoGroup.style.display = "";
 } else {
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
@@ -219,10 +245,16 @@ async function doAction() {
   }
 
   // Mode Creer
+  if (!isCreateMode) {
+    // Garde-fou : on ne devrait jamais arriver ici si le bouton est desactive,
+    // mais au cas ou.
+    showError("Aucune partie à créer ou rejoindre. Retourne au menu Motus.");
+    return;
+  }
   btnAction.disabled = true;
   btnAction.textContent = "Création…";
   try {
-    const code = await createRoom("motus");
+    const code = await createRoom("motus", { mode: createMode });
     storage.setItem("motus_pseudo", pseudoCheck.value);
     storage.setItem("motus_room", code);
     window.location.href = `room.html?code=${encodeURIComponent(code)}`;
@@ -230,7 +262,7 @@ async function doAction() {
     console.error(err);
     showError("Impossible de créer la room. Réessaie dans un instant.");
     btnAction.disabled = false;
-    btnAction.textContent = "Créer une partie";
+    btnAction.textContent = "Créer la partie";
   }
 }
 
