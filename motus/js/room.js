@@ -69,8 +69,13 @@ const views = {
 };
 
 function showView(phase) {
-  // "finished" repli sur le lobby (la partie est revenue au lobby cote serveur)
-  const target = phase === "finished" ? "lobby" : phase;
+  // Phases sans vue dediee dans cette livraison : on retombe sur lobby.
+  // (in_round / between_rounds / finished arrivent en L2/L3 — pour l'instant
+  // mode comp n'a pas encore de mecanique de partie cote front.)
+  let target = phase;
+  if (!views[target]) {
+    target = phase === "finished" ? "lobby" : "lobby";
+  }
   for (const [name, el] of Object.entries(views)) {
     el.style.display = name === target ? "" : "none";
   }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
   <header class="app-header">
@@ -41,41 +41,168 @@
         <div class="lobby-config">
           <h3>Configuration</h3>
 
-          <!-- Vue host : editable -->
-          <div id="host-config">
-            <p class="info-line">
-              Mode <strong>coop / stream</strong> — tu saisis les essais, les autres regardent et te proposent des mots.
-            </p>
+          <!-- =========================================================== -->
+          <!-- MODE COOP_STREAM                                            -->
+          <!-- =========================================================== -->
+          <div id="config-coop" style="display: none;">
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="word-length-input">Longueur du mot</label>
-                <input type="number" id="word-length-input" value="7" min="5" max="10" step="1">
-                <p class="info-line">de 5 à 10 lettres</p>
+            <!-- Vue host : editable -->
+            <div id="host-config">
+              <p class="info-line">
+                Mode <strong>coop / stream</strong> — tu saisis les essais, les autres regardent et te proposent des mots.
+              </p>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="word-length-input">Longueur du mot</label>
+                  <input type="number" id="word-length-input" value="7" min="5" max="10" step="1">
+                  <p class="info-line">de 5 à 10 lettres</p>
+                </div>
+                <div class="form-group">
+                  <label for="max-attempts-input">Nombre d'essais</label>
+                  <input type="number" id="max-attempts-input" value="6" min="4" max="8" step="1">
+                  <p class="info-line">de 4 à 8 essais</p>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="max-attempts-input">Nombre d'essais</label>
-                <input type="number" id="max-attempts-input" value="6" min="4" max="8" step="1">
-                <p class="info-line">de 4 à 8 essais</p>
+            </div>
+
+            <!-- Vue non-host : lecture seule -->
+            <div id="guest-config" style="display: none;">
+              <p class="info-line">
+                Mode <strong>coop / stream</strong>. L'hôte saisira les essais ; tu suis la grille en direct.
+              </p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="sub-label">Longueur du mot</label>
+                  <div class="readonly-value"><span id="word-length-display">7</span> lettres</div>
+                </div>
+                <div class="form-group">
+                  <label class="sub-label">Nombre d'essais</label>
+                  <div class="readonly-value"><span id="max-attempts-display">6</span></div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Vue non-host : lecture seule -->
-          <div id="guest-config" style="display: none;">
-            <p class="info-line">
-              Mode <strong>coop / stream</strong>. L'hôte saisira les essais ; tu suis la grille en direct.
-            </p>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="sub-label">Longueur du mot</label>
-                <div class="readonly-value"><span id="word-length-display">7</span> lettres</div>
+          <!-- =========================================================== -->
+          <!-- MODE COMPETITIVE                                            -->
+          <!-- =========================================================== -->
+          <div id="config-comp" style="display: none;">
+
+            <!-- Vue host : editable -->
+            <div id="host-comp-config">
+              <p class="info-line">
+                Mode <strong>compétitif ⚔️</strong> — même mot pour tous, chacun sa grille. Tu peux choisir un préset ou personnaliser.
+              </p>
+
+              <!-- Choix de preset -->
+              <div class="preset-grid" role="radiogroup" aria-label="Choisir un préset">
+                <button type="button" class="preset-card" data-preset="speed" role="radio" aria-checked="false">
+                  <div class="preset-name">⚡ Speed</div>
+                  <div class="preset-desc">1er trouve = fin, 3/2/1 pt, 5 manches</div>
+                </button>
+                <button type="button" class="preset-card" data-preset="chrono" role="radio" aria-checked="false">
+                  <div class="preset-name">⏱️ Chrono</div>
+                  <div class="preset-desc">Timer 90s, score combiné, 5 manches</div>
+                </button>
+                <button type="button" class="preset-card" data-preset="marathon" role="radio" aria-checked="false">
+                  <div class="preset-name">🏃 Marathon</div>
+                  <div class="preset-desc">Tout le monde finit, manches illimitées</div>
+                </button>
+                <button type="button" class="preset-card" data-preset="custom" role="radio" aria-checked="false">
+                  <div class="preset-name">🛠️ Custom</div>
+                  <div class="preset-desc">Tout est réglable à la main</div>
+                </button>
               </div>
-              <div class="form-group">
-                <label class="sub-label">Nombre d'essais</label>
-                <div class="readonly-value"><span id="max-attempts-display">6</span></div>
+
+              <!-- Reglages communs -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="comp-word-length-input">Longueur du mot</label>
+                  <input type="number" id="comp-word-length-input" value="7" min="5" max="10" step="1">
+                  <p class="info-line">de 5 à 10 lettres</p>
+                </div>
+                <div class="form-group">
+                  <label for="comp-max-attempts-input">Nombre d'essais</label>
+                  <input type="number" id="comp-max-attempts-input" value="6" min="4" max="8" step="1">
+                  <p class="info-line">de 4 à 8 essais</p>
+                </div>
+              </div>
+
+              <!-- Toggle config avancee -->
+              <button type="button" class="advanced-toggle" id="advanced-toggle" aria-expanded="false">
+                <span class="caret">▶</span> Configuration avancée
+              </button>
+
+              <!-- Bloc avance (cache par defaut, deplie en mode custom) -->
+              <div class="advanced-block" id="advanced-block" hidden>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="comp-end-condition">Fin de manche</label>
+                    <select id="comp-end-condition">
+                      <option value="first_finds">Quand le premier trouve</option>
+                      <option value="everyone_done">Quand tout le monde a fini</option>
+                      <option value="timer_only">À la fin du timer</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="comp-scoring">Mode de score</label>
+                    <select id="comp-scoring">
+                      <option value="position">Position (3/2/1)</option>
+                      <option value="binary">Binaire (1er = 1 pt)</option>
+                      <option value="attempts_left">Essais restants</option>
+                      <option value="combo">Combiné (essais + bonus)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group" id="form-group-timer">
+                    <label for="comp-timer-seconds">Timer par manche</label>
+                    <select id="comp-timer-seconds">
+                      <option value="">Aucun</option>
+                      <option value="30">30 secondes</option>
+                      <option value="60">60 secondes</option>
+                      <option value="90">90 secondes</option>
+                      <option value="120">2 minutes</option>
+                      <option value="180">3 minutes</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="comp-format">Format de partie</label>
+                    <select id="comp-format">
+                      <option value="fixed_rounds">Nombre fixe de manches</option>
+                      <option value="unlimited">Manches illimitées</option>
+                      <option value="first_to_points">Premier à X points</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group" id="form-group-max-rounds">
+                    <label for="comp-max-rounds">Nombre de manches</label>
+                    <input type="number" id="comp-max-rounds" value="5" min="1" max="50" step="1">
+                  </div>
+                  <div class="form-group" id="form-group-points-target" style="display: none;">
+                    <label for="comp-points-target">Seuil de points</label>
+                    <input type="number" id="comp-points-target" value="10" min="1" max="100" step="1">
+                  </div>
+                </div>
+
               </div>
             </div>
+
+            <!-- Vue non-host : lecture seule (résumé compact) -->
+            <div id="guest-comp-config" style="display: none;">
+              <p class="info-line">
+                Mode <strong>compétitif ⚔️</strong>. L'hôte configure la partie ; tu verras le résumé ici.
+              </p>
+              <ul class="config-summary" id="guest-comp-summary">
+                <!-- rempli par view-lobby.js -->
+              </ul>
+            </div>
+
           </div>
 
           <button class="btn btn-primary btn-block" id="start-btn">Démarrer la partie</button>
@@ -111,6 +238,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=5"></script>
+  <script type="module" src="js/room.js?v=6"></script>
 </body>
 </html>

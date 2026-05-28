@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Choisis ton mode</title>
   <link rel="stylesheet" href="../shared/css/landing.css">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <script>
     // Si on arrive ici avec un lien d'invitation (hash ou query string),
     // on redirige vers join.html pour preserver le code. Utile pour la
@@ -43,7 +43,8 @@
       <h2>Quel mode aujourd'hui ?</h2>
       <p>
         Motus chill : tu joues seul, idéal en stream — les viewers proposent
-        oralement ou dans le tchat. Motus compétitif arrive bientôt.
+        oralement ou dans le tchat. Motus compétitif : même mot pour tous,
+        chacun sa grille, on voit les couleurs des autres.
       </p>
     </section>
 
@@ -66,8 +67,7 @@
         </div>
       </a>
 
-      <div class="game-card coming-soon">
-        <div class="game-card-badge">Bientôt</div>
+      <a href="#" class="game-card" id="comp-card">
         <div class="game-card-emoji">⚔️</div>
         <h3 class="game-card-title">Motus compétitif</h3>
         <p class="game-card-tagline">
@@ -79,7 +79,10 @@
           <span class="dot">·</span>
           <span>10-30 min</span>
         </div>
-      </div>
+        <div class="game-card-cta">
+          Créer une partie <span class="arrow">→</span>
+        </div>
+      </a>
 
     </div>
 
@@ -90,5 +93,42 @@
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
   </footer>
+
+  <script type="module">
+    /**
+     * Pour la carte "compétitif" : on ne navigue pas vers une page intermédiaire,
+     * on cree directement la room (mode gele à la creation) et on redirige vers
+     * le lobby. Le pseudo sera demande dans le lobby si absent — ou on peut
+     * juste rediriger vers join.html avec le code (pour que l'utilisateur
+     * choisisse son pseudo).
+     */
+    import { createRoom, pingWorker } from "../shared/js/api.js";
+    import { showToast } from "../shared/js/toast.js";
+
+    const compCard = document.getElementById("comp-card");
+    if (compCard) {
+      compCard.addEventListener("click", async (e) => {
+        e.preventDefault();
+        compCard.classList.add("is-loading");
+        try {
+          const ok = await pingWorker();
+          if (!ok) {
+            showToast("Serveur injoignable. Réessaie dans un instant.", { type: "error" });
+            return;
+          }
+          const code = await createRoom("motus", { mode: "competitive" });
+          // On redirige vers join.html avec le code en hash : la page demandera
+          // le pseudo si absent, puis enverra vers room.html avec le bon code.
+          window.location.href = `join.html#${code}`;
+        } catch (err) {
+          console.error(err);
+          showToast("Impossible de créer la partie. Réessaie.", { type: "error" });
+        } finally {
+          compCard.classList.remove("is-loading");
+        }
+      });
+    }
+  </script>
+  <div class="toast-container" id="toast-container"></div>
 </body>
 </html>

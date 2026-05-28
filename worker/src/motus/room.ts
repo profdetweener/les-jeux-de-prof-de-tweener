@@ -16,15 +16,19 @@
 import type {
   Attempt,
   ClientMessage,
+  CompPreset,
+  EndCondition,
   ErrorCode,
+  GameFormat,
   GameMode,
   MotusConfig,
   PlayerInfo,
   RoomPhase,
+  ScoringMode,
   ServerMessage,
   WordState,
 } from "./messages";
-import { MOTUS_CONFIG, ROOM_CONFIG } from "./messages";
+import { COMP_CONFIG, COMP_PRESETS, MOTUS_CONFIG, ROOM_CONFIG } from "./messages";
 import { pseudosEqual, validatePseudo } from "../shared/moderation";
 import {
   colorize,
@@ -48,12 +52,32 @@ const DEFAULT_CONFIG: MotusConfig = {
   mode: "coop_stream",
 };
 
+/**
+ * Config par defaut pour une room en mode competitive (preset Speed,
+ * appliquee tant que l'hote n'a pas pousse sa propre config).
+ */
+const DEFAULT_COMP_CONFIG: MotusConfig = {
+  wordLength: MOTUS_CONFIG.DEFAULT_WORD_LEN,
+  maxAttempts: MOTUS_CONFIG.DEFAULT_ATTEMPTS,
+  mode: "competitive",
+  preset: "speed",
+  ...COMP_PRESETS.speed,
+};
+
 export class MotusRoom {
   private state: DurableObjectState;
   private players: Map<string, PlayerSession>;
   private wsToPseudo: Map<WebSocket, string>;
   private hostPseudo: string | null;
-  private initialized: boolean;
+
+  /**
+   * Mode gele a la creation de la room. Determine le default config et la
+   * branche logique de la partie (coop_stream vs competitive). Lu au premier
+   * acces depuis state.storage et garde en cache.
+   *
+   * `null` tant que la room n'est pas encore initialisee (boot avant /init).
+   */
+  private initialMode: GameMode | null;
 
   // Etat de partie
   private phase: RoomPhase;
@@ -69,13 +93,34 @@ export class MotusRoom {
     this.players = new Map();
     this.wsToPseudo = new Map();
     this.hostPseudo = null;
-    this.initialized = false;
+    this.initialMode = null;
     this.phase = "lobby";
-    this.config = { ...DEFAULT_CONFIG };
+    this.config = { ...DEFAULT_CONFIG }; // sera ecrase au 1er fetch via loadInitialMode
     this.targetWord = null;
     this.attempts = [];
     this.wordStatus = "in_progress";
     this.foundBy = null;
+  }
+
+  /**
+   * Charge le mode persiste depuis storage (au premier acces). Le mode est
+   * ecrit une seule fois, a la creation de la room (cf. __internal/init), et
+   * ne change jamais ensuite — il est tout aussi immuable que le code de room.
+   */
+  private async loadInitialMode(): Promise<GameMode | null> {
+    if (this.initialMode !== null) return this.initialMode;
+    const stored = await this.state.storage.get<GameMode>("initialMode");
+    if (stored === "coop_stream" || stored === "competitive") {
+      this.initialMode = stored;
+      // Aligne la config par defaut sur le mode (la 1ere config envoyee par
+      // l'hote viendra l'ecraser, mais avant qu'il l'envoie c'est ce qu'on
+      // expose dans le `joined`).
+      this.config = stored === "competitive"
+        ? { ...DEFAULT_COMP_CONFIG }
+        : { ...DEFAULT_CONFIG };
+      return stored;
+    }
+    return null;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -83,13 +128,27 @@ export class MotusRoom {
 
     // Endpoints internes (utilises par le routeur)
     if (url.pathname === "/__internal/exists") {
-      return new Response(JSON.stringify({ exists: this.initialized }), {
+      const mode = await this.loadInitialMode();
+      return new Response(JSON.stringify({ exists: mode !== null }), {
         headers: { "Content-Type": "application/json" },
       });
     }
     if (url.pathname === "/__internal/init") {
-      this.initialized = true;
-      return new Response(JSON.stringify({ ok: true }), {
+      // Body : { mode: "coop_stream" | "competitive" }. Si absent ou invalide,
+      // on assume coop_stream (compat avec l'ancien client qui n'envoyait rien).
+      let body: { mode?: string } = {};
+      try {
+        body = await request.json();
+      } catch {
+        /* body vide -> defaut coop_stream */
+      }
+      const mode: GameMode = body.mode === "competitive" ? "competitive" : "coop_stream";
+      await this.state.storage.put("initialMode", mode);
+      this.initialMode = mode;
+      this.config = mode === "competitive"
+        ? { ...DEFAULT_COMP_CONFIG }
+        : { ...DEFAULT_CONFIG };
+      return new Response(JSON.stringify({ ok: true, mode }), {
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -99,7 +158,15 @@ export class MotusRoom {
     if (upgradeHeader !== "websocket") {
       return new Response("Expected WebSocket upgrade", { status: 426 });
     }
-    this.initialized = true;
+    // S'assure que le mode est charge avant d'accepter le WS (au cas ou la room
+    // serait re-bootee suite a une eviction Cloudflare).
+    const mode = await this.loadInitialMode();
+    if (mode === null) {
+      // Cas pathologique : WS sans __internal/init prealable. On accepte
+      // quand meme et on persiste en coop_stream par defaut.
+      await this.state.storage.put("initialMode", "coop_stream");
+      this.initialMode = "coop_stream";
+    }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -351,6 +418,18 @@ export class MotusRoom {
     }
     this.config = norm.config;
     this.broadcast({ type: "config_update", config: this.config });
+
+    // En mode comp, la mecanique de manche arrive en Livraison 2 — on refuse
+    // poliment ici. Le lobby et la sync de config sont OK, tout est cable.
+    if (this.config.mode === "competitive") {
+      this.sendError(
+        ws,
+        "WRONG_PHASE",
+        "Mode competitif : la mecanique de partie arrive bientot."
+      );
+      return;
+    }
+
     this.startNextWord();
   }
 
@@ -577,6 +656,19 @@ export class MotusRoom {
 
   /**
    * Normalise et valide une MotusConfig.
+   *
+   * Verifie que le mode envoye correspond bien a celui gele a la creation
+   * de la room (`this.initialMode`) — un client ne peut pas faire muter une
+   * room coop en comp ou vice versa.
+   *
+   * En mode competitive, valide aussi tous les sous-parametres :
+   *   - endCondition / scoring / format dans leurs enums respectifs
+   *   - timerSeconds dans les bornes (obligatoire si endCondition === timer_only)
+   *   - maxRounds dans les bornes (utilise si format === fixed_rounds)
+   *   - pointsTarget dans les bornes (utilise si format === first_to_points)
+   *   - si preset n'est pas "custom", verifie que les valeurs envoyees matchent
+   *     bien le preset (defense contre client menteur). Sinon, accepte la
+   *     config comme libre.
    */
   private normalizeConfig(
     raw: MotusConfig
@@ -588,6 +680,7 @@ export class MotusRoom {
     const maxAttempts = Number(raw.maxAttempts);
     const mode = raw.mode;
 
+    // Champs communs
     if (
       !Number.isInteger(wordLength) ||
       wordLength < MOTUS_CONFIG.MIN_WORD_LEN ||
@@ -608,22 +701,164 @@ export class MotusRoom {
         error: `Nombre d'essais invalide (${MOTUS_CONFIG.MIN_ATTEMPTS}-${MOTUS_CONFIG.MAX_ATTEMPTS}).`,
       };
     }
-    // En Livraison 2 on n'accepte que coop_stream
-    if (mode !== "coop_stream") {
+
+    // Le mode doit correspondre au mode gele de la room
+    if (mode !== "coop_stream" && mode !== "competitive") {
+      return { ok: false, error: "Mode de jeu inconnu." };
+    }
+    if (this.initialMode !== null && mode !== this.initialMode) {
       return {
         ok: false,
-        error: "Seul le mode coop est disponible pour le moment.",
+        error: `Cette room est en mode ${this.initialMode}, impossible de la changer en ${mode}.`,
       };
     }
+
     if (drawablePoolSize(wordLength) === 0) {
       return {
         ok: false,
         error: `Aucun mot disponible pour cette longueur (${wordLength}).`,
       };
     }
+
+    // Coop : on s'arrete la, les autres champs sont ignores
+    if (mode === "coop_stream") {
+      return {
+        ok: true,
+        config: { wordLength, maxAttempts, mode },
+      };
+    }
+
+    // ====== Validation des champs specifiques au mode competitive ======
+
+    const preset = raw.preset;
+    if (
+      preset !== "speed" &&
+      preset !== "chrono" &&
+      preset !== "marathon" &&
+      preset !== "custom"
+    ) {
+      return { ok: false, error: "Preset competitive inconnu." };
+    }
+
+    // endCondition
+    const endCondition = raw.endCondition;
+    if (
+      endCondition !== "first_finds" &&
+      endCondition !== "everyone_done" &&
+      endCondition !== "timer_only"
+    ) {
+      return { ok: false, error: "Condition de fin de manche invalide." };
+    }
+
+    // scoring
+    const scoring = raw.scoring;
+    if (
+      scoring !== "position" &&
+      scoring !== "binary" &&
+      scoring !== "attempts_left" &&
+      scoring !== "combo"
+    ) {
+      return { ok: false, error: "Mode de score invalide." };
+    }
+
+    // format
+    const format = raw.format;
+    if (
+      format !== "fixed_rounds" &&
+      format !== "unlimited" &&
+      format !== "first_to_points"
+    ) {
+      return { ok: false, error: "Format de partie invalide." };
+    }
+
+    // timerSeconds : null autorise sauf si endCondition === timer_only
+    let timerSeconds: number | null = null;
+    if (raw.timerSeconds !== null && raw.timerSeconds !== undefined) {
+      const t = Number(raw.timerSeconds);
+      if (
+        !Number.isInteger(t) ||
+        t < COMP_CONFIG.MIN_TIMER_SEC ||
+        t > COMP_CONFIG.MAX_TIMER_SEC
+      ) {
+        return {
+          ok: false,
+          error: `Timer invalide (${COMP_CONFIG.MIN_TIMER_SEC}-${COMP_CONFIG.MAX_TIMER_SEC}s).`,
+        };
+      }
+      timerSeconds = t;
+    }
+    if (endCondition === "timer_only" && timerSeconds === null) {
+      return { ok: false, error: "Le timer est obligatoire avec 'Fin par timer'." };
+    }
+
+    // maxRounds : pertinent uniquement si format === fixed_rounds
+    let maxRounds = 0;
+    if (format === "fixed_rounds") {
+      const r = Number(raw.maxRounds);
+      if (
+        !Number.isInteger(r) ||
+        r < COMP_CONFIG.MIN_ROUNDS ||
+        r > COMP_CONFIG.MAX_ROUNDS
+      ) {
+        return {
+          ok: false,
+          error: `Nombre de manches invalide (${COMP_CONFIG.MIN_ROUNDS}-${COMP_CONFIG.MAX_ROUNDS}).`,
+        };
+      }
+      maxRounds = r;
+    }
+
+    // pointsTarget : pertinent uniquement si format === first_to_points
+    let pointsTarget = 0;
+    if (format === "first_to_points") {
+      const p = Number(raw.pointsTarget);
+      if (
+        !Number.isInteger(p) ||
+        p < COMP_CONFIG.MIN_POINTS_TARGET ||
+        p > COMP_CONFIG.MAX_POINTS_TARGET
+      ) {
+        return {
+          ok: false,
+          error: `Seuil de points invalide (${COMP_CONFIG.MIN_POINTS_TARGET}-${COMP_CONFIG.MAX_POINTS_TARGET}).`,
+        };
+      }
+      pointsTarget = p;
+    }
+
+    // Si on est sur un preset non-custom, on verifie que les valeurs envoyees
+    // correspondent bien au preset officiel. Si elles divergent, on REFUSE
+    // (defense : empeche un client de pretendre "preset=speed" mais avec
+    // timer=10s, ce qui creerait une confusion d'affichage des autres clients).
+    if (preset !== "custom") {
+      const expected = COMP_PRESETS[preset];
+      if (
+        expected.endCondition !== endCondition ||
+        expected.scoring !== scoring ||
+        expected.format !== format ||
+        expected.timerSeconds !== timerSeconds ||
+        (format === "fixed_rounds" && expected.maxRounds !== maxRounds)
+      ) {
+        return {
+          ok: false,
+          error: `Preset "${preset}" : parametres incoherents avec la definition officielle.`,
+        };
+      }
+    }
+
     return {
       ok: true,
-      config: { wordLength, maxAttempts, mode: mode as GameMode },
+      config: {
+        wordLength,
+        maxAttempts,
+        mode: "competitive",
+        preset,
+        endCondition,
+        timerSeconds,
+        scoring,
+        format,
+        maxRounds,
+        pointsTarget,
+      },
     };
   }
 }
