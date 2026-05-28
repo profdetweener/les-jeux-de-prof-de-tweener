@@ -73,10 +73,10 @@ const END_CONDITION_LABELS = {
   timer_only: "À la fin du timer",
 };
 const SCORING_LABELS = {
-  position: "Position (3/2/1)",
-  binary: "Binaire (1er = 1 pt)",
-  attempts_left: "Essais restants",
-  combo: "Combiné (essais + bonus)",
+  position: "Position",
+  binary: "Binaire",
+  attempts_left: "Essais",
+  combo: "Essais + Position",
 };
 const FORMAT_LABELS = {
   fixed_rounds: "Manches fixes",
@@ -430,7 +430,7 @@ export function initLobbyView(state, conn) {
         startHintEl.textContent =
           state.players.length < 2
             ? "Au moins 2 joueurs requis."
-            : "La mécanique de partie compétitive arrive bientôt. La config est validée et synchronisée entre joueurs.";
+            : "";
       }
     } else {
       startBtn.style.display = "none";
