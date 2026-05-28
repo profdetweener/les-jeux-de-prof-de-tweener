@@ -72,10 +72,18 @@ async function roomExists(ns: DurableObjectNamespace, code: string): Promise<boo
   return data.exists;
 }
 
-async function markRoomInitialized(ns: DurableObjectNamespace, code: string): Promise<void> {
+async function markRoomInitialized(
+  ns: DurableObjectNamespace,
+  code: string,
+  body?: unknown
+): Promise<void> {
   const id = ns.idFromName(code);
   const stub = ns.get(id);
-  await stub.fetch("https://internal/__internal/init");
+  await stub.fetch("https://internal/__internal/init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 /**
@@ -91,11 +99,22 @@ async function handleGameRoutes(
   ns: DurableObjectNamespace
 ): Promise<Response | null> {
   if (subPath === "/rooms" && request.method === "POST") {
+    // Optionnel : body JSON pour transmettre des metadonnees a la creation.
+    // Motus l'utilise pour passer { mode: "coop_stream" | "competitive" }.
+    // Petit Bac et les anciens clients ne posent pas de body -> ignore.
+    let initBody: unknown = undefined;
+    if (request.headers.get("Content-Type")?.includes("application/json")) {
+      try {
+        initBody = await request.json();
+      } catch {
+        /* body invalide -> on cree quand meme avec defaut */
+      }
+    }
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = generateRoomCode();
       const exists = await roomExists(ns, code);
       if (!exists) {
-        await markRoomInitialized(ns, code);
+        await markRoomInitialized(ns, code, initBody);
         return jsonResponse({ code });
       }
     }

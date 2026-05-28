@@ -39,6 +39,7 @@ const resumeBannerDismiss = document.getElementById("resume-banner-dismiss");
 const subtitleCreate = document.getElementById("subtitle-create");
 const subtitleJoin = document.getElementById("subtitle-join");
 const joinCodeLabel = document.getElementById("join-code-label");
+const cardTitle = document.getElementById("card-title");
 
 // --- Helper de stockage : localStorage par defaut, fallback sessionStorage ---
 const storage = (() => {
@@ -117,22 +118,25 @@ if (savedPseudo) {
 
 // --- Application du mode UI (Rejoindre / Creer / rien) ---
 if (isJoinMode) {
+  if (cardTitle) cardTitle.textContent = "Rejoindre une partie";
   subtitleCreate.style.display = "none";
   subtitleJoin.style.display = "block";
   joinCodeLabel.textContent = inviteCode;
   btnAction.textContent = "Rejoindre la partie";
 } else if (isCreateMode) {
   // Mode creation : on demande le pseudo, le bouton cree la room
+  if (cardTitle) cardTitle.textContent = "Bienvenue !";
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
   const modeLabel = createMode === "competitive" ? "compétitive ⚔️" : "coop / stream";
   subtitleCreate.innerHTML =
-    `Tu crées une partie <strong>${modeLabel}</strong>. Choisis ton pseudo pour démarrer le salon.`;
+    `Choisis un pseudo et crée une nouvelle partie <strong>${modeLabel}</strong>.`;
   btnAction.textContent = "Créer la partie";
   btnAction.disabled = false;
   const pseudoGroup = document.getElementById("pseudo-group");
   if (pseudoGroup) pseudoGroup.style.display = "";
 } else {
+  if (cardTitle) cardTitle.textContent = "Rejoindre une partie";
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
   btnAction.textContent = "Aucune partie à rejoindre";
