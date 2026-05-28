@@ -761,6 +761,20 @@ export class MotusRoom {
       return { ok: false, error: "Mode de score invalide." };
     }
 
+    // Coherence endCondition <-> scoring : avec "premier trouve", on ne connait
+    // que le gagnant, donc seuls binary et attempts_left ont du sens.
+    const allowedScorings: Record<string, string[]> = {
+      first_finds: ["binary", "attempts_left"],
+      everyone_done: ["position", "attempts_left", "combo", "binary"],
+      timer_only: ["position", "attempts_left", "combo", "binary"],
+    };
+    if (!allowedScorings[endCondition].includes(scoring)) {
+      return {
+        ok: false,
+        error: `Le score "${scoring}" n'est pas compatible avec cette condition de fin de manche.`,
+      };
+    }
+
     // format
     const format = raw.format;
     if (

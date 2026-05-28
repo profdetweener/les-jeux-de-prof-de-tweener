@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <header class="app-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">←</a>
-    <h1>🟥 Motus</h1>
+    <h1 id="room-title">🟥 Motus</h1>
     <span class="connection-status" id="connection-status">
       <span class="dot"></span>
       <span class="text">connexion…</span>
@@ -21,7 +21,7 @@
 
     <!-- VUE 1 : LOBBY -->
     <div class="card view view-wide" id="view-lobby">
-      <h2>Salon — code <span id="room-code-display">—</span></h2>
+      <h2>Salon</h2>
 
       <div class="room-share">
         <label class="sub-label">Lien d'invitation</label>
@@ -91,15 +91,12 @@
 
             <!-- Vue host : editable -->
             <div id="host-comp-config">
-              <p class="info-line">
-                Mode <strong>compétitif ⚔️</strong> — même mot pour tous, chacun sa grille. Tu peux choisir un préset ou personnaliser.
-              </p>
 
               <!-- Choix de preset -->
               <div class="preset-grid" role="radiogroup" aria-label="Choisir un préset">
                 <button type="button" class="preset-card" data-preset="speed" role="radio" aria-checked="false">
                   <div class="preset-name">⚡ Speed</div>
-                  <div class="preset-desc">1er trouve = fin, 3/2/1 pt, 5 manches</div>
+                  <div class="preset-desc">1er trouvé = fin, 1 pt au gagnant, 5 manches</div>
                 </button>
                 <button type="button" class="preset-card" data-preset="chrono" role="radio" aria-checked="false">
                   <div class="preset-name">⏱️ Chrono</div>
@@ -129,13 +126,9 @@
                 </div>
               </div>
 
-              <!-- Toggle config avancee -->
-              <button type="button" class="advanced-toggle" id="advanced-toggle" aria-expanded="false">
-                <span class="caret">▶</span> Configuration avancée
-              </button>
-
-              <!-- Bloc avance (cache par defaut, deplie en mode custom) -->
+              <!-- Bloc avance : visible uniquement quand le preset Custom est actif -->
               <div class="advanced-block" id="advanced-block" hidden>
+                <p class="advanced-block-hint">Paramètres avancés (préset Custom)</p>
 
                 <div class="form-row">
                   <div class="form-group">
@@ -238,6 +231,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=6"></script>
+  <script type="module" src="js/room.js?v=7"></script>
 </body>
 </html>

@@ -45,7 +45,8 @@ if (!roomCode || !pseudo) {
   window.location.href = "index.html";
 }
 
-document.getElementById("room-code-display").textContent = roomCode;
+const roomCodeDisplay = document.getElementById("room-code-display");
+if (roomCodeDisplay) roomCodeDisplay.textContent = roomCode;
 
 // =============================================================================
 // Etat global de la page
@@ -113,6 +114,20 @@ conn.onStatus((status, detail) => setConnectionUI(status, detail));
 const lobbyView = initLobbyView(state, conn);
 const gameView = initGameView(state, conn);
 
+// Met a jour le titre du header selon le mode de la room.
+const roomTitleEl = document.getElementById("room-title");
+function updateRoomTitle() {
+  if (!roomTitleEl) return;
+  const mode = state.config?.mode;
+  if (mode === "competitive") {
+    roomTitleEl.textContent = "🟥 Motus : mode compétitif ⚔️";
+  } else if (mode === "coop_stream") {
+    roomTitleEl.textContent = "🟥 Motus : mode chill 🏖️";
+  } else {
+    roomTitleEl.textContent = "🟥 Motus";
+  }
+}
+
 // Mappage des messages serveur -> mises a jour de l'etat + des vues
 conn.on("joined", (msg) => {
   state.pseudo = msg.pseudo;
@@ -123,6 +138,7 @@ conn.on("joined", (msg) => {
   state.config = msg.config;
   state.currentWord = msg.currentWord;
 
+  updateRoomTitle();
   lobbyView.refresh();
   gameView.refresh();
   showView(state.phase);
@@ -144,6 +160,7 @@ conn.on("room_state", (msg) => {
 
 conn.on("config_update", (msg) => {
   state.config = msg.config;
+  updateRoomTitle();
   lobbyView.refresh();
 });
 

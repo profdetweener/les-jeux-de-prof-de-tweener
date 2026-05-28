@@ -734,10 +734,22 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 }
 
 .advanced-block {
-  margin-top: 8px;
+  margin-top: 12px;
   padding: 12px;
   background: var(--beige);
   border-radius: var(--rayon-sm);
+}
+.advanced-block-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gris-texte);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* Option grisee dans les selects (scoring non compatible) */
+select option:disabled {
+  color: #b0b0b0;
 }
 
 /* Select harmonisé avec les inputs */

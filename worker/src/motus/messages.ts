@@ -127,7 +127,7 @@ export const COMP_PRESETS: Record<
   speed: {
     endCondition: "first_finds",
     timerSeconds: null,
-    scoring: "position",
+    scoring: "binary",
     format: "fixed_rounds",
     maxRounds: 5,
   },

@@ -36,7 +36,7 @@ const COMP_PRESETS = {
   speed: {
     endCondition: "first_finds",
     timerSeconds: null,
-    scoring: "position",
+    scoring: "binary",
     format: "fixed_rounds",
     maxRounds: 5,
   },
@@ -116,7 +116,6 @@ export function initLobbyView(state, conn) {
   const presetButtons = Array.from(document.querySelectorAll(".preset-card[data-preset]"));
   const compWordLengthInput = document.getElementById("comp-word-length-input");
   const compMaxAttemptsInput = document.getElementById("comp-max-attempts-input");
-  const advancedToggle = document.getElementById("advanced-toggle");
   const advancedBlock = document.getElementById("advanced-block");
   const endConditionSel = document.getElementById("comp-end-condition");
   const scoringSel = document.getElementById("comp-scoring");
@@ -184,10 +183,7 @@ export function initLobbyView(state, conn) {
 
   function applyPreset(preset) {
     compConfig.preset = preset;
-    if (preset === "custom") {
-      // Mode libre : on ne touche pas aux champs, on deplie juste le bloc avance
-      setAdvancedExpanded(true);
-    } else {
+    if (preset !== "custom") {
       // On applique les valeurs du preset
       const p = COMP_PRESETS[preset];
       if (p) {
@@ -197,10 +193,9 @@ export function initLobbyView(state, conn) {
         compConfig.format = p.format;
         compConfig.maxRounds = p.maxRounds;
       }
-      // On peut laisser le bloc avance plie ou deplie : on le replie en
-      // mode preset pour montrer "c'est simple"
-      setAdvancedExpanded(false);
     }
+    // En mode custom : le bloc avance s'affiche. Sinon il reste masque.
+    updateAdvancedVisibility();
     syncCompUIFromConfig();
     updatePresetButtonsUI();
   }
@@ -221,17 +216,9 @@ export function initLobbyView(state, conn) {
     compMaxAttemptsInput.value = String(compConfig.maxAttempts);
   });
 
-  // --- Toggle bloc avance ---
-  advancedToggle.addEventListener("click", () => {
-    const expanded = advancedToggle.getAttribute("aria-expanded") === "true";
-    setAdvancedExpanded(!expanded);
-  });
-
-  function setAdvancedExpanded(expanded) {
-    advancedToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-    advancedBlock.hidden = !expanded;
-    const caret = advancedToggle.querySelector(".caret");
-    if (caret) caret.textContent = expanded ? "▼" : "▶";
+  // --- Visibilite du bloc avance : uniquement en preset Custom ---
+  function updateAdvancedVisibility() {
+    advancedBlock.hidden = compConfig.preset !== "custom";
   }
 
   // --- Champs du bloc avance ---
@@ -245,12 +232,8 @@ export function initLobbyView(state, conn) {
 
   endConditionSel.addEventListener("change", () => {
     compConfig.endCondition = endConditionSel.value;
-    // Cas particulier : si on choisit "timer_only" et qu'il n'y a pas de timer,
-    // on met un timer par defaut a 60s pour eviter une config invalide.
-    if (compConfig.endCondition === "timer_only" && compConfig.timerSeconds === null) {
-      compConfig.timerSeconds = 60;
-      timerSel.value = "60";
-    }
+    // Applique les regles de coherence (scorings autorises, timer obligatoire)
+    applyCoherenceRules();
     onAdvancedFieldChanged();
   });
   scoringSel.addEventListener("change", () => {
@@ -283,6 +266,56 @@ export function initLobbyView(state, conn) {
   });
 
   // =========================================================================
+  // Regles de coherence entre parametres
+  // =========================================================================
+  //
+  // La condition de fin de manche contraint les scorings possibles :
+  //   - first_finds   : on ne connait que le gagnant -> binary OU attempts_left
+  //                     (les deux ne concernent que le 1er). Timer optionnel
+  //                     (agit comme limite : personne ne trouve = manche nulle).
+  //   - everyone_done : on connait tout le monde -> tous les scorings. Timer
+  //                     optionnel (securite anti-AFK).
+  //   - timer_only    : tout le monde joue jusqu'au bout -> tous les scorings.
+  //                     Timer OBLIGATOIRE (c'est le coeur du mode).
+  const ALLOWED_SCORINGS = {
+    first_finds: ["binary", "attempts_left"],
+    everyone_done: ["position", "attempts_left", "combo", "binary"],
+    timer_only: ["position", "attempts_left", "combo", "binary"],
+  };
+
+  /**
+   * Applique les contraintes de coherence apres un changement de endCondition :
+   *   1. grise les options de scoring non autorisees
+   *   2. si le scoring courant n'est plus autorise, bascule sur le 1er autorise
+   *   3. rend le timer obligatoire si endCondition === timer_only (retire l'option
+   *      "Aucun" et force une valeur par defaut si besoin)
+   */
+  function applyCoherenceRules() {
+    const allowed = ALLOWED_SCORINGS[compConfig.endCondition] || ["binary"];
+
+    // 1+2. Grise les <option> de scoring non autorisees
+    for (const opt of scoringSel.options) {
+      const ok = allowed.includes(opt.value);
+      opt.disabled = !ok;
+    }
+    if (!allowed.includes(compConfig.scoring)) {
+      compConfig.scoring = allowed[0];
+      scoringSel.value = compConfig.scoring;
+    }
+
+    // 3. Timer obligatoire en mode timer_only
+    const timerRequired = compConfig.endCondition === "timer_only";
+    // L'option "Aucun" (value="") est desactivee si le timer est requis
+    for (const opt of timerSel.options) {
+      if (opt.value === "") opt.disabled = timerRequired;
+    }
+    if (timerRequired && (compConfig.timerSeconds === null || compConfig.timerSeconds === undefined)) {
+      compConfig.timerSeconds = 90;
+      timerSel.value = "90";
+    }
+  }
+
+  // =========================================================================
   // Sync UI <-> compConfig
   // =========================================================================
 
@@ -298,6 +331,8 @@ export function initLobbyView(state, conn) {
     maxRoundsInput.value = String(compConfig.maxRounds || 5);
     pointsTargetInput.value = String(compConfig.pointsTarget || 10);
     updateFormatFieldsVisibility();
+    // Reapplique le grisage a chaque sync (preset applique, config serveur recue...)
+    applyCoherenceRules();
   }
 
   function updateFormatFieldsVisibility() {
@@ -472,11 +507,13 @@ export function initLobbyView(state, conn) {
         });
         syncCompUIFromConfig();
         updatePresetButtonsUI();
+        updateAdvancedVisibility();
       }
     } else {
       // Pas encore de config serveur : on initialise les inputs depuis compConfig
       syncCompUIFromConfig();
       updatePresetButtonsUI();
+      updateAdvancedVisibility();
     }
 
     // Resume pour les guests
@@ -517,6 +554,7 @@ export function initLobbyView(state, conn) {
   // Init initiale des selects/inputs au chargement (avant le premier joined)
   syncCompUIFromConfig();
   updatePresetButtonsUI();
+  updateAdvancedVisibility();
 
   return { refresh };
 }
