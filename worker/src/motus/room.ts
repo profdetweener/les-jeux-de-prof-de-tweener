@@ -231,6 +231,21 @@ export class MotusRoom {
     switch (msg.type) {
       case "ping":
         this.sendMessage(ws, { type: "pong" });
+        // Safety net : si on est en manche comp et que la deadline est
+        // depassee mais que l'alarme du DO n'a pas (encore) tire pour une
+        // raison quelconque (retard plateforme, redeploiement...), on force
+        // la fin de manche ici. Idempotent : endCompRound verifie la phase.
+        if (
+          this.phase === "in_round" &&
+          this.config.mode === "competitive" &&
+          this.compDeadlineTs !== null &&
+          Date.now() >= this.compDeadlineTs
+        ) {
+          for (const st of this.compPlayers.values()) {
+            if (st.status === "playing") st.status = "exhausted";
+          }
+          this.endCompRound();
+        }
         return;
       case "join":
         this.handleJoin(ws, msg.pseudo);

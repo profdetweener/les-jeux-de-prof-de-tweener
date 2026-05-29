@@ -75,6 +75,21 @@ main { flex: 1; display: flex; align-items: flex-start; justify-content: center;
 .card h3 { margin: 0 0 12px; font-size: 16px; color: var(--bleu-nuit); }
 .subtitle { margin: 0 0 24px; color: var(--gris-texte); font-size: 14px; }
 .info-line { color: var(--gris-texte); font-size: 13px; margin: 8px 0 0; }
+.comp-tip {
+  background: #fef9e7;
+  border-left: 3px solid var(--jaune);
+  color: var(--bleu-nuit);
+  font-size: 13px;
+  padding: 8px 12px;
+  margin: 0 0 14px;
+  border-radius: var(--rayon-sm);
+  line-height: 1.4;
+}
+.motus-ingame-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
 .sub-label { display: block; font-size: 12px; font-weight: 500; color: var(--gris-texte); margin-bottom: 4px; }
 
 /* --- Forms --- */
@@ -246,14 +261,19 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   border-color: var(--bleu-accent);
   background: var(--blanc);
 }
-.motus-cell.filled { border-color: transparent; }
+/* Etat "filled" (lettre posee, pas encore coloree) : on garde la bordure grise.
+   Apres coloration, chaque status redefinit explicitement border-color pour
+   garantir un contour visible meme apres l'animation de revelation. */
+.motus-cell.filled { border-color: var(--gris-clair); }
 .motus-cell.status-good {
   background: var(--rouge);
   color: var(--blanc);
+  border-color: var(--rouge);
 }
 .motus-cell.status-misplaced {
   background: var(--jaune);
   color: var(--blanc);
+  border-color: var(--jaune);
 }
 .motus-cell.status-absent {
   background: var(--blanc);
@@ -917,6 +937,12 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   background: var(--rouge);
   animation: comp-pulse 1s infinite;
 }
+.comp-timer-zero {
+  color: var(--blanc);
+  background: var(--rouge);
+  /* Pas d'animation : on fige a 00:00 pour eviter le clignotement perpetuel
+     quand on attend le serveur. */
+}
 @keyframes comp-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
@@ -1001,7 +1027,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 
 /* Carte adversaire */
 .opp-card {
-  background: var(--beige);
+  background: #ebe9e0;
   border-radius: var(--rayon-sm);
   padding: 8px 10px;
 }
@@ -1042,13 +1068,13 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   max-width: 14px;
   border-radius: 50%;
   background: var(--blanc);
-  border: 1px solid var(--gris-clair);
+  border: 1.5px solid #9a9a9a;
   box-sizing: border-box;
   justify-self: center;
 }
 .opp-cell.status-good { background: var(--rouge); border-color: var(--rouge); }
 .opp-cell.status-misplaced { background: var(--jaune); border-color: var(--jaune); }
-.opp-cell.status-absent { background: var(--gris-clair); border-color: var(--gris-clair); }
+.opp-cell.status-absent { background: var(--blanc); border-color: #9a9a9a; }
 .opp-cell.status-good.has-more {
   background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
   border-color: var(--rouge);

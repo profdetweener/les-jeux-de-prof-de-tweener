@@ -356,9 +356,38 @@ export function initCompView(state, conn) {
     const totalSec = Math.ceil(remaining / 1000);
     const m = Math.floor(totalSec / 60);
     const s = totalSec % 60;
-    timerEl.textContent = `${m}:${String(s).padStart(2, "0")}`;
-    timerEl.classList.toggle("comp-timer-urgent", totalSec <= 10);
-    if (remaining <= 0) stopTimer();
+    timerEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    // Clignote uniquement entre 1 et 10s ; a 0 on fige sans clignoter.
+    timerEl.classList.toggle("comp-timer-urgent", totalSec > 0 && totalSec <= 10);
+    timerEl.classList.toggle("comp-timer-zero", totalSec === 0);
+    if (remaining <= 0) {
+      stopTimer();
+      // Safety net : si le serveur n'envoie pas round_ended dans les ~4s
+      // (cas rare de retard d'alarme), on affiche un message d'attente pour
+      // que le joueur sache que ce n'est pas fige.
+      armRoundEndedSafetyNet();
+    }
+  }
+
+  // Si on a atteint 0:00 cote client mais que round_ended/game_ended n'arrive
+  // pas (retard d'alarme DO, perte de message), on affiche un hint d'attente
+  // pour eviter l'impression de blocage. Le serveur reste la source de verite ;
+  // si l'utilisateur est sur un mauvais reseau, la reconnexion auto rejouera
+  // l'etat (compRound dans le "joined") et nous tirera de la.
+  let safetyNetTimeout = null;
+  function armRoundEndedSafetyNet() {
+    if (safetyNetTimeout) return;
+    safetyNetTimeout = setTimeout(() => {
+      safetyNetTimeout = null;
+      if (!round.active) return; // round_ended deja arrive, rien a faire
+      if (state.phase !== "in_round") return;
+      // Affiche un hint discret au-dessus du clavier
+      selfNoticeEl.style.display = "";
+      selfNoticeEl.textContent = "⏳ Fin de manche imminente — en attente du serveur…";
+    }, 4000);
+  }
+  function clearRoundEndedSafetyNet() {
+    if (safetyNetTimeout) { clearTimeout(safetyNetTimeout); safetyNetTimeout = null; }
   }
 
   // =========================================================================
@@ -423,12 +452,14 @@ export function initCompView(state, conn) {
   function onRoundEnded(msg) {
     round.active = false;
     stopTimer();
+    clearRoundEndedSafetyNet();
     renderRecap(msg);
   }
 
   function onGameEnded(msg) {
     round.active = false;
     stopTimer();
+    clearRoundEndedSafetyNet();
     renderFinal(msg.results);
   }
 
@@ -677,5 +708,8 @@ export function initCompView(state, conn) {
     onGameEnded,
     restoreFromSnapshot,
     stopTimer,
+    // Pour la safety net : permet a room.js de declencher des pings rapides
+    // quand la deadline serveur est depassee sans round_ended.
+    getDeadlineTs: () => round.deadlineTs,
   };
 }

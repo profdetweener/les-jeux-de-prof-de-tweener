@@ -253,6 +253,19 @@ conn.send({ type: "join", pseudo });
 // Heartbeat applicatif : un ping toutes les 25s pour maintenir la connexion
 setInterval(() => conn.send({ type: "ping" }), 25000);
 
+// Safety net : pendant une manche compétitive, si la deadline serveur est
+// dépassée et que round_ended/game_ended ne sont pas arrivés, on envoie des
+// pings rapides. Le serveur, en recevant un ping en in_round + deadline
+// dépassée, force la fin de manche.
+setInterval(() => {
+  if (state.phase !== "in_round") return;
+  const deadline = compView?.getDeadlineTs?.();
+  if (deadline === null || deadline === undefined) return;
+  if (Date.now() >= deadline) {
+    conn.send({ type: "ping" });
+  }
+}, 1500);
+
 // =============================================================================
 // Lien d'invitation
 // =============================================================================

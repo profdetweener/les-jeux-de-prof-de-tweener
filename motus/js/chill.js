@@ -571,6 +571,10 @@ function updateStatus() {
   } else if (game.status === "exhausted") {
     els.statusLine.textContent = "Essais épuisés.";
   }
+  // Le bouton "Abandonner" n'est utile que pendant qu'on cherche encore.
+  if (els.giveUpBtn) {
+    els.giveUpBtn.disabled = game.status !== "in_progress";
+  }
 }
 
 // =============================================================================
@@ -890,6 +894,31 @@ function goBetween() {
   showView("between");
 }
 
+/**
+ * Abandon manuel : l'utilisateur clique "Abandonner — voir le mot". On demande
+ * au serveur de reveler le mot (motusChillReveal), on marque la partie comme
+ * "exhausted" (non trouvee), et on bascule vers la vue between. Equivalent
+ * fonctionnel a avoir epuise les essais, en moins long.
+ */
+async function handleGiveUp() {
+  // Garde-fou : seulement pendant une partie en cours
+  if (game.status !== "in_progress") return;
+  if (!game.token) return;
+  // Confirmation legere (le joueur veut juste accelerer, pas surprise)
+  if (!confirm("Abandonner cette partie et voir le mot ?")) return;
+
+  game.status = "submitting";
+  try {
+    const reveal = await motusChillReveal(game.token);
+    game.revealedWord = reveal.revealedWord;
+  } catch {
+    game.revealedWord = null;
+  }
+  game.status = "exhausted";
+  updateStatus();
+  goBetween();
+}
+
 async function startNewWord() {
   // Reset etat du round
   game.attempts = [];
@@ -975,6 +1004,7 @@ function bindElements() {
   els.betweenWord = $("between-word");
   els.nextWordBtn = $("next-word-btn");
   els.backToConfigBtn = $("back-to-config-btn");
+  els.giveUpBtn = $("give-up-btn");
 
   // Sidebar stats + word list
   els.wordList = $("word-list");
@@ -1013,6 +1043,12 @@ async function init() {
   els.backToConfigBtn.addEventListener("click", () => {
     showView("config");
   });
+
+  if (els.giveUpBtn) {
+    els.giveUpBtn.addEventListener("click", () => {
+      handleGiveUp();
+    });
+  }
 
   // Fermeture de la modale définition : bouton, clic overlay, touche Escape
   if (els.definitionClose) {
