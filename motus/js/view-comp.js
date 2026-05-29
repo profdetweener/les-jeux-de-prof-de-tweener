@@ -159,52 +159,15 @@ export function initCompView(state, conn) {
     }
   }
 
-  // =========================================================================
-  // App shell verrouille (mobile) : empeche le scroll de page a l'ouverture
-  // du clavier. On dimensionne la zone de jeu sur le viewport *visible* et on
-  // re-epingle la page en haut si iOS tente de la decaler.
-  // =========================================================================
-  const docEl = document.documentElement;
-  let vvBound = false;
-
-  function applyViewportHeight() {
-    const vv = window.visualViewport;
-    const h = vv ? vv.height : window.innerHeight;
-    docEl.style.setProperty("--app-vh", `${Math.round(h)}px`);
-  }
-
-  function repinTop() {
-    if (document.body.classList.contains("comp-playing")) {
-      // iOS decale parfois le document quand le clavier s'ouvre : on annule.
-      window.scrollTo(0, 0);
-    }
-  }
-
-  function setPlaying(on) {
+  /** Ramene la ligne qui vient d'etre revelee au centre de la vue sur mobile,
+   *  pour que le joueur voie tout de suite le resultat de son essai meme si
+   *  iOS avait scrolle la page jusqu'au champ pendant la saisie. */
+  function bringRowIntoView(rowIdx) {
     if (!isTouch) return;
-    if (on) {
-      document.body.classList.add("comp-playing");
-      applyViewportHeight();
-      if (window.visualViewport && !vvBound) {
-        window.visualViewport.addEventListener("resize", applyViewportHeight);
-        window.visualViewport.addEventListener("scroll", applyViewportHeight);
-        window.visualViewport.addEventListener("scroll", repinTop);
-        vvBound = true;
-      }
-      window.scrollTo(0, 0);
-    } else {
-      document.body.classList.remove("comp-playing");
-    }
-  }
-
-  /** Sur mobile, garde la ligne en cours visible quand la grille defile dans
-   *  son conteneur (cas des grilles hautes + clavier natif ouvert). */
-  function scrollCurrentRowIntoView() {
-    if (!isTouch || round.myStatus !== "playing") return;
     const rows = gridEl.querySelectorAll(".motus-row");
-    const row = rows[round.myAttempts.length];
+    const row = rows[rowIdx];
     if (row && typeof row.scrollIntoView === "function") {
-      row.scrollIntoView({ block: "nearest", behavior: "auto" });
+      row.scrollIntoView({ block: "center", behavior: "smooth" });
     }
   }
 
@@ -383,7 +346,6 @@ export function initCompView(state, conn) {
     } else {
       selfNoticeEl.style.display = "none";
     }
-    scrollCurrentRowIntoView();
   }
 
   // =========================================================================
@@ -519,7 +481,6 @@ export function initCompView(state, conn) {
   function onRoundStarted(msg) {
     round.active = true;
     round.revealing = false;
-    setPlaying(true);
     round.wordLength = msg.wordLength;
     round.maxAttempts = msg.maxAttempts;
     round.firstLetter = msg.firstLetter;
@@ -546,7 +507,10 @@ export function initCompView(state, conn) {
       nativeInput.value = "";
       nativeInput.maxLength = round.wordLength;
     }
-    focusNativeInput();
+    // Pas de focus automatique : iOS ouvrirait immediatement le clavier
+    // (et sa barre d'accessoires), parasitant la vue avant meme la premiere
+    // frappe. Le joueur touche le champ "Tape ton mot" (ou la grille) quand
+    // il veut saisir.
   }
 
   async function onGuessResult(msg) {
@@ -568,15 +532,16 @@ export function initCompView(state, conn) {
     round.revealing = false;
     renderMyGrid();
 
-    // Reinitialise l'input natif pour le prochain essai et redonne le focus
-    // (rouvre le clavier sur Android ; sur iOS l'utilisateur retouchera la
-    // grille). Si la manche est finie pour ce joueur, on ferme le clavier.
-    if (nativeInput) nativeInput.value = "";
-    if (round.myStatus === "playing") {
-      focusNativeInput();
-    } else if (nativeInput) {
+    // Apres la revelation : on ferme le clavier natif (et sa barre
+    // d'accessoires iOS, du coup) pour que le joueur voie sa grille a jour
+    // sans rien qui parasite. Il retouchera la grille / le champ pour relancer
+    // la saisie au prochain essai. On ramene aussi la ligne juste revelee
+    // au centre de la vue, au cas ou iOS avait scrolle jusqu'au champ.
+    if (nativeInput) {
+      nativeInput.value = "";
       nativeInput.blur();
     }
+    bringRowIntoView(msg.attemptIndex);
   }
 
   function onOpponentProgress(msg) {
@@ -593,7 +558,6 @@ export function initCompView(state, conn) {
     stopTimer();
     clearRoundEndedSafetyNet();
     if (nativeInput) nativeInput.blur();
-    setPlaying(false);
     renderRecap(msg);
   }
 
@@ -602,7 +566,6 @@ export function initCompView(state, conn) {
     stopTimer();
     clearRoundEndedSafetyNet();
     if (nativeInput) nativeInput.blur();
-    setPlaying(false);
     renderFinal(msg.results);
   }
 
@@ -888,6 +851,15 @@ export function initCompView(state, conn) {
         if (canType()) submitGuess();
       }
     });
+    // La barre d'accessoire iOS (^ v ✓) declenche blur quand on tape la
+    // coche "OK / Done". Si le mot est complet a ce moment-la, on soumet :
+    // ainsi la coche valide au lieu de fermer le clavier sans rien faire.
+    // Si le mot est incomplet, on ne fait rien (le buffer est preserve, le
+    // joueur retouche la grille pour rouvrir le clavier).
+    nativeInput.addEventListener("blur", () => {
+      if (!canType()) return;
+      if (typingBuffer.length === round.wordLength) submitGuess();
+    });
   }
 
   // Taper n'importe ou sur la grille redonne le focus a l'input (rouvre le
@@ -903,7 +875,6 @@ export function initCompView(state, conn) {
     if (!cr) return;
     round.active = true;
     round.revealing = false;
-    setPlaying(true);
     round.wordLength = cr.wordLength;
     round.maxAttempts = cr.maxAttempts;
     round.firstLetter = cr.firstLetter;
@@ -932,7 +903,6 @@ export function initCompView(state, conn) {
       nativeInput.value = "";
       nativeInput.maxLength = round.wordLength;
     }
-    focusNativeInput();
   }
 
   // Expose les handlers au routeur (room.js)

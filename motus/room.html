@@ -2,10 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
   <header class="app-header">
@@ -250,7 +250,12 @@
         <div class="comp-main">
           <div class="motus-grid" id="comp-grid"></div>
           <p class="comp-self-notice" id="comp-self-notice" style="display: none;"></p>
-          <!-- Champ de saisie natif (mobile only) : declenche le clavier du
+          <!-- Clavier visuel (couleurs des lettres jouees) AVANT le champ
+               de saisie : sur mobile, quand le clavier natif s'ouvre, iOS
+               scrolle jusqu'au champ ; comme le clavier visuel est juste
+               au-dessus, il reste visible. -->
+          <div class="motus-keyboard" id="comp-keyboard"></div>
+          <!-- Champ de saisie natif (mobile) : declenche le clavier du
                telephone. Les lettres s'affichent dans la grille, pas ici
                (texte transparent). Cache en CSS sur desktop. -->
           <input class="comp-native-input" id="comp-native-input" type="text"
@@ -258,7 +263,6 @@
                  autocapitalize="characters" spellcheck="false"
                  enterkeyhint="go" aria-label="Tape ton mot"
                  placeholder="Tape ton mot, puis Entrée">
-          <div class="motus-keyboard" id="comp-keyboard"></div>
         </div>
 
         <!-- Miniatures adverses (couleurs only) -->
@@ -303,6 +307,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=17"></script>
+  <script type="module" src="js/room.js?v=19"></script>
 </body>
 </html>
