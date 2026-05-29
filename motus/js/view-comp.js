@@ -15,12 +15,21 @@
  */
 
 import { showToast } from "../../shared/js/toast.js";
+import { fetchDefinition } from "../../shared/js/wiktionary.js";
 
 const KEYBOARD_ROWS = [
   ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
   ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"],
   ["DEL", "W", "X", "C", "V", "B", "N", "ENTER"],
 ];
+
+// Delais d'animation pour la revelation lettre par lettre (identiques au chill)
+const REVEAL_DELAY_MS = 400;
+const POST_REVEAL_DELAY_MS = 400;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function initCompView(state, conn) {
   // --- Refs DOM ---
@@ -35,12 +44,19 @@ export function initCompView(state, conn) {
   const recapTitleEl = document.getElementById("comp-recap-title");
   const recapWordEl = document.getElementById("comp-recap-word");
   const recapTableEl = document.getElementById("comp-recap-table");
+  const recapDefBtn = document.getElementById("comp-recap-def-btn");
+  const recapDefPanel = document.getElementById("comp-recap-def-panel");
   const nextRoundBtn = document.getElementById("comp-next-round-btn");
+  const skipFinalBtn = document.getElementById("comp-skip-final-btn");
   const endGameBtn = document.getElementById("comp-end-game-btn");
   const recapWaitingEl = document.getElementById("comp-recap-waiting");
 
   const podiumEl = document.getElementById("comp-podium");
   const finalTableEl = document.getElementById("comp-final-table");
+  const finalWordEl = document.getElementById("comp-final-word");
+  const finalDefWrap = document.getElementById("comp-final-definition");
+  const finalDefBtn = document.getElementById("comp-final-def-btn");
+  const finalDefPanel = document.getElementById("comp-final-def-panel");
   const backLobbyBtn = document.getElementById("comp-back-lobby-btn");
   const finalWaitingEl = document.getElementById("comp-final-waiting");
 
@@ -54,6 +70,7 @@ export function initCompView(state, conn) {
     myStatus: "playing",    // playing | found | exhausted
     opponents: {},          // pseudo -> { rows:[{feedback,hasMore}], status, attemptsUsed }
     deadlineTs: null,
+    revealing: false,      // true pendant l'animation de revelation d'une ligne
   };
   let typingBuffer = "";
   let keyButtons = {};
@@ -84,8 +101,10 @@ export function initCompView(state, conn) {
 
   // Saisie clavier physique
   function onPhysicalKey(e) {
-    if (!round.active || round.myStatus !== "playing") return;
+    if (!round.active || round.myStatus !== "playing" || round.revealing) return;
     if (state.phase !== "in_round") return;
+    // N'intercepte pas la saisie dans un champ texte
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
     const k = e.key.toUpperCase();
     if (k === "ENTER") { e.preventDefault(); onKeyPress("ENTER"); }
     else if (k === "BACKSPACE") { e.preventDefault(); onKeyPress("DEL"); }
@@ -93,7 +112,7 @@ export function initCompView(state, conn) {
   }
 
   function onKeyPress(key) {
-    if (!round.active || round.myStatus !== "playing") return;
+    if (!round.active || round.myStatus !== "playing" || round.revealing) return;
     if (key === "ENTER") {
       submitGuess();
     } else if (key === "DEL") {
@@ -122,11 +141,88 @@ export function initCompView(state, conn) {
   }
 
   // =========================================================================
+  // Coloration du clavier (regle de monotonie : on ne degrade jamais)
+  // =========================================================================
+  /**
+   * Met a jour la couleur d'une touche selon le dernier feedback. Regle de
+   * monotonie : absent < misplaced < good. On ne degrade jamais une touche.
+   * hasMore est un raffinement de "good" qu'on conserve une fois pose.
+   */
+  function updateKeyColor(letter, status, hasMore = false) {
+    const btn = keyButtons[letter];
+    if (!btn) return;
+    const order = { absent: 0, misplaced: 1, good: 2 };
+    const current = ["absent", "misplaced", "good"].find((s) => btn.classList.contains(`kb-${s}`));
+    if (!current || order[status] > order[current]) {
+      btn.classList.remove("kb-absent", "kb-misplaced", "kb-good");
+      btn.classList.add(`kb-${status}`);
+    }
+    if (status === "good" && hasMore) {
+      btn.classList.add("kb-has-more");
+    }
+  }
+
+  /**
+   * Re-applique les couleurs du clavier d'apres tous les essais deja soumis.
+   * Utilise apres construction du clavier (round_started, reconnexion).
+   */
+  function applyAllKeyColors() {
+    for (const attempt of round.myAttempts) {
+      for (const fb of attempt.feedback) {
+        updateKeyColor(fb.letter, fb.status, fb.hasMore);
+      }
+    }
+  }
+
+  /**
+   * Anime la revelation de la derniere ligne soumise : pose les lettres en
+   * "remplies", puis revele case par case avec un delai. Colore aussi le
+   * clavier au passage.
+   *
+   * IMPORTANT : pendant l'animation, on ne peut pas taper la ligne suivante
+   * (round.myStatus reflete l'etat serveur mais on ajoute un flag d'animation
+   * pour bloquer la saisie). Le buffer reste vide.
+   */
+  async function revealMyRowAnimated(attempt, attemptIndex) {
+    // Trouve la rangee correspondante dans le DOM
+    const rows = gridEl.querySelectorAll(".motus-row");
+    const rowEl = rows[attemptIndex];
+    if (!rowEl) return; // securite : la grille a ete reconstruite entre-temps
+    const cells = rowEl.querySelectorAll(".motus-cell");
+
+    // 1) Pose les lettres "remplies" (etat intermediaire), enleve la 1ere lettre
+    //    indicee si elle y etait
+    for (let c = 0; c < attempt.feedback.length; c++) {
+      const cell = cells[c];
+      if (!cell) continue;
+      cell.classList.remove("locked-letter", "typing");
+      cell.classList.add("filled");
+      cell.textContent = attempt.feedback[c].letter;
+    }
+
+    // 2) Revele case par case avec un delai entre chaque
+    for (let c = 0; c < attempt.feedback.length; c++) {
+      const fb = attempt.feedback[c];
+      const cell = cells[c];
+      if (!cell) continue;
+      cell.classList.add(`status-${fb.status}`);
+      if (fb.status === "good" && fb.hasMore) cell.classList.add("has-more");
+      updateKeyColor(fb.letter, fb.status, fb.hasMore);
+      await sleep(REVEAL_DELAY_MS);
+    }
+    await sleep(POST_REVEAL_DELAY_MS);
+  }
+
+  // =========================================================================
   // Rendu de MA grille
   // =========================================================================
   function renderMyGrid() {
     gridEl.innerHTML = "";
     gridEl.style.setProperty("--motus-cols", round.wordLength);
+    // Aussi sur le parent .comp-main pour que sa max-width (et donc celle du
+    // clavier qui est dedans) soit calee sur la grille
+    const compMain = gridEl.closest(".comp-main");
+    if (compMain) compMain.style.setProperty("--motus-cols", round.wordLength);
     for (let r = 0; r < round.maxAttempts; r++) {
       const rowEl = document.createElement("div");
       rowEl.className = "motus-row";
@@ -173,6 +269,9 @@ export function initCompView(state, conn) {
   // =========================================================================
   function buildOpponents(pseudos) {
     opponentsEl.innerHTML = "";
+    // Classe pour adapter le layout : a partir de 4 adversaires, on bascule en
+    // grille fluide (qui pourra s'enrouler sous le clavier sur grand ecran).
+    opponentsEl.classList.toggle("opps-many", pseudos.length >= 4);
     for (const pseudo of pseudos) {
       const card = document.createElement("div");
       card.className = "opp-card";
@@ -268,6 +367,7 @@ export function initCompView(state, conn) {
 
   function onRoundStarted(msg) {
     round.active = true;
+    round.revealing = false;
     round.wordLength = msg.wordLength;
     round.maxAttempts = msg.maxAttempts;
     round.firstLetter = msg.firstLetter;
@@ -286,14 +386,28 @@ export function initCompView(state, conn) {
     buildKeyboard();
     buildOpponents(msg.opponents);
     renderMyGrid();
+    applyAllKeyColors(); // vide en debut de manche, utile a la reconnexion
     for (const p of msg.opponents) renderOpponent(p);
     startTimer();
   }
 
-  function onGuessResult(msg) {
+  async function onGuessResult(msg) {
+    // Pose l'essai dans l'etat avant de l'animer
     round.myAttempts[msg.attemptIndex] = msg.attempt;
-    round.myStatus = msg.myStatus;
     typingBuffer = "";
+    // Bloque la saisie pendant la revelation
+    round.revealing = true;
+
+    // Met a jour le compteur d'essais immediatement
+    const used = round.myAttempts.length;
+    attemptInfoEl.textContent = `Essai ${Math.min(used + 1, round.maxAttempts)} / ${round.maxAttempts}`;
+
+    // Animation lettre par lettre + coloration clavier
+    await revealMyRowAnimated(msg.attempt, msg.attemptIndex);
+
+    // Statut final
+    round.myStatus = msg.myStatus;
+    round.revealing = false;
     renderMyGrid();
   }
 
@@ -318,28 +432,114 @@ export function initCompView(state, conn) {
     renderFinal(msg.results);
   }
 
+  // Memorise le dernier mot revele (pour la definition au final)
+  let lastRevealedWord = null;
+
+  /**
+   * Affiche/cache un panneau de definition Wiktionary. Lazy : ne fetch qu'au
+   * premier clic. Re-clic = bascule visible/cache.
+   */
+  function attachDefButton(btnEl, panelEl, getWord) {
+    let loaded = false;
+    let loading = false;
+    btnEl.addEventListener("click", async () => {
+      // Toggle si deja charge
+      if (loaded) {
+        panelEl.hidden = !panelEl.hidden;
+        btnEl.textContent = panelEl.hidden ? "📖 Voir la définition" : "📖 Masquer la définition";
+        return;
+      }
+      if (loading) return;
+      const word = getWord();
+      if (!word) return;
+      loading = true;
+      btnEl.disabled = true;
+      btnEl.textContent = "📖 Chargement…";
+      try {
+        const data = await fetchDefinition(word);
+        panelEl.innerHTML = renderDefinitionHtml(data);
+        panelEl.hidden = false;
+        loaded = true;
+        btnEl.textContent = "📖 Masquer la définition";
+      } catch (e) {
+        panelEl.innerHTML = `<p class="def-error">${escapeHtml(e?.message || "Définition introuvable.")}</p>`;
+        panelEl.hidden = false;
+        loaded = true;
+        btnEl.textContent = "📖 Masquer la définition";
+      } finally {
+        loading = false;
+        btnEl.disabled = false;
+      }
+    });
+  }
+
+  function renderDefinitionHtml(data) {
+    if (!data || !data.entries || data.entries.length === 0) {
+      return `<p class="def-error">Aucune définition trouvée.</p>`;
+    }
+    let html = "";
+    for (const entry of data.entries) {
+      html += `<div class="def-entry"><div class="def-pos">${escapeHtml(entry.partOfSpeech)}</div><ol class="def-list">`;
+      for (const d of entry.definitions) {
+        html += `<li>${escapeHtml(d.text)}`;
+        if (d.examples && d.examples.length > 0) {
+          html += `<ul class="def-examples">`;
+          for (const ex of d.examples.slice(0, 2)) {
+            html += `<li>${escapeHtml(ex)}</li>`;
+          }
+          html += `</ul>`;
+        }
+        html += `</li>`;
+      }
+      html += `</ol></div>`;
+    }
+    html += `<p class="def-source"><a href="${data.sourceUrl}" target="_blank" rel="noopener">Voir sur Wiktionary →</a></p>`;
+    return html;
+  }
+
+  // Attache une seule fois les handlers de definition (pas a chaque manche)
+  attachDefButton(recapDefBtn, recapDefPanel, () => lastRevealedWord);
+  attachDefButton(finalDefBtn, finalDefPanel, () => lastRevealedWord);
+
   // =========================================================================
   // Recap entre manches
   // =========================================================================
   function renderRecap(msg) {
+    lastRevealedWord = msg.revealedWord;
     recapTitleEl.textContent = msg.isLastRound
       ? "Dernière manche terminée"
       : `Manche ${msg.roundIndex} terminée`;
-    recapWordEl.innerHTML = `Le mot était <strong>${msg.revealedWord}</strong>`;
+    recapWordEl.innerHTML = `Le mot était <strong>${escapeHtml(msg.revealedWord)}</strong>`;
     recapTableEl.innerHTML = buildScoreTable(msg.results, true);
 
-    // Boutons : seul l'hote, et seulement si la partie continue
+    // Reset de la definition (nouveau mot a chaque manche)
+    recapDefPanel.hidden = true;
+    recapDefPanel.innerHTML = "";
+    recapDefBtn.textContent = "📖 Voir la définition";
+    // Force la re-attache en revertant l'etat "loaded" : pas possible avec
+    // closure -> on detache et reattache un nouveau handler. Plus simple :
+    // on stocke loaded sur l'element et on le reset ici.
+    // (attachDefButton ci-dessus utilise une closure, donc on doit la "re-armer".
+    // Plus simple : on force le bouton a redeclencher un fetch en relançant le clone.)
+    recapDefBtn.replaceWith(recapDefBtn.cloneNode(true));
+    const freshBtn = document.getElementById("comp-recap-def-btn");
+    attachDefButton(freshBtn, recapDefPanel, () => lastRevealedWord);
+
+    // Boutons : seul l'hote
     if (state.isHost && !msg.isLastRound) {
       nextRoundBtn.style.display = "";
+      skipFinalBtn.style.display = "";
       endGameBtn.style.display = "";
       recapWaitingEl.style.display = "none";
     } else if (state.isHost && msg.isLastRound) {
       nextRoundBtn.style.display = "none";
+      skipFinalBtn.style.display = "none";
       endGameBtn.style.display = "none";
       recapWaitingEl.style.display = "";
       recapWaitingEl.textContent = "Partie terminée — voir le classement final…";
     } else {
       nextRoundBtn.style.display = "none";
+      skipFinalBtn.style.display = "none";
       endGameBtn.style.display = "none";
       recapWaitingEl.style.display = "";
       recapWaitingEl.textContent = `En attente de ${state.hostPseudo || "l'hôte"}…`;
@@ -360,6 +560,23 @@ export function initCompView(state, conn) {
     });
     finalTableEl.innerHTML = buildScoreTable(results, false);
 
+    // Definition du dernier mot reveille (s'il existe)
+    if (lastRevealedWord) {
+      finalWordEl.style.display = "";
+      finalWordEl.innerHTML = `Dernier mot : <strong>${escapeHtml(lastRevealedWord)}</strong>`;
+      finalDefWrap.style.display = "";
+      // Reset bouton/panel comme pour recap
+      finalDefPanel.hidden = true;
+      finalDefPanel.innerHTML = "";
+      finalDefBtn.replaceWith(finalDefBtn.cloneNode(true));
+      const freshFinalBtn = document.getElementById("comp-final-def-btn");
+      freshFinalBtn.textContent = "📖 Voir la définition";
+      attachDefButton(freshFinalBtn, finalDefPanel, () => lastRevealedWord);
+    } else {
+      finalWordEl.style.display = "none";
+      finalDefWrap.style.display = "none";
+    }
+
     if (state.isHost) {
       backLobbyBtn.style.display = "";
       finalWaitingEl.style.display = "none";
@@ -372,13 +589,14 @@ export function initCompView(state, conn) {
 
   function buildScoreTable(results, showRoundPts) {
     let html = "<thead><tr><th>#</th><th>Joueur</th>";
-    if (showRoundPts) html += "<th>Essais</th><th>Manche</th>";
+    if (showRoundPts) html += "<th>Essais</th><th>Détail</th><th>Manche</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
       const essais = r.found ? `${r.attemptsUsed}` : "—";
       html += `<tr><td>${i + 1}</td><td>${escapeHtml(r.playerId)}</td>`;
       if (showRoundPts) {
-        html += `<td>${essais}</td><td>+${r.roundPoints}</td>`;
+        const detail = r.pointsBreakdown || (r.found ? "" : "—");
+        html += `<td>${essais}</td><td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
       }
       html += `<td><strong>${r.totalPoints}</strong></td></tr>`;
     });
@@ -399,9 +617,17 @@ export function initCompView(state, conn) {
     if (!state.isHost) return;
     conn.send({ type: "next_round" });
   });
+  skipFinalBtn.addEventListener("click", () => {
+    if (!state.isHost) return;
+    if (confirm("Sauter au classement final ? Les manches restantes ne seront pas jouées.")) {
+      conn.send({ type: "skip_to_final" });
+    }
+  });
   endGameBtn.addEventListener("click", () => {
     if (!state.isHost) return;
-    conn.send({ type: "end_game" });
+    if (confirm("Quitter la partie maintenant ? Retour au salon.")) {
+      conn.send({ type: "end_game" });
+    }
   });
   backLobbyBtn.addEventListener("click", () => {
     if (!state.isHost) return;
@@ -416,6 +642,7 @@ export function initCompView(state, conn) {
   function restoreFromSnapshot(cr) {
     if (!cr) return;
     round.active = true;
+    round.revealing = false;
     round.wordLength = cr.wordLength;
     round.maxAttempts = cr.maxAttempts;
     round.firstLetter = cr.firstLetter;
@@ -436,6 +663,7 @@ export function initCompView(state, conn) {
     buildKeyboard();
     buildOpponents(cr.opponents || []);
     renderMyGrid();
+    applyAllKeyColors(); // recolore le clavier d'apres les essais soumis
     for (const p of (cr.opponents || [])) renderOpponent(p);
     startTimer();
   }

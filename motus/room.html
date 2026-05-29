@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <header class="app-header">
@@ -104,7 +104,7 @@
                 </button>
                 <button type="button" class="preset-card" data-preset="marathon" role="radio" aria-checked="false">
                   <div class="preset-name">🏃 Marathon</div>
-                  <div class="preset-desc">Tout le monde finit, manches illimitées</div>
+                  <div class="preset-desc">Timer 4 min, score essais, manches illimitées</div>
                 </button>
                 <button type="button" class="preset-card" data-preset="custom" role="radio" aria-checked="false">
                   <div class="preset-name">🛠️ Custom</div>
@@ -135,7 +135,6 @@
                     <label for="comp-end-condition">Fin de manche</label>
                     <select id="comp-end-condition">
                       <option value="first_finds">Quand le premier trouve</option>
-                      <option value="everyone_done">Quand tout le monde a fini</option>
                       <option value="timer_only">À la fin du timer</option>
                     </select>
                   </div>
@@ -254,10 +253,15 @@
     <div class="card view" id="view-comp-recap" style="display: none;">
       <h2 id="comp-recap-title">Manche terminée</h2>
       <p class="comp-recap-word" id="comp-recap-word"></p>
+      <div class="comp-recap-definition" id="comp-recap-definition">
+        <button type="button" class="btn btn-secondary btn-sm" id="comp-recap-def-btn">📖 Voir la définition</button>
+        <div class="comp-def-panel" id="comp-recap-def-panel" hidden></div>
+      </div>
       <table class="comp-scoreboard" id="comp-recap-table"></table>
       <div class="between-actions">
         <button class="btn btn-primary btn-block" id="comp-next-round-btn">Manche suivante</button>
-        <button class="btn btn-secondary btn-block" id="comp-end-game-btn">Terminer la partie</button>
+        <button class="btn btn-secondary btn-block" id="comp-skip-final-btn">Voir le classement final</button>
+        <button class="btn btn-secondary btn-block" id="comp-end-game-btn">Quitter la partie</button>
       </div>
       <p class="info-line" id="comp-recap-waiting" style="display: none;"></p>
     </div>
@@ -266,6 +270,11 @@
     <div class="card view" id="view-comp-final" style="display: none;">
       <h2>🏆 Partie terminée</h2>
       <div class="comp-podium" id="comp-podium"></div>
+      <p class="comp-recap-word" id="comp-final-word" style="display: none;"></p>
+      <div class="comp-recap-definition" id="comp-final-definition" style="display: none;">
+        <button type="button" class="btn btn-secondary btn-sm" id="comp-final-def-btn">📖 Voir la définition</button>
+        <div class="comp-def-panel" id="comp-final-def-panel" hidden></div>
+      </div>
       <table class="comp-scoreboard" id="comp-final-table"></table>
       <div class="between-actions">
         <button class="btn btn-primary btn-block" id="comp-back-lobby-btn">Retour au salon</button>
@@ -277,6 +286,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=9"></script>
+  <script type="module" src="js/room.js?v=10"></script>
 </body>
 </html>

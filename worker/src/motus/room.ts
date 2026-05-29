@@ -253,6 +253,9 @@ export class MotusRoom {
       case "next_round":
         this.handleNextRound(ws);
         return;
+      case "skip_to_final":
+        this.handleSkipToFinal(ws);
+        return;
       case "end_game":
         this.handleEndGame(ws);
         return;
@@ -708,27 +711,32 @@ export class MotusRoom {
       const found = st.status === "found";
       const rank = found ? this.compFinishOrder.indexOf(pseudo) + 1 : null;
       let pts = 0;
+      let breakdown = "";
       if (found) {
         const attemptsLeft = Math.max(0, maxAttempts - st.attempts.length);
         switch (scoring) {
           case "binary":
             pts = rank === 1 ? 1 : 0;
+            breakdown = rank === 1 ? "1er trouvé = 1 pt" : `${rank}e (binaire) = 0`;
             break;
           case "attempts_left":
-            // +1 garanti pour avoir trouve, + le nb d'essais economises
             pts = attemptsLeft + 1;
+            breakdown = `${attemptsLeft} essais restants + 1 = ${pts}`;
             break;
           case "position": {
-            // Le 1er marque nbFinders, le 2e nbFinders-1, etc.
             pts = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
+            breakdown = `${rank}${rank === 1 ? "er" : "e"} sur ${nbFinders} = ${pts}`;
             break;
           }
           case "combo": {
             const posBonus = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
             pts = attemptsLeft + 1 + posBonus;
+            breakdown = `${attemptsLeft} essais restants + 1 + bonus ${rank}${rank === 1 ? "er" : "e"} (${posBonus}) = ${pts}`;
             break;
           }
         }
+      } else {
+        breakdown = "Pas trouvé";
       }
       const prevTotal = this.compScores.get(pseudo) ?? 0;
       const newTotal = prevTotal + pts;
@@ -740,6 +748,7 @@ export class MotusRoom {
         finishRank: rank,
         roundPoints: pts,
         totalPoints: newTotal,
+        pointsBreakdown: breakdown,
       });
     }
 
@@ -797,6 +806,39 @@ export class MotusRoom {
       return;
     }
     this.startCompRound();
+  }
+
+  /**
+   * "Voir le classement final" depuis le recap d'une manche : on saute toutes
+   * les manches restantes et on bascule directement en finished + game_ended
+   * avec les scores actuels.
+   */
+  private handleSkipToFinal(ws: WebSocket): void {
+    const me = this.pseudoOf(ws);
+    if (!me || me !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Seul l'hote peut passer aux resultats finaux.");
+      return;
+    }
+    if (this.phase !== "between_rounds") {
+      this.sendError(ws, "WRONG_PHASE", "Action uniquement possible entre les manches.");
+      return;
+    }
+    // Construit les results a partir des scores cumules
+    const finalResults: RoundResult[] = [];
+    for (const [pseudo, total] of this.compScores) {
+      finalResults.push({
+        playerId: pseudo,
+        found: false,
+        attemptsUsed: 0,
+        finishRank: null,
+        roundPoints: 0,
+        totalPoints: total,
+        pointsBreakdown: "",
+      });
+    }
+    finalResults.sort((a, b) => b.totalPoints - a.totalPoints);
+    this.phase = "finished";
+    this.broadcast({ type: "game_ended", results: finalResults });
   }
 
   /**
@@ -921,9 +963,16 @@ export class MotusRoom {
       return;
     }
 
-    // En mode comp : si la partie est en cours, on cloture proprement avec le
-    // classement final avant de revenir au lobby.
-    if (this.config.mode === "competitive" && this.compScores.size > 0) {
+    // En mode comp : si la partie est EN COURS (pas deja finished apres
+    // round_ended de la derniere manche), on cloture proprement avec le
+    // classement final avant de revenir au lobby. Si elle est deja "finished",
+    // game_ended a deja ete diffuse — on saute pour eviter le re-affichage
+    // du podium apres "Retour au salon".
+    if (
+      this.config.mode === "competitive" &&
+      this.compScores.size > 0 &&
+      this.phase !== "finished"
+    ) {
       const finalResults: RoundResult[] = [];
       for (const [pseudo, total] of this.compScores) {
         finalResults.push({
@@ -933,6 +982,7 @@ export class MotusRoom {
           finishRank: null,
           roundPoints: 0,
           totalPoints: total,
+          pointsBreakdown: "",
         });
       }
       finalResults.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -1130,11 +1180,11 @@ export class MotusRoom {
       return { ok: false, error: "Preset competitive inconnu." };
     }
 
-    // endCondition
+    // endCondition. "everyone_done" est retire (un joueur AFK bloquait
+    // toute la manche meme avec un timer). On garde "first_finds" et "timer_only".
     const endCondition = raw.endCondition;
     if (
       endCondition !== "first_finds" &&
-      endCondition !== "everyone_done" &&
       endCondition !== "timer_only"
     ) {
       return { ok: false, error: "Condition de fin de manche invalide." };
@@ -1155,7 +1205,6 @@ export class MotusRoom {
     // que le gagnant, donc seuls binary et attempts_left ont du sens.
     const allowedScorings: Record<string, string[]> = {
       first_finds: ["binary", "attempts_left"],
-      everyone_done: ["position", "attempts_left", "combo", "binary"],
       timer_only: ["position", "attempts_left", "combo", "binary"],
     };
     if (!allowedScorings[endCondition].includes(scoring)) {

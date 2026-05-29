@@ -890,7 +890,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 
 /* ===========================================================================
-   Mode compétitif — vue de jeu
+   Mode compétitif — vue de jeu (refonte)
    =========================================================================== */
 
 .comp-game-header {
@@ -922,26 +922,69 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   50% { opacity: 0.6; }
 }
 
-/* Layout : grille principale + miniatures adverses */
+/* ==== Layout : grille principale + adversaires ====
+ * Principe :
+ *   - 1 à 3 adversaires : .opps-side, colonne à droite (180px)
+ *   - 4+ adversaires : .opps-many, grille fluide qui passe sous la zone de
+ *     jeu sur les écrans étroits, ou en bas sur grand écran si pas la place.
+ * Le clavier ET la grille sont confinés dans .comp-main avec une max-width
+ * basée sur --motus-cols, garantissant l'alignement.
+ */
 .comp-game-layout {
   display: flex;
   gap: 24px;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
-.comp-main { flex: 1; min-width: 0; }
+.comp-main {
+  flex: 1 1 320px;
+  min-width: 0;
+  /* Cale grille + clavier sur la même largeur que la grille (motus-cols colonnes
+   * de 56px + 6px de gap). C'est ce qui aligne le clavier sous la grille. */
+  max-width: calc(56px * var(--motus-cols, 7) + 6px * (var(--motus-cols, 7) - 1));
+  margin: 0 auto;
+}
 .comp-self-notice {
   text-align: center;
   font-weight: 600;
   color: var(--bleu-nuit);
   margin: 8px 0;
 }
+/* Le clavier hérite de la largeur de .comp-main, donc forcément aligné */
+.comp-main .motus-keyboard {
+  max-width: 100%;
+}
 
+/* Conteneur des miniatures : à droite par défaut, en grille si "opps-many" */
 .comp-opponents {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 180px;
+  gap: 10px;
+  width: 200px;
   flex: none;
+}
+.comp-opponents.opps-many {
+  /* 4+ adversaires : on déborde la colonne droite et on devient une grille
+   * fluide qui prend toute la largeur disponible. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  gap: 10px;
+}
+.comp-opponents.opps-many .opp-card {
+  width: calc(50% - 5px);
+  max-width: 220px;
+}
+@media (min-width: 720px) {
+  .comp-opponents.opps-many .opp-card {
+    width: calc(33.33% - 7px);
+  }
+}
+@media (min-width: 1100px) {
+  .comp-opponents.opps-many .opp-card {
+    width: calc(25% - 8px);
+  }
 }
 
 /* Sur mobile : miniatures au-dessus, en ligne horizontale scrollable */
@@ -953,21 +996,23 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
     overflow-x: auto;
     padding-bottom: 6px;
   }
-  .opp-card { flex: none; width: 120px; }
+  .opp-card { flex: none; width: 130px; }
 }
 
+/* Carte adversaire */
 .opp-card {
   background: var(--beige);
   border-radius: var(--rayon-sm);
-  padding: 8px;
+  padding: 8px 10px;
 }
-.opp-card.opp-done { opacity: 0.7; }
+.opp-card.opp-done { opacity: 0.65; }
 .opp-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
   font-size: 12px;
+  gap: 8px;
 }
 .opp-name {
   font-weight: 600;
@@ -975,27 +1020,32 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 110px;
+  min-width: 0;
+  flex: 1;
 }
 .opp-status { font-size: 12px; color: var(--gris-texte); flex: none; }
 
+/* MINI GRILLE EN PASTILLES RONDES (refonte) */
 .opp-grid {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .opp-row {
   display: grid;
   grid-template-columns: repeat(var(--opp-cols), minmax(0, 1fr));
-  gap: 2px;
+  gap: 3px;
 }
 .opp-cell {
+  width: 100%;
   aspect-ratio: 1;
+  max-width: 14px;
+  border-radius: 50%;
   background: var(--blanc);
   border: 1px solid var(--gris-clair);
-  border-radius: 2px;
+  box-sizing: border-box;
+  justify-self: center;
 }
-/* Couleurs des miniatures (pas de texte, juste le fond) */
 .opp-cell.status-good { background: var(--rouge); border-color: var(--rouge); }
 .opp-cell.status-misplaced { background: var(--jaune); border-color: var(--jaune); }
 .opp-cell.status-absent { background: var(--gris-clair); border-color: var(--gris-clair); }
@@ -1011,7 +1061,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .comp-recap-word {
   text-align: center;
   font-size: 16px;
-  margin: 8px 0 18px;
+  margin: 8px 0 12px;
   color: var(--gris-texte);
 }
 .comp-recap-word strong {
@@ -1021,6 +1071,46 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   text-transform: uppercase;
 }
 
+/* Bloc définition Wiktionary */
+.comp-recap-definition {
+  text-align: center;
+  margin: 0 0 16px;
+}
+.comp-def-panel {
+  text-align: left;
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.def-entry { margin-bottom: 12px; }
+.def-pos {
+  font-weight: 700;
+  color: var(--bleu-nuit);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.def-list { padding-left: 22px; margin: 0; }
+.def-list li { margin-bottom: 4px; }
+.def-examples {
+  list-style: "→ ";
+  padding-left: 16px;
+  font-size: 13px;
+  color: var(--gris-texte);
+  font-style: italic;
+  margin: 4px 0 0;
+}
+.def-source { font-size: 12px; text-align: right; margin: 8px 0 0; }
+.def-source a { color: var(--bleu-nuit); }
+.def-error { color: var(--gris-texte); font-style: italic; margin: 0; }
+
+/* Tableau scores */
 .comp-scoreboard {
   width: 100%;
   border-collapse: collapse;
@@ -1039,6 +1129,12 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   color: var(--gris-texte);
 }
 .comp-scoreboard td:nth-child(2) { text-align: left; font-weight: 600; color: var(--bleu-nuit); }
+.comp-scoreboard td.breakdown {
+  text-align: left;
+  font-size: 12px;
+  color: var(--gris-texte);
+  font-style: italic;
+}
 .comp-scoreboard tbody tr:first-child td { color: var(--bleu-nuit); }
 
 /* Podium */

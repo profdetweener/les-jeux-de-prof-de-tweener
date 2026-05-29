@@ -48,8 +48,8 @@ const COMP_PRESETS = {
     maxRounds: 5,
   },
   marathon: {
-    endCondition: "everyone_done",
-    timerSeconds: 180,
+    endCondition: "timer_only",
+    timerSeconds: 240,
     scoring: "attempts_left",
     format: "unlimited",
     maxRounds: 0,
@@ -69,7 +69,6 @@ const DEFAULT_COMP = {
 // Libelles pour le resume cote guest.
 const END_CONDITION_LABELS = {
   first_finds: "Premier qui trouve",
-  everyone_done: "Tout le monde finit",
   timer_only: "À la fin du timer",
 };
 const SCORING_LABELS = {
@@ -269,16 +268,11 @@ export function initLobbyView(state, conn) {
   // =========================================================================
   //
   // La condition de fin de manche contraint les scorings possibles :
-  //   - first_finds   : on ne connait que le gagnant -> binary OU attempts_left
-  //                     (les deux ne concernent que le 1er). Timer optionnel
-  //                     (agit comme limite : personne ne trouve = manche nulle).
-  //   - everyone_done : on connait tout le monde -> tous les scorings. Timer
-  //                     optionnel (securite anti-AFK).
-  //   - timer_only    : tout le monde joue jusqu'au bout -> tous les scorings.
-  //                     Timer OBLIGATOIRE (c'est le coeur du mode).
+  //   - first_finds : on ne connait que le gagnant -> binary OU attempts_left.
+  //   - timer_only  : tout le monde joue jusqu'au bout -> tous les scorings.
+  //                   Timer OBLIGATOIRE (c'est le coeur du mode).
   const ALLOWED_SCORINGS = {
     first_finds: ["binary", "attempts_left"],
-    everyone_done: ["position", "attempts_left", "combo", "binary"],
     timer_only: ["position", "attempts_left", "combo", "binary"],
   };
 

@@ -139,8 +139,8 @@ export const COMP_PRESETS: Record<
     maxRounds: 5,
   },
   marathon: {
-    endCondition: "everyone_done",
-    timerSeconds: 180,
+    endCondition: "timer_only",
+    timerSeconds: 240,
     scoring: "attempts_left",
     format: "unlimited",
     maxRounds: 0,
@@ -254,6 +254,12 @@ export interface RoundResult {
   finishRank: number | null;   // 1 = premier a avoir trouve. null si pas trouve
   roundPoints: number;         // points gagnes CETTE manche
   totalPoints: number;         // score cumule apres cette manche
+  /**
+   * Detail textuel du calcul des points de la manche, pour expliciter dans le
+   * recap. Exemple : "3 essais restants + 1 = 4 pts" ou "1er = 1 pt" ou "—".
+   * Vide ("") si pas trouve.
+   */
+  pointsBreakdown: string;
 }
 
 // ===========================================
@@ -272,6 +278,7 @@ export type ClientMessage =
   // Entre manches
   | { type: "next_word" }                            // host : demarre le prochain mot (coop)
   | { type: "next_round" }                           // host : demarre la manche suivante (comp)
+  | { type: "skip_to_final" }                        // host : force la fin de partie comp (saute aux resultats finaux)
   | { type: "end_game" };                            // host : termine la partie
 
 // ===========================================
