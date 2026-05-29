@@ -85,6 +85,19 @@ main { flex: 1; display: flex; align-items: flex-start; justify-content: center;
   border-radius: var(--rayon-sm);
   line-height: 1.4;
 }
+/* Le tip "dézoome pour voir les autres" ne concerne que le grand écran ;
+   sur mobile on affiche un message adapté (grilles adverses masquées). */
+.comp-tip-mobile { display: none; }
+@media (max-width: 720px) {
+  .comp-tip-desktop { display: none; }
+  .comp-tip-mobile { display: block; }
+}
+
+/* Input natif (clavier du téléphone) : caché par défaut (desktop), visible
+   uniquement sur petit écran. Texte transparent : les lettres s'affichent
+   dans la grille, pas dans le champ ; seul le curseur clignote pour montrer
+   que la saisie est active. */
+.comp-native-input { display: none; }
 .motus-ingame-actions {
   display: flex;
   justify-content: center;
@@ -1030,16 +1043,57 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   }
 }
 
-/* Sur mobile : miniatures au-dessus, en ligne horizontale scrollable */
+/* Sur petit écran : les grilles adverses sont une commodité de grand écran,
+ * on les masque. Le joueur se concentre sur sa grille + le clavier natif.
+ * (Le back continue de recevoir la progression des autres ; c'est uniquement
+ * l'affichage qui est retiré ici.) */
 @media (max-width: 720px) {
-  .comp-game-layout { flex-direction: column-reverse; }
-  .comp-opponents {
-    flex-direction: row;
+  .comp-game-layout { flex-direction: column; gap: 0; }
+  .comp-opponents { display: none; }
+
+  /* Input natif : barre de saisie discrète qui déclenche le clavier du
+     téléphone. font-size >= 16px pour empêcher le zoom auto d'iOS. */
+  .comp-native-input {
+    display: block;
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 6px;
+    box-sizing: border-box;
+    margin: 6px auto 0;
+    padding: 11px 12px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 3px;
+    color: transparent;
+    caret-color: var(--bleu-accent);
+    background: var(--blanc);
+    border: 2px dashed var(--gris-clair);
+    border-radius: var(--rayon-sm);
+    outline: none;
+    transition: border-color 0.15s;
   }
-  .opp-card { flex: none; width: 130px; }
+  .comp-native-input::placeholder {
+    color: var(--gris-texte);
+    letter-spacing: normal;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+  .comp-native-input:focus {
+    border-style: solid;
+    border-color: var(--bleu-accent);
+  }
+
+  /* Clavier visuel conservé mais réduit : il sert surtout d'indicateur de
+     couleurs (lettres trouvées / mal placées / absentes), la frappe passant
+     par le clavier natif. Reste cliquable en secours. */
+  .comp-main .motus-keyboard { margin-top: 8px; gap: 4px; }
+  .comp-main .kb-row { gap: 3px; }
+  .comp-main .kb-key { width: 30px; height: 34px; font-size: 12px; }
+  .comp-main .kb-key-wide { width: 46px; font-size: 9px; }
+}
+@media (max-width: 380px) {
+  .comp-main .kb-key { width: 26px; height: 30px; font-size: 11px; }
+  .comp-main .kb-key-wide { width: 40px; font-size: 8px; }
 }
 
 /* Carte adversaire */

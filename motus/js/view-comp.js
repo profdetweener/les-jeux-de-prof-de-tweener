@@ -40,6 +40,12 @@ export function initCompView(state, conn) {
   const selfNoticeEl = document.getElementById("comp-self-notice");
   const keyboardEl = document.getElementById("comp-keyboard");
   const opponentsEl = document.getElementById("comp-opponents");
+  const nativeInput = document.getElementById("comp-native-input");
+
+  // Detection tactile : sur ces appareils on s'appuie sur le clavier natif du
+  // telephone (input) plutot que sur le seul clavier visuel. Sur desktop,
+  // l'input reste cache et on garde clavier physique + touches cliquables.
+  const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
   const recapTitleEl = document.getElementById("comp-recap-title");
   const recapWordEl = document.getElementById("comp-recap-word");
@@ -116,17 +122,52 @@ export function initCompView(state, conn) {
     else if (/^[A-Z]$/.test(k)) { e.preventDefault(); onKeyPress(k); }
   }
 
+  // =========================================================================
+  // Saisie : source de verite unique (typingBuffer), alimentee soit par le
+  // clavier visuel/physique, soit par l'input natif mobile.
+  // =========================================================================
+  function canType() {
+    return (
+      round.active &&
+      round.myStatus === "playing" &&
+      !round.revealing &&
+      state.phase === "in_round"
+    );
+  }
+
+  /** Met a jour le buffer (nettoye A-Z, borne a wordLength), synchronise
+   *  l'input natif et redessine la grille. */
+  function setTypingBuffer(next) {
+    const clean = (next || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "")
+      .slice(0, round.wordLength);
+    typingBuffer = clean;
+    if (nativeInput && nativeInput.value !== clean) nativeInput.value = clean;
+    renderMyGrid();
+  }
+
+  /** Redonne le focus a l'input natif (mobile) pour rouvrir le clavier. Best
+   *  effort : iOS n'ouvre le clavier que sur un geste, mais Android suit. */
+  function focusNativeInput() {
+    if (!isTouch || !nativeInput) return;
+    if (!canType()) return;
+    try {
+      nativeInput.focus({ preventScroll: true });
+    } catch {
+      nativeInput.focus();
+    }
+  }
+
   function onKeyPress(key) {
-    if (!round.active || round.myStatus !== "playing" || round.revealing) return;
+    if (!canType()) return;
     if (key === "ENTER") {
       submitGuess();
     } else if (key === "DEL") {
-      typingBuffer = typingBuffer.slice(0, -1);
-      renderMyGrid();
+      setTypingBuffer(typingBuffer.slice(0, -1));
     } else if (/^[A-Z]$/.test(key)) {
       if (typingBuffer.length < round.wordLength) {
-        typingBuffer += key;
-        renderMyGrid();
+        setTypingBuffer(typingBuffer + key);
       }
     }
   }
@@ -449,6 +490,12 @@ export function initCompView(state, conn) {
     applyAllKeyColors(); // vide en debut de manche, utile a la reconnexion
     for (const p of msg.opponents) renderOpponent(p);
     startTimer();
+
+    if (nativeInput) {
+      nativeInput.value = "";
+      nativeInput.maxLength = round.wordLength;
+    }
+    focusNativeInput();
   }
 
   async function onGuessResult(msg) {
@@ -469,6 +516,16 @@ export function initCompView(state, conn) {
     round.myStatus = msg.myStatus;
     round.revealing = false;
     renderMyGrid();
+
+    // Reinitialise l'input natif pour le prochain essai et redonne le focus
+    // (rouvre le clavier sur Android ; sur iOS l'utilisateur retouchera la
+    // grille). Si la manche est finie pour ce joueur, on ferme le clavier.
+    if (nativeInput) nativeInput.value = "";
+    if (round.myStatus === "playing") {
+      focusNativeInput();
+    } else if (nativeInput) {
+      nativeInput.blur();
+    }
   }
 
   function onOpponentProgress(msg) {
@@ -484,6 +541,7 @@ export function initCompView(state, conn) {
     round.active = false;
     stopTimer();
     clearRoundEndedSafetyNet();
+    if (nativeInput) nativeInput.blur();
     renderRecap(msg);
   }
 
@@ -491,6 +549,7 @@ export function initCompView(state, conn) {
     round.active = false;
     stopTimer();
     clearRoundEndedSafetyNet();
+    if (nativeInput) nativeInput.blur();
     renderFinal(msg.results);
   }
 
@@ -759,6 +818,32 @@ export function initCompView(state, conn) {
   document.addEventListener("keydown", onPhysicalKey);
 
   // =========================================================================
+  // Saisie via clavier natif (mobile) : l'input pilote le buffer.
+  // =========================================================================
+  if (nativeInput) {
+    nativeInput.addEventListener("input", () => {
+      if (!canType()) {
+        nativeInput.value = typingBuffer;
+        return;
+      }
+      setTypingBuffer(nativeInput.value);
+    });
+    // Entree / bouton "go" du clavier natif -> soumet l'essai.
+    nativeInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (canType()) submitGuess();
+      }
+    });
+  }
+
+  // Taper n'importe ou sur la grille redonne le focus a l'input (rouvre le
+  // clavier natif si l'utilisateur l'avait ferme). Mobile uniquement.
+  if (gridEl) {
+    gridEl.addEventListener("click", () => focusNativeInput());
+  }
+
+  // =========================================================================
   // Reconnexion : restaure l'etat de la manche depuis joined.compRound
   // =========================================================================
   function restoreFromSnapshot(cr) {
@@ -788,6 +873,12 @@ export function initCompView(state, conn) {
     applyAllKeyColors(); // recolore le clavier d'apres les essais soumis
     for (const p of (cr.opponents || [])) renderOpponent(p);
     startTimer();
+
+    if (nativeInput) {
+      nativeInput.value = "";
+      nativeInput.maxLength = round.wordLength;
+    }
+    focusNativeInput();
   }
 
   // Expose les handlers au routeur (room.js)

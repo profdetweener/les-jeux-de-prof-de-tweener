@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
   <header class="app-header">
@@ -89,9 +89,13 @@
           <!-- =========================================================== -->
           <div id="config-comp" style="display: none;">
 
-            <p class="comp-tip">
+            <p class="comp-tip comp-tip-desktop">
               💡 Astuce : pendant la partie, dézoome légèrement ton navigateur (Ctrl + molette / Cmd −)
               pour voir confortablement les grilles de tous les autres joueurs.
+            </p>
+            <p class="comp-tip comp-tip-mobile">
+              📱 Sur téléphone, tu joues sur ta grille avec le clavier ; les grilles des autres
+              joueurs s'affichent sur grand écran.
             </p>
 
             <!-- Vue host : editable -->
@@ -246,6 +250,14 @@
         <div class="comp-main">
           <div class="motus-grid" id="comp-grid"></div>
           <p class="comp-self-notice" id="comp-self-notice" style="display: none;"></p>
+          <!-- Champ de saisie natif (mobile only) : declenche le clavier du
+               telephone. Les lettres s'affichent dans la grille, pas ici
+               (texte transparent). Cache en CSS sur desktop. -->
+          <input class="comp-native-input" id="comp-native-input" type="text"
+                 inputmode="text" autocomplete="off" autocorrect="off"
+                 autocapitalize="characters" spellcheck="false"
+                 enterkeyhint="go" aria-label="Tape ton mot"
+                 placeholder="Tape ton mot, puis Entrée">
           <div class="motus-keyboard" id="comp-keyboard"></div>
         </div>
 
@@ -291,6 +303,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=15"></script>
+  <script type="module" src="js/room.js?v=16"></script>
 </body>
 </html>
