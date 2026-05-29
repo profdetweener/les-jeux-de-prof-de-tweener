@@ -41,11 +41,93 @@ export function initCompView(state, conn) {
   const keyboardEl = document.getElementById("comp-keyboard");
   const opponentsEl = document.getElementById("comp-opponents");
   const nativeInput = document.getElementById("comp-native-input");
+  const soundToggleEl = document.getElementById("comp-sound-toggle");
+  const soundIconEl = document.getElementById("comp-sound-icon");
 
   // Detection tactile : sur ces appareils on s'appuie sur le clavier natif du
   // telephone (input) plutot que sur le seul clavier visuel. Sur desktop,
   // l'input reste cache et on garde clavier physique + touches cliquables.
   const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+  // =========================================================================
+  // Sons a la revelation des lettres (Web Audio API : pas d'asset a charger).
+  //
+  // Trois timbres differents selon le statut de la case, pour donner une
+  // info supplementaire a l'oreille sans envahir : aigu net pour "bonne
+  // lettre + bonne place", medium pour "mal placee", grave mat pour
+  // "absente".
+  //
+  // L'AudioContext est cree paresseusement et "resume" sur la 1ere gesture
+  // utilisateur (politique d'autoplay des navigateurs).
+  //
+  // L'etat ON/OFF est persiste en localStorage : on mute une fois et c'est
+  // memorise pour les prochaines parties.
+  // =========================================================================
+  const SOUND_STORAGE_KEY = "motus_comp_sound";
+  let soundEnabled = (() => {
+    try { return window.localStorage.getItem(SOUND_STORAGE_KEY) !== "0"; }
+    catch { return true; }
+  })();
+  let audioCtx = null;
+
+  function ensureAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { audioCtx = new AC(); } catch { return null; }
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playTick(status) {
+    if (!soundEnabled) return;
+    const ctx = ensureAudioCtx();
+    if (!ctx) return;
+    try {
+      const t0 = ctx.currentTime;
+      // Frequence + gain + duree par statut. Sine = doux ; ramp expo = clic
+      // sans pop.
+      let freq, peak, dur;
+      if (status === "good")       { freq = 880; peak = 0.18; dur = 0.13; }
+      else if (status === "misplaced") { freq = 587; peak = 0.15; dur = 0.12; }
+      else                         { freq = 280; peak = 0.10; dur = 0.10; }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    } catch {}
+  }
+
+  function updateSoundToggleUI() {
+    if (!soundToggleEl) return;
+    soundToggleEl.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+    if (soundIconEl) soundIconEl.textContent = soundEnabled ? "🔊" : "🔇";
+    soundToggleEl.title = soundEnabled
+      ? "Sons activés — clic pour couper"
+      : "Sons coupés — clic pour activer";
+  }
+  updateSoundToggleUI();
+
+  if (soundToggleEl) {
+    soundToggleEl.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      try { window.localStorage.setItem(SOUND_STORAGE_KEY, soundEnabled ? "1" : "0"); } catch {}
+      updateSoundToggleUI();
+      // En profite pour "unlocker" l'audio sur iOS et confirmer a l'oreille
+      // que le son fonctionne quand on l'active.
+      ensureAudioCtx();
+      if (soundEnabled) playTick("good");
+    });
+  }
 
   const recapTitleEl = document.getElementById("comp-recap-title");
   const recapWordEl = document.getElementById("comp-recap-word");
@@ -193,6 +275,10 @@ export function initCompView(state, conn) {
       showToast(`Le mot doit commencer par ${round.firstLetter}.`, { type: "error" });
       return;
     }
+    // Le submit est forcement consecutif a une gesture utilisateur (Enter,
+    // coche iOS, ENTER du clavier visuel) : on en profite pour deverrouiller
+    // l'AudioContext maintenant, avant que la reveal arrive en async.
+    ensureAudioCtx();
     conn.send({ type: "submit_guess", guess: typingBuffer });
     // On ne vide pas le buffer tout de suite : on attend la reponse serveur
     // (guess_result) pour le consigner. Si refus (erreur), le buffer reste.
@@ -266,6 +352,7 @@ export function initCompView(state, conn) {
       cell.classList.add(`status-${fb.status}`);
       if (fb.status === "good" && fb.hasMore) cell.classList.add("has-more");
       updateKeyColor(fb.letter, fb.status, fb.hasMore);
+      playTick(fb.status);
       await sleep(REVEAL_DELAY_MS);
     }
     await sleep(POST_REVEAL_DELAY_MS);

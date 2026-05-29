@@ -953,6 +953,23 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 .comp-round-info { font-weight: 700; color: var(--bleu-nuit); }
 .comp-attempt-info { font-size: 14px; color: var(--gris-texte); }
+/* Bouton 🔊 / 🔇 : petit, discret, dans l'en-tete de manche. */
+.comp-sound-toggle {
+  background: transparent;
+  border: 1px solid var(--gris-clair);
+  border-radius: var(--rayon-sm);
+  color: var(--bleu-nuit);
+  padding: 4px 9px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, opacity 0.15s, transform 0.05s;
+}
+.comp-sound-toggle:hover { background: var(--beige); }
+.comp-sound-toggle:active { transform: scale(0.94); }
+.comp-sound-toggle[aria-pressed="false"] { opacity: 0.55; }
 .comp-timer {
   font-family: Georgia, serif;
   font-weight: 800;
