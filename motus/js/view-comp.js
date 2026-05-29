@@ -159,6 +159,55 @@ export function initCompView(state, conn) {
     }
   }
 
+  // =========================================================================
+  // App shell verrouille (mobile) : empeche le scroll de page a l'ouverture
+  // du clavier. On dimensionne la zone de jeu sur le viewport *visible* et on
+  // re-epingle la page en haut si iOS tente de la decaler.
+  // =========================================================================
+  const docEl = document.documentElement;
+  let vvBound = false;
+
+  function applyViewportHeight() {
+    const vv = window.visualViewport;
+    const h = vv ? vv.height : window.innerHeight;
+    docEl.style.setProperty("--app-vh", `${Math.round(h)}px`);
+  }
+
+  function repinTop() {
+    if (document.body.classList.contains("comp-playing")) {
+      // iOS decale parfois le document quand le clavier s'ouvre : on annule.
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function setPlaying(on) {
+    if (!isTouch) return;
+    if (on) {
+      document.body.classList.add("comp-playing");
+      applyViewportHeight();
+      if (window.visualViewport && !vvBound) {
+        window.visualViewport.addEventListener("resize", applyViewportHeight);
+        window.visualViewport.addEventListener("scroll", applyViewportHeight);
+        window.visualViewport.addEventListener("scroll", repinTop);
+        vvBound = true;
+      }
+      window.scrollTo(0, 0);
+    } else {
+      document.body.classList.remove("comp-playing");
+    }
+  }
+
+  /** Sur mobile, garde la ligne en cours visible quand la grille defile dans
+   *  son conteneur (cas des grilles hautes + clavier natif ouvert). */
+  function scrollCurrentRowIntoView() {
+    if (!isTouch || round.myStatus !== "playing") return;
+    const rows = gridEl.querySelectorAll(".motus-row");
+    const row = rows[round.myAttempts.length];
+    if (row && typeof row.scrollIntoView === "function") {
+      row.scrollIntoView({ block: "nearest", behavior: "auto" });
+    }
+  }
+
   function onKeyPress(key) {
     if (!canType()) return;
     if (key === "ENTER") {
@@ -334,6 +383,7 @@ export function initCompView(state, conn) {
     } else {
       selfNoticeEl.style.display = "none";
     }
+    scrollCurrentRowIntoView();
   }
 
   // =========================================================================
@@ -469,6 +519,7 @@ export function initCompView(state, conn) {
   function onRoundStarted(msg) {
     round.active = true;
     round.revealing = false;
+    setPlaying(true);
     round.wordLength = msg.wordLength;
     round.maxAttempts = msg.maxAttempts;
     round.firstLetter = msg.firstLetter;
@@ -542,6 +593,7 @@ export function initCompView(state, conn) {
     stopTimer();
     clearRoundEndedSafetyNet();
     if (nativeInput) nativeInput.blur();
+    setPlaying(false);
     renderRecap(msg);
   }
 
@@ -550,6 +602,7 @@ export function initCompView(state, conn) {
     stopTimer();
     clearRoundEndedSafetyNet();
     if (nativeInput) nativeInput.blur();
+    setPlaying(false);
     renderFinal(msg.results);
   }
 
@@ -850,6 +903,7 @@ export function initCompView(state, conn) {
     if (!cr) return;
     round.active = true;
     round.revealing = false;
+    setPlaying(true);
     round.wordLength = cr.wordLength;
     round.maxAttempts = cr.maxAttempts;
     round.firstLetter = cr.firstLetter;

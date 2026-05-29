@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=16";
+import { initCompView } from "./view-comp.js?v=17";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -80,6 +80,12 @@ function showView(phase) {
     target = state.config?.mode === "competitive" ? "comp_final" : "lobby";
   }
   if (!views[target]) target = "lobby";
+  // Securite : le verrou d'app shell mobile (anti-scroll clavier) ne doit
+  // exister que pendant une manche comp. On le retire des qu'on en sort,
+  // quel que soit le chemin (recap, lobby, fin, kick…).
+  if (target !== "in_round") {
+    document.body.classList.remove("comp-playing");
+  }
   for (const [name, el] of Object.entries(views)) {
     if (el) el.style.display = name === target ? "" : "none";
   }
