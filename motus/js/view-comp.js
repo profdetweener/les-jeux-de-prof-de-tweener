@@ -624,19 +624,47 @@ export function initCompView(state, conn) {
     }
   }
 
+  /**
+   * Calcule le rang de chaque joueur en gerant les ex-aequo (standard
+   * "competition ranking" : 1, 1, 3 quand les deux premiers sont a egalite).
+   * Retourne un tableau d'entiers parallele a `results` (suppose deja trie
+   * par totalPoints decroissant).
+   */
+  function computeRanks(results) {
+    const ranks = new Array(results.length);
+    let currentRank = 0;
+    let lastScore = null;
+    for (let i = 0; i < results.length; i++) {
+      if (lastScore === null || results[i].totalPoints !== lastScore) {
+        currentRank = i + 1;
+        lastScore = results[i].totalPoints;
+      }
+      ranks[i] = currentRank;
+    }
+    return ranks;
+  }
+
   function renderFinal(results) {
-    // Podium top 3
+    const ranks = computeRanks(results);
+
+    // Podium : on prend tous les joueurs des 3 premiers rangs (= jusqu'au
+    // rang 3 inclus), pas seulement les 3 premieres lignes. Ainsi en cas
+    // d'egalite en 1ere place, on affiche bien les 2 (ou plus) ex-aequo
+    // tous au rang 1 (medaille or, slot central).
     podiumEl.innerHTML = "";
-    const medals = ["🥇", "🥈", "🥉"];
-    results.slice(0, 3).forEach((r, i) => {
+    const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const rank = ranks[i];
+      if (rank > 3) break; // on ne montre que les 3 premiers rangs sur le podium
       const slot = document.createElement("div");
-      slot.className = `podium-slot podium-${i + 1}`;
-      slot.innerHTML = `<div class="podium-medal">${medals[i]}</div>` +
+      slot.className = `podium-slot podium-${rank}`;
+      slot.innerHTML = `<div class="podium-medal">${medals[rank]}</div>` +
         `<div class="podium-name">${escapeHtml(r.playerId)}</div>` +
         `<div class="podium-score">${r.totalPoints} pts</div>`;
       podiumEl.appendChild(slot);
-    });
-    finalTableEl.innerHTML = buildScoreTable(results, false);
+    }
+    finalTableEl.innerHTML = buildScoreTable(results, false, ranks);
 
     // Definition du dernier mot reveille (s'il existe)
     if (lastRevealedWord) {
@@ -665,13 +693,16 @@ export function initCompView(state, conn) {
     }
   }
 
-  function buildScoreTable(results, showRoundPts) {
+  function buildScoreTable(results, showRoundPts, ranks) {
+    // Si ranks n'est pas fourni, on calcule sur place (gestion ex-aequo
+    // identique au podium : meme score = meme rang).
+    const computed = ranks || computeRanks(results);
     let html = "<thead><tr><th>#</th><th>Joueur</th>";
     if (showRoundPts) html += "<th>Essais</th><th>Succès</th><th>Manche</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
       const essais = r.found ? `${r.attemptsUsed}` : "—";
-      html += `<tr><td>${i + 1}</td><td>${escapeHtml(r.playerId)}</td>`;
+      html += `<tr><td>${computed[i]}</td><td>${escapeHtml(r.playerId)}</td>`;
       if (showRoundPts) {
         const detail = r.pointsBreakdown || (r.found ? "" : "—");
         html += `<td>${essais}</td><td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
