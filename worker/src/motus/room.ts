@@ -785,8 +785,13 @@ export class MotusRoom {
     });
 
     if (isLast) {
-      this.phase = "finished";
-      this.broadcast({ type: "game_ended", results });
+      // On NE bascule PAS immediatement en "finished" : le client doit pouvoir
+      // afficher le recap detaille de la derniere manche (qui a trouve, en
+      // combien d'essais, breakdown des points) avant de voir le podium final.
+      // L'hote enchaine via "skip_to_final" (= bouton "Voir le classement
+      // final") ou "end_game" (= "Quitter la partie") depuis la vue recap.
+      // La phase reste "between_rounds" jusque-la.
+      this.phase = "between_rounds";
     }
   }
 

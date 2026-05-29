@@ -220,11 +220,12 @@ conn.on("opponent_progress", (msg) => {
 conn.on("round_ended", (msg) => {
   state.phase = "between_rounds";
   compView.onRoundEnded(msg);
-  // Si c'est la derniere manche, game_ended suit immediatement et affichera le
-  // podium — on ne montre pas le recap intermediaire pour eviter un flash.
-  if (!msg.isLastRound) {
-    setTimeout(() => showView("between_rounds"), 1000);
-  }
+  // On bascule TOUJOURS vers le recap : meme a la derniere manche, le joueur
+  // voit le detail (qui a trouve, en combien) avant le podium final. L'hote
+  // declenche ensuite explicitement le passage au podium via "Voir le
+  // classement final" (skip_to_final) ou quitte via "Quitter la partie"
+  // (end_game).
+  setTimeout(() => showView("between_rounds"), 1000);
 });
 
 conn.on("game_ended", (msg) => {

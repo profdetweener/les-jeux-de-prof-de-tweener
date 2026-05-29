@@ -75,6 +75,11 @@ export function initCompView(state, conn) {
   let typingBuffer = "";
   let keyButtons = {};
   let timerInterval = null;
+  // Memorise si le recap actuellement affiche correspond a la derniere manche
+  // (pour ajuster les confirm dialogs et eviter "Sauter au classement final ?
+  // Les manches restantes ne seront pas jouees." quand justement c'est deja
+  // la fin).
+  let isAtLastRoundRecap = false;
 
   // =========================================================================
   // Construction clavier
@@ -214,6 +219,24 @@ export function initCompView(state, conn) {
   }
 
   // =========================================================================
+  // Calcule les "hints" affiches sur la ligne courante quand elle est vierge :
+  // pour chaque colonne, la derniere lettre revelee comme "good" lors d'un essai
+  // precedent. La 1ere lettre imposee est toujours dans le hint (col 0).
+  // Equivalent du computeHintRow du mode chill.
+  // =========================================================================
+  function computeHintRow() {
+    const hint = new Array(round.wordLength).fill("");
+    if (round.firstLetter) hint[0] = round.firstLetter;
+    for (const att of round.myAttempts) {
+      if (!att || !att.feedback) continue;
+      att.feedback.forEach((fb, col) => {
+        if (fb.status === "good") hint[col] = fb.letter;
+      });
+    }
+    return hint;
+  }
+
+  // =========================================================================
   // Rendu de MA grille
   // =========================================================================
   function renderMyGrid() {
@@ -223,6 +246,12 @@ export function initCompView(state, conn) {
     // clavier qui est dedans) soit calee sur la grille
     const compMain = gridEl.closest(".comp-main");
     if (compMain) compMain.style.setProperty("--motus-cols", round.wordLength);
+    // Hints affiches sur la ligne courante quand elle est encore vierge :
+    // toutes les lettres deja revelees comme "good" lors des essais precedents,
+    // a la maniere du mode chill. Aide visuelle uniquement, l'utilisateur peut
+    // taper ce qu'il veut.
+    const hintRow = computeHintRow();
+    const showHints = typingBuffer.length === 0;
     for (let r = 0; r < round.maxAttempts; r++) {
       const rowEl = document.createElement("div");
       rowEl.className = "motus-row";
@@ -240,9 +269,11 @@ export function initCompView(state, conn) {
           if (c < typingBuffer.length) {
             cell.textContent = typingBuffer[c];
             cell.classList.add("typing");
-          } else if (c === 0) {
-            // 1ere lettre imposee, en indice sur la ligne courante vide
-            cell.textContent = round.firstLetter;
+          } else if (showHints && hintRow[c]) {
+            // Indice : lettre "good" deja revelee a cette position (ou 1ere
+            // lettre du mot pour la col 0). Style locked-letter pour signaler
+            // que c'est un pre-remplissage visuel.
+            cell.textContent = hintRow[c];
             cell.classList.add("locked-letter");
           }
         }
@@ -537,6 +568,7 @@ export function initCompView(state, conn) {
   // =========================================================================
   function renderRecap(msg) {
     lastRevealedWord = msg.revealedWord;
+    isAtLastRoundRecap = !!msg.isLastRound;
     recapTitleEl.textContent = msg.isLastRound
       ? "Dernière manche terminée"
       : `Manche ${msg.roundIndex} terminée`;
@@ -556,7 +588,10 @@ export function initCompView(state, conn) {
     const freshBtn = document.getElementById("comp-recap-def-btn");
     attachDefButton(freshBtn, recapDefPanel, () => lastRevealedWord);
 
-    // Boutons : seul l'hote
+    // Boutons :
+    //   - Hote, manche intermediaire : Manche suivante / Voir le classement / Quitter
+    //   - Hote, derniere manche : Voir le classement / Quitter (pas de "Manche suivante")
+    //   - Guest : tout cache, message d'attente
     if (state.isHost && !msg.isLastRound) {
       nextRoundBtn.style.display = "";
       skipFinalBtn.style.display = "";
@@ -564,16 +599,28 @@ export function initCompView(state, conn) {
       recapWaitingEl.style.display = "none";
     } else if (state.isHost && msg.isLastRound) {
       nextRoundBtn.style.display = "none";
-      skipFinalBtn.style.display = "none";
-      endGameBtn.style.display = "none";
-      recapWaitingEl.style.display = "";
-      recapWaitingEl.textContent = "Partie terminée — voir le classement final…";
+      // "Voir le classement final" devient l'action principale a la derniere
+      // manche : on la met en avant en lui donnant temporairement le style
+      // primaire (puis remis a son etat normal pour les manches suivantes).
+      skipFinalBtn.style.display = "";
+      skipFinalBtn.classList.remove("btn-secondary");
+      skipFinalBtn.classList.add("btn-primary");
+      skipFinalBtn.textContent = "Voir le classement final";
+      endGameBtn.style.display = "";
+      recapWaitingEl.style.display = "none";
     } else {
       nextRoundBtn.style.display = "none";
       skipFinalBtn.style.display = "none";
       endGameBtn.style.display = "none";
       recapWaitingEl.style.display = "";
       recapWaitingEl.textContent = `En attente de ${state.hostPseudo || "l'hôte"}…`;
+    }
+    // Quand on n'est PAS sur la derniere manche, on remet le bouton "Voir le
+    // classement final" dans son etat secondaire d'origine.
+    if (!msg.isLastRound) {
+      skipFinalBtn.classList.remove("btn-primary");
+      skipFinalBtn.classList.add("btn-secondary");
+      skipFinalBtn.textContent = "Voir le classement final";
     }
   }
 
@@ -620,7 +667,7 @@ export function initCompView(state, conn) {
 
   function buildScoreTable(results, showRoundPts) {
     let html = "<thead><tr><th>#</th><th>Joueur</th>";
-    if (showRoundPts) html += "<th>Essais</th><th>Détail</th><th>Manche</th>";
+    if (showRoundPts) html += "<th>Essais</th><th>Succès</th><th>Manche</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
       const essais = r.found ? `${r.attemptsUsed}` : "—";
@@ -648,8 +695,21 @@ export function initCompView(state, conn) {
     if (!state.isHost) return;
     conn.send({ type: "next_round" });
   });
+  // Memorise si le recap actuellement affiche correspond a la derniere manche
+  // (pour ajuster les confirm dialogs et eviter "Sauter au classement final ?
+  // Les manches restantes ne seront pas jouees." quand justement c'est deja
+  // la fin).
+  // (declare en haut)
+
   skipFinalBtn.addEventListener("click", () => {
     if (!state.isHost) return;
+    // A la derniere manche, c'est l'action attendue (passer au podium), pas de
+    // confirm intrusif. Pour une manche intermediaire, on confirme parce qu'on
+    // saute du contenu.
+    if (isAtLastRoundRecap) {
+      conn.send({ type: "skip_to_final" });
+      return;
+    }
     if (confirm("Sauter au classement final ? Les manches restantes ne seront pas jouées.")) {
       conn.send({ type: "skip_to_final" });
     }

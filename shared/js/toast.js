@@ -10,16 +10,16 @@ export function showToast(message, options = {}) {
 
   const toast = document.createElement("div");
   toast.className = "toast";
-  if (options.type === "error") toast.classList.add("error");
-  if (options.type === "success") toast.classList.add("success");
+  if (options.type === "error") toast.classList.add("toast-error");
+  if (options.type === "success") toast.classList.add("toast-success");
   toast.textContent = message;
 
   container.appendChild(toast);
 
   setTimeout(() => {
-    toast.style.transition = "opacity 0.2s, transform 0.2s";
+    toast.style.transition = "opacity 0.25s ease, transform 0.25s ease";
     toast.style.opacity = "0";
-    toast.style.transform = "translateX(20px)";
-    setTimeout(() => toast.remove(), 250);
+    toast.style.transform = "scale(0.9)";
+    setTimeout(() => toast.remove(), 280);
   }, options.duration ?? DEFAULT_DURATION);
 }
