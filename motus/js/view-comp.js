@@ -50,20 +50,34 @@ export function initCompView(state, conn) {
   const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
   // =========================================================================
-  // Sons a la revelation des lettres (Web Audio API : pas d'asset a charger).
+  // Sons a la revelation des lettres : on charge les samples MP3 officiels
+  // via Web Audio (decodeAudioData -> AudioBuffer). Avantages vs HTMLAudio :
+  // latence quasi nulle, polyphonie naturelle (chaque play = nouveau
+  // BufferSource), et compatibilite iOS une fois l'AudioContext debloque.
   //
-  // Trois timbres differents selon le statut de la case, pour donner une
-  // info supplementaire a l'oreille sans envahir : aigu net pour "bonne
-  // lettre + bonne place", medium pour "mal placee", grave mat pour
-  // "absente".
+  // Chargement paresseux : la requete fetch part au premier appel a
+  // ensureAudioCtx() (donc des le premier geste utilisateur), pour ne pas
+  // gaspiller de bande passante si le joueur ne fait que regarder.
   //
-  // L'AudioContext est cree paresseusement et "resume" sur la 1ere gesture
-  // utilisateur (politique d'autoplay des navigateurs).
+  // Si un buffer n'est pas encore pret au moment d'un tick, on retombe
+  // silencieusement sur un beep synthetise pour ne jamais bloquer la
+  // revelation.
   //
-  // L'etat ON/OFF est persiste en localStorage : on mute une fois et c'est
-  // memorise pour les prochaines parties.
+  // L'etat ON/OFF du bouton est persiste en localStorage : on mute une fois
+  // et c'est memorise pour les prochaines parties (le joueur garde bien sur
+  // le controle total et peut basculer a tout moment).
   // =========================================================================
   const SOUND_STORAGE_KEY = "motus_comp_sound";
+  const SOUND_URLS = {
+    good:      "sounds/Bonne_Lettre.mp3",
+    misplaced: "sounds/Mal_Place.mp3",
+    absent:    "sounds/Mauvaise_Lettre.mp3",
+    found:     "sounds/Mot_Trouve.mp3",
+  };
+  /** @type {Object<string, AudioBuffer>} */
+  const soundBuffers = {};
+  let soundsLoading = false;
+
   let soundEnabled = (() => {
     try { return window.localStorage.getItem(SOUND_STORAGE_KEY) !== "0"; }
     catch { return true; }
@@ -79,21 +93,59 @@ export function initCompView(state, conn) {
     if (audioCtx.state === "suspended") {
       audioCtx.resume().catch(() => {});
     }
+    // Premier appel : declenche le chargement des samples (en tache de fond).
+    if (!soundsLoading) {
+      soundsLoading = true;
+      loadAllSounds();
+    }
     return audioCtx;
   }
 
-  function playTick(status) {
+  async function loadOneSound(key, url) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const arr = await resp.arrayBuffer();
+      // Safari < 14.1 ne supporte que la signature callback ; on tente les deux.
+      const buf = await new Promise((resolve, reject) => {
+        const p = audioCtx.decodeAudioData(arr, resolve, reject);
+        if (p && typeof p.then === "function") p.then(resolve, reject);
+      });
+      soundBuffers[key] = buf;
+    } catch {
+      // Echec silencieux : on retombera sur le bip synthetise.
+    }
+  }
+
+  async function loadAllSounds() {
+    if (!audioCtx) return;
+    await Promise.all(Object.entries(SOUND_URLS).map(([k, u]) => loadOneSound(k, u)));
+  }
+
+  /** Joue un sample charge, ou retombe sur un bip synthetise en secours. */
+  function playSound(key) {
     if (!soundEnabled) return;
     const ctx = ensureAudioCtx();
     if (!ctx) return;
+    const buf = soundBuffers[key];
+    if (buf) {
+      try {
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch {}
+      return;
+    }
+    // Fallback synthetise (utilise tant que les MP3 ne sont pas decodes, ou
+    // si le decodage a echoue).
     try {
       const t0 = ctx.currentTime;
-      // Frequence + gain + duree par statut. Sine = doux ; ramp expo = clic
-      // sans pop.
       let freq, peak, dur;
-      if (status === "good")       { freq = 880; peak = 0.18; dur = 0.13; }
-      else if (status === "misplaced") { freq = 587; peak = 0.15; dur = 0.12; }
-      else                         { freq = 280; peak = 0.10; dur = 0.10; }
+      if (key === "good")           { freq = 880; peak = 0.18; dur = 0.13; }
+      else if (key === "misplaced") { freq = 587; peak = 0.15; dur = 0.12; }
+      else if (key === "found")     { freq = 988; peak = 0.20; dur = 0.40; }
+      else                          { freq = 280; peak = 0.10; dur = 0.10; }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -105,6 +157,11 @@ export function initCompView(state, conn) {
       osc.start(t0);
       osc.stop(t0 + dur + 0.02);
     } catch {}
+  }
+
+  /** Joue le son associe au statut d'une case revelee. */
+  function playTick(status) {
+    playSound(status);
   }
 
   function updateSoundToggleUI() {
@@ -125,7 +182,7 @@ export function initCompView(state, conn) {
       // En profite pour "unlocker" l'audio sur iOS et confirmer a l'oreille
       // que le son fonctionne quand on l'active.
       ensureAudioCtx();
-      if (soundEnabled) playTick("good");
+      if (soundEnabled) playSound("good");
     });
   }
 
@@ -618,6 +675,13 @@ export function initCompView(state, conn) {
     round.myStatus = msg.myStatus;
     round.revealing = false;
     renderMyGrid();
+
+    // Jingle si le joueur a trouvé le mot ce coup-ci. On laisse un petit
+    // souffle apres le dernier tick de la révélation pour que les deux sons
+    // ne se chevauchent pas.
+    if (msg.myStatus === "won") {
+      setTimeout(() => playSound("found"), 120);
+    }
 
     // Apres la revelation : on ferme le clavier natif (et sa barre
     // d'accessoires iOS, du coup) pour que le joueur voie sa grille a jour
