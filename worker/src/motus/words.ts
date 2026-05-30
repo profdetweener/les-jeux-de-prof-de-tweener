@@ -45,12 +45,25 @@ export function isPlayableWord(word: string): boolean {
 /**
  * Tire un mot aleatoire de longueur donnee dans la liste drawable.
  * Renvoie null si la longueur n'est pas couverte.
+ *
+ * Si `avoidFirstLetters` est fourni, on tente d'eviter les mots dont la 1ere
+ * lettre est dans ce set (pour reduire la repetition de la meme initiale sur
+ * des manches consecutives). Si aucun mot ne reste apres filtrage, on
+ * fallback sur le pool complet pour garantir de toujours renvoyer un mot.
  */
-export function pickRandomWord(length: number): string | null {
+export function pickRandomWord(
+  length: number,
+  avoidFirstLetters?: Set<string>
+): string | null {
   const list = DRAWABLE[String(length)];
   if (!list || list.length === 0) return null;
-  const i = Math.floor(Math.random() * list.length);
-  return list[i];
+  let pool: readonly string[] = list;
+  if (avoidFirstLetters && avoidFirstLetters.size > 0) {
+    const filtered = list.filter((w) => !avoidFirstLetters.has(w[0]));
+    if (filtered.length > 0) pool = filtered;
+  }
+  const i = Math.floor(Math.random() * pool.length);
+  return pool[i];
 }
 
 /**

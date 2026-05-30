@@ -120,15 +120,31 @@ function json(data: unknown, status = 200): Response {
  * Tire un mot et renvoie un token signe + la 1ere lettre.
  */
 async function handleDraw(request: Request, secret: string): Promise<Response> {
-  let body: { wordLength?: number; maxAttempts?: number };
+  let body: { wordLength?: number; maxAttempts?: number; avoidFirstLetters?: unknown };
   try {
-    body = (await request.json()) as { wordLength?: number; maxAttempts?: number };
+    body = (await request.json()) as {
+      wordLength?: number;
+      maxAttempts?: number;
+      avoidFirstLetters?: unknown;
+    };
   } catch {
     return json({ error: "Body JSON invalide." }, 400);
   }
 
   const wordLength = Number(body.wordLength);
   const maxAttempts = Number(body.maxAttempts);
+
+  // Historique optionnel des premieres lettres deja tirees recemment cote
+  // client (localStorage), pour reduire la repetition d'une meme initiale
+  // sur des tirages consecutifs. On accepte uniquement des chaines d'1 char.
+  const avoidSet = new Set<string>();
+  if (Array.isArray(body.avoidFirstLetters)) {
+    for (const v of body.avoidFirstLetters) {
+      if (typeof v === "string" && v.length === 1) {
+        avoidSet.add(v.toUpperCase());
+      }
+    }
+  }
 
   if (
     !Number.isInteger(wordLength) ||
@@ -155,7 +171,7 @@ async function handleDraw(request: Request, secret: string): Promise<Response> {
     );
   }
 
-  const word = pickRandomWord(wordLength);
+  const word = pickRandomWord(wordLength, avoidSet);
   if (!word) {
     return json({ error: "Aucun mot disponible pour cette longueur." }, 500);
   }

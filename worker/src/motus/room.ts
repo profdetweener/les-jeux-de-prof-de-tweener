@@ -110,6 +110,14 @@ export class MotusRoom {
   private compFinishOrder: string[];
   /** Score cumule par joueur sur la partie. pseudo -> points. */
   private compScores: Map<string, number>;
+  /**
+   * Historique des premieres lettres tirees recemment, pour reduire la
+   * repetition d'une meme initiale sur plusieurs manches d'affilee. Fenetre
+   * glissante : on retient jusqu'a 20 entrees, on en evite les 5 dernieres
+   * au prochain tirage (cf. pickWord). Persiste tant que la DurableObject
+   * vit (donc tout au long de la vie du salon).
+   */
+  private recentFirstLetters: string[];
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -129,6 +137,7 @@ export class MotusRoom {
     this.compPlayers = new Map();
     this.compFinishOrder = [];
     this.compScores = new Map();
+    this.recentFirstLetters = [];
   }
 
   /**
@@ -534,7 +543,7 @@ export class MotusRoom {
    * Demarre un nouveau mot. Suppose que this.config est valide.
    */
   private startNextWord(): void {
-    const word = pickRandomWord(this.config.wordLength);
+    const word = this.pickWordAvoidingRecent(this.config.wordLength);
     if (!word) {
       // Cas tres improbable : pool vide pour cette longueur
       this.broadcastError("INVALID_CONFIG", "Aucun mot disponible pour cette longueur.");
@@ -554,6 +563,23 @@ export class MotusRoom {
     });
   }
 
+  /**
+   * Tire un mot via pickRandomWord en evitant les premieres lettres tirees
+   * recemment (5 dernieres), pour reduire la repetition d'une meme initiale
+   * sur des manches consecutives. Met a jour l'historique apres tirage.
+   * Fallback sur n'importe quel mot si toutes les premieres lettres sont
+   * dans l'historique recent (pool tres restreint).
+   */
+  private pickWordAvoidingRecent(length: number): string | null {
+    const avoid = new Set(this.recentFirstLetters.slice(-5));
+    const word = pickRandomWord(length, avoid);
+    if (word) {
+      this.recentFirstLetters.push(word[0]);
+      if (this.recentFirstLetters.length > 20) this.recentFirstLetters.shift();
+    }
+    return word;
+  }
+
   // =========================================================================
   // Mode COMPETITIVE : manche, scoring, boucle
   // =========================================================================
@@ -563,7 +589,7 @@ export class MotusRoom {
    * reset l'etat par joueur, arme l'alarme du timer, diffuse round_started.
    */
   private startCompRound(): void {
-    const word = pickRandomWord(this.config.wordLength);
+    const word = this.pickWordAvoidingRecent(this.config.wordLength);
     if (!word) {
       this.broadcastError("INVALID_CONFIG", "Aucun mot disponible pour cette longueur.");
       return;

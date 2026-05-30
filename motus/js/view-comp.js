@@ -665,6 +665,12 @@ export function initCompView(state, conn) {
     }
     typingBuffer = "";
 
+    // Remet le scroll en haut : sinon la position du scroll de la manche
+    // precedente (apres bringRowIntoView sur le dernier essai) se reporte
+    // sur la nouvelle, et iOS Safari minimise sa barre d'URL ce qui fait
+    // sauter visuellement l'en-tete (banderole haute partiellement cachee).
+    window.scrollTo(0, 0);
+
     const totalTxt = msg.totalRounds ? ` / ${msg.totalRounds}` : "";
     roundInfoEl.textContent = `Manche ${msg.roundIndex}${totalTxt}`;
 
@@ -842,6 +848,10 @@ export function initCompView(state, conn) {
   // Recap entre manches
   // =========================================================================
   function renderRecap(msg) {
+    // Remet le scroll en haut : meme raison qu'a l'entree de in_round, on
+    // ne veut pas que la position du scroll de la manche precedente saute
+    // visuellement la banderole sur iOS.
+    window.scrollTo(0, 0);
     lastRevealedWord = msg.revealedWord;
     lastRecapMsg = msg;
     isAtLastRoundRecap = !!msg.isLastRound;
@@ -921,6 +931,9 @@ export function initCompView(state, conn) {
   }
 
   function renderFinal(results) {
+    // Remet le scroll en haut a l'arrivee sur le podium (meme raison qu'au
+    // recap : evite le saut visuel de l'en-tete iOS).
+    window.scrollTo(0, 0);
     const ranks = computeRanks(results);
 
     // Podium : on prend tous les joueurs des 3 premiers rangs (= jusqu'au

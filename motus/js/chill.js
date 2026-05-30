@@ -931,11 +931,31 @@ async function startNewWord() {
   els.startBtn.textContent = "Tirage…";
 
   try {
-    const res = await motusChillDraw(config.wordLength, config.maxAttempts);
+    // Lit l'historique des premieres lettres recemment tirees pour ce mode
+    // chill (5 dernieres conservees), afin de reduire les repetitions
+    // d'initiale sur les tirages consecutifs. localStorage = par appareil.
+    const RECENT_KEY = "motus_chill_recent_letters";
+    let recent = [];
+    try {
+      const raw = window.localStorage.getItem(RECENT_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          recent = arr.filter((l) => typeof l === "string" && l.length === 1);
+        }
+      }
+    } catch {}
+    const res = await motusChillDraw(config.wordLength, config.maxAttempts, recent.slice(-5));
     game.token = res.token;
     game.firstLetter = res.firstLetter;
     game.wordLength = res.wordLength;
     game.maxAttempts = res.maxAttempts;
+    // Met a jour l'historique. Fenetre glissante de 20.
+    try {
+      recent.push(res.firstLetter);
+      if (recent.length > 20) recent = recent.slice(-20);
+      window.localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+    } catch {}
 
     rebuildGrid();
     // Initialise la ligne courante : 1ere lettre verrouillee, pas de hints (1er tour)

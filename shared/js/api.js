@@ -87,11 +87,15 @@ export async function pingWorker() {
  * @param {number} maxAttempts entre 4 et 8
  * @returns {Promise<{token: string, firstLetter: string, wordLength: number, maxAttempts: number}>}
  */
-export async function motusChillDraw(wordLength, maxAttempts) {
+export async function motusChillDraw(wordLength, maxAttempts, avoidFirstLetters) {
   const res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/draw`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ wordLength, maxAttempts }),
+    body: JSON.stringify({
+      wordLength,
+      maxAttempts,
+      avoidFirstLetters: Array.isArray(avoidFirstLetters) ? avoidFirstLetters : [],
+    }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
