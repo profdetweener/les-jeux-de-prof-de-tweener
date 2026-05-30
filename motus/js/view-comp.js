@@ -515,6 +515,24 @@ export function initCompView(state, conn) {
       status.textContent = "";
       head.appendChild(name);
       head.appendChild(status);
+      // Bouton "kick mid-game" (hote uniquement). Sur Motus comp, l'hote ne
+      // voit pas les mots des adversaires, mais pouvoir kicker reste utile
+      // pour evacuer un joueur deconnecte qui bloquerait la fin de manche.
+      if (state.isHost && pseudo !== state.myPseudo) {
+        const kickBtn = document.createElement("button");
+        kickBtn.type = "button";
+        kickBtn.className = "kick-inline-btn opp-kick";
+        kickBtn.textContent = "✕";
+        kickBtn.title = `Exclure ${pseudo} de la partie`;
+        kickBtn.setAttribute("aria-label", `Exclure ${pseudo}`);
+        kickBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (confirm(`Exclure ${pseudo} de la partie ?`)) {
+            conn.send({ type: "kick", targetPseudo: pseudo });
+          }
+        });
+        head.appendChild(kickBtn);
+      }
 
       const mini = document.createElement("div");
       mini.className = "opp-grid";
@@ -1056,6 +1074,24 @@ export function initCompView(state, conn) {
     }
   }
 
+  /**
+   * Retire un adversaire de la course en cours : sa carte disparait. Appele
+   * par room.js quand un room_state mid-partie indique qu'un joueur a ete
+   * kicke ou s'est deconnecte definitivement (worker cote serveur a deja
+   * nettoye compPlayers / compScores et appele maybeEndCompRound).
+   */
+  function removeOpponent(pseudo) {
+    if (!pseudo) return;
+    if (round.opponents && round.opponents[pseudo]) {
+      delete round.opponents[pseudo];
+    }
+    const card = opponentsEl.querySelector(`.opp-card[data-pseudo="${cssEscape(pseudo)}"]`);
+    if (card) card.remove();
+    // Re-evalue la classe "opps-many" (>=4) suite a la suppression.
+    const remaining = opponentsEl.querySelectorAll(".opp-card").length;
+    opponentsEl.classList.toggle("opps-many", remaining >= 4);
+  }
+
   // Expose les handlers au routeur (room.js)
   return {
     onRoundStarted,
@@ -1065,6 +1101,7 @@ export function initCompView(state, conn) {
     onGameEnded,
     restoreFromSnapshot,
     stopTimer,
+    removeOpponent,
     // Pour la safety net : permet a room.js de declencher des pings rapides
     // quand la deadline serveur est depassee sans round_ended.
     getDeadlineTs: () => round.deadlineTs,

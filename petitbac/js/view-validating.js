@@ -109,6 +109,29 @@ export function initValidatingView(state, conn) {
     updateHostActions();
   };
 
+  /**
+   * Appele apres un room_state pendant la phase validating : si un joueur a
+   * ete kicke ou s'est deconnecte, sa ligne doit disparaitre de la grille
+   * de validation. Le worker a deja nettoye currentResult.answers cote
+   * serveur ; ici on aligne juste currentPseudos sur la liste des joueurs
+   * encore presents puis on rerend.
+   */
+  state.refreshValidationTable = function () {
+    if (!Array.isArray(state.players)) return;
+    const stillHere = new Set(state.players.map((p) => p.pseudo));
+    const filtered = currentPseudos.filter((p) => stillHere.has(p));
+    if (filtered.length === currentPseudos.length) return; // rien a faire
+    currentPseudos = filtered;
+    for (const p of Object.keys(currentAnswers)) {
+      if (!stillHere.has(p)) {
+        delete currentAnswers[p];
+        delete currentCellStates[p];
+      }
+    }
+    renderTable();
+    updateHostActions();
+  };
+
   function formatReason(reason, stoppedBy) {
     switch (reason) {
       case "timer":
@@ -161,7 +184,27 @@ export function initValidatingView(state, conn) {
       if (isMe) tr.classList.add("is-self");
       const tdPseudo = document.createElement("td");
       tdPseudo.className = "category-cell";
-      tdPseudo.textContent = pseudo + (isMe ? " (toi)" : "");
+      const pseudoLabel = document.createElement("span");
+      pseudoLabel.className = "pseudo-label";
+      pseudoLabel.textContent = pseudo + (isMe ? " (toi)" : "");
+      tdPseudo.appendChild(pseudoLabel);
+      // Bouton "kick mid-game" visible uniquement par l'hote, sur les autres
+      // joueurs. Sert surtout a evacuer un joueur qui ecrit des reponses
+      // obscenes / insultantes, visibles a toute la table en validation.
+      if (state.isHost && !isMe) {
+        const kickBtn = document.createElement("button");
+        kickBtn.type = "button";
+        kickBtn.className = "kick-inline-btn";
+        kickBtn.textContent = "✕";
+        kickBtn.title = `Exclure ${pseudo} de la partie`;
+        kickBtn.setAttribute("aria-label", `Exclure ${pseudo}`);
+        kickBtn.addEventListener("click", () => {
+          if (confirm(`Exclure ${pseudo} de la partie ? Ses réponses seront retirées.`)) {
+            conn.send({ type: "kick", targetPseudo: pseudo });
+          }
+        });
+        tdPseudo.appendChild(kickBtn);
+      }
       tr.appendChild(tdPseudo);
 
       for (const category of currentCategories) {

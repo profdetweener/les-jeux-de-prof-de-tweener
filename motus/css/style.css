@@ -1139,6 +1139,36 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 .opp-status { font-size: 12px; color: var(--gris-texte); flex: none; }
 
+/* ===========================================================================
+ * Bouton "kick mid-game" inline (✕) sur les cartes d'adversaires en comp.
+ * Visible uniquement par l'hote, sur les pseudos des autres joueurs.
+ * =========================================================================== */
+.kick-inline-btn {
+  width: 20px; height: 20px;
+  padding: 0;
+  border: 1px solid var(--rouge);
+  background: transparent;
+  color: var(--rouge);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  flex: none;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.05s;
+}
+.kick-inline-btn:hover {
+  opacity: 1;
+  background: var(--rouge);
+  color: var(--blanc);
+}
+.kick-inline-btn:active { transform: scale(0.92); }
+.opp-kick { margin-left: 4px; }
+
 /* MINI GRILLE EN PASTILLES RONDES (refonte) */
 .opp-grid {
   display: flex;

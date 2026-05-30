@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=21";
+import { initCompView } from "./view-comp.js?v=22";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -154,6 +154,14 @@ conn.on("joined", (msg) => {
 });
 
 conn.on("room_state", (msg) => {
+  // Detecter les joueurs disparus (kick mid-game ou deconnexion definitive)
+  // AVANT de remplacer state.players, pour pouvoir prevenir compView.
+  const previous = state.players || [];
+  const stillHere = new Set(msg.players.map((p) => p.pseudo));
+  const gone = previous
+    .map((p) => p.pseudo)
+    .filter((pseudo) => pseudo !== state.pseudo && !stillHere.has(pseudo));
+
   state.players = msg.players;
   state.hostPseudo = msg.hostPseudo;
   // Mettre a jour isHost : si on a ete promu apres depart de l'ancien hote
@@ -165,6 +173,11 @@ conn.on("room_state", (msg) => {
   }
   lobbyView.refresh();
   gameView.refresh();
+
+  // En mode comp et en pleine manche, retirer les cartes des joueurs partis.
+  if (msg.phase === "in_round" && compView.removeOpponent) {
+    for (const pseudo of gone) compView.removeOpponent(pseudo);
+  }
 });
 
 conn.on("config_update", (msg) => {
@@ -236,8 +249,10 @@ conn.on("game_ended", (msg) => {
 
 conn.on("kicked", (msg) => {
   storage.removeItem("motus_room");
-  alert(`Tu as été kické : ${msg.reason || ""}`);
-  window.location.href = "index.html";
+  // Toast plutot qu'alert : moins agressif, on laisse 2.5 s pour lire avant
+  // la redirection vers l'accueil.
+  showToast(`L'hôte t'a exclu de la partie. ${msg.reason ? "Raison : " + msg.reason : ""}`.trim(), { type: "error", duration: 3000 });
+  setTimeout(() => { window.location.href = "index.html"; }, 2500);
 });
 
 conn.on("error", (msg) => {

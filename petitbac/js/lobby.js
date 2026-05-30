@@ -246,13 +246,26 @@ conn.on("room_state", (msg) => {
   if (state.refreshScoringHostState) state.refreshScoringHostState();
   if (state.refreshFinishedHostState) state.refreshFinishedHostState();
 
+  // Si un joueur a disparu (kick mid-game ou deconnexion definitive) pendant
+  // validating/scoring, on demande aux vues de retirer sa ligne. Sans ca, la
+  // grille resterait affichee avec son contenu (potentiellement obscene)
+  // jusqu'au prochain round_started.
+  if (msg.phase === "validating" && state.refreshValidationTable) {
+    state.refreshValidationTable();
+  }
+  if (msg.phase === "scoring" && state.refreshScoringTable) {
+    state.refreshScoringTable();
+  }
+
   showView(msg.phase);
 });
 
 conn.on("kicked", (msg) => {
   conn.close();
-  alert(`Tu as été exclu de la partie.\nRaison : ${msg.reason || "non précisée"}`);
-  window.location.href = "index.html";
+  // Toast plutot qu'alert : moins agressif, et on laisse 2.5 s au joueur
+  // pour lire la raison avant la redirection.
+  showToast(`L'hôte t'a exclu de la partie. ${msg.reason ? "Raison : " + msg.reason : ""}`.trim(), { type: "error", duration: 3000 });
+  setTimeout(() => { window.location.href = "index.html"; }, 2500);
 });
 
 conn.on("error", (msg) => {

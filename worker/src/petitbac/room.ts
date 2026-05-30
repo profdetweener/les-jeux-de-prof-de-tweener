@@ -379,6 +379,25 @@ export class PetitBacRoom {
       this.hostPseudo = next ? next.pseudo : null;
     }
 
+    // Nettoyage d'etat specifique a la phase, indispensable pour un kick
+    // mid-game : sans ca, la grille du joueur exclu resterait visible aux
+    // autres en validation/scoring, et il continuerait a "bloquer" la
+    // condition "tout le monde a soumis" en in_round.
+    delete this.answers[pseudo];
+    delete this.cellStates[pseudo];
+    if (this.currentResult) {
+      delete this.currentResult.answers[pseudo];
+      delete this.currentResult.cellStates[pseudo];
+      delete this.currentResult.cellScores[pseudo];
+      delete this.currentResult.scoreByPlayer[pseudo];
+    }
+
+    // En in_round, l'exclu etait peut-etre le dernier qu'on attendait :
+    // on re-evalue la condition de fin de manche.
+    if (this.phase === "in_round") {
+      this.checkAllSubmitted();
+    }
+
     // Si plus personne, on reset l'etat de partie
     if (this.players.size === 0) {
       this.resetGameState();

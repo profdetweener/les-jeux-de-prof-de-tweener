@@ -503,6 +503,38 @@ input.code-input::placeholder {
   white-space: nowrap;
 }
 
+/* ===========================================================================
+ * Bouton "kick mid-game" inline (✕ a cote du pseudo) dans les vues en jeu.
+ * Visible uniquement par l'hote, sur les pseudos des autres joueurs. Pose
+ * dans .category-cell (validating) et .col-category (scoring).
+ * =========================================================================== */
+.pseudo-label { display: inline-block; }
+.kick-inline-btn {
+  margin-left: 8px;
+  width: 22px; height: 22px;
+  padding: 0;
+  border: 1px solid var(--rouge);
+  background: transparent;
+  color: var(--rouge);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.05s;
+}
+.kick-inline-btn:hover {
+  opacity: 1;
+  background: var(--rouge);
+  color: var(--blanc);
+}
+.kick-inline-btn:active { transform: scale(0.92); }
+
 .validation-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .validation-cell .answer-text { flex: 1; min-width: 80px; font-style: italic; }
 .validation-cell .answer-empty { color: var(--gris-texte); font-style: italic; opacity: 0.6; }

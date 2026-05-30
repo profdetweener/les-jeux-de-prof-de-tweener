@@ -23,11 +23,13 @@ export function initScoringView(state, conn) {
   // On garde en cache pour pouvoir mettre a jour le bouton "next" si l'etat host change
   let lastTotalRounds = 0;
   let lastResult = null;
+  let lastMsg = null;
 
   state.renderScoring = function (msg) {
     const result = msg.result;
     const players = msg.players;
     lastResult = result;
+    lastMsg = msg;
     lastTotalRounds = msg.totalRounds ?? state.config?.totalRounds ?? 0;
 
     roundNumberEl.textContent = result.roundNumber;
@@ -79,7 +81,26 @@ export function initScoringView(state, conn) {
       if (isMe) tr.classList.add("is-self");
       const tdPseudo = document.createElement("td");
       tdPseudo.className = "col-category";
-      tdPseudo.textContent = pseudo + (isMe ? " (toi)" : "");
+      const pseudoLabel = document.createElement("span");
+      pseudoLabel.className = "pseudo-label";
+      pseudoLabel.textContent = pseudo + (isMe ? " (toi)" : "");
+      tdPseudo.appendChild(pseudoLabel);
+      // Bouton "kick mid-game" visible uniquement par l'hote, sur les autres
+      // joueurs. Cas typique : evacuer un joueur penible entre deux manches.
+      if (state.isHost && !isMe) {
+        const kickBtn = document.createElement("button");
+        kickBtn.type = "button";
+        kickBtn.className = "kick-inline-btn";
+        kickBtn.textContent = "✕";
+        kickBtn.title = `Exclure ${pseudo} de la partie`;
+        kickBtn.setAttribute("aria-label", `Exclure ${pseudo}`);
+        kickBtn.addEventListener("click", () => {
+          if (confirm(`Exclure ${pseudo} de la partie ?`)) {
+            conn.send({ type: "kick", targetPseudo: pseudo });
+          }
+        });
+        tdPseudo.appendChild(kickBtn);
+      }
       tr.appendChild(tdPseudo);
 
       for (const category of categories) {
@@ -171,6 +192,39 @@ export function initScoringView(state, conn) {
   state.refreshScoringHostState = function () {
     updateHostActions();
   };
+
+  /**
+   * Appele apres un room_state pendant la phase scoring : si un joueur a ete
+   * kicke, sa ligne et son rang doivent disparaitre. Le worker a deja
+   * nettoye currentResult cote serveur (voir removePlayer) ; on rerend ici
+   * a partir du dernier msg recu en filtrant les joueurs disparus.
+   */
+  state.refreshScoringTable = function () {
+    if (!lastMsg || !lastResult || !Array.isArray(state.players)) return;
+    const stillHere = new Set(state.players.map((p) => p.pseudo));
+    // Verifie s'il y a vraiment quelqu'un a retirer (evite un rerender inutile)
+    const hadGhost = Object.keys(lastResult.scoreByPlayer ?? {}).some(
+      (p) => !stillHere.has(p)
+    );
+    if (!hadGhost) return;
+    // Construit un msg filtre et re-rend
+    const filteredResult = {
+      ...lastResult,
+      answers: filterByKey(lastResult.answers, stillHere),
+      cellStates: filterByKey(lastResult.cellStates, stillHere),
+      cellScores: filterByKey(lastResult.cellScores, stillHere),
+      scoreByPlayer: filterByKey(lastResult.scoreByPlayer, stillHere),
+    };
+    const filteredPlayers = (lastMsg.players ?? []).filter((p) => stillHere.has(p.pseudo));
+    state.renderScoring({ ...lastMsg, result: filteredResult, players: filteredPlayers });
+  };
+
+  function filterByKey(obj, keepSet) {
+    if (!obj) return obj;
+    const out = {};
+    for (const k of Object.keys(obj)) if (keepSet.has(k)) out[k] = obj[k];
+    return out;
+  }
 
   function updateHostActions() {
     if (state.isHost) {
