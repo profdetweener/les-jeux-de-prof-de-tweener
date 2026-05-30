@@ -98,6 +98,11 @@ main { flex: 1; display: flex; align-items: flex-start; justify-content: center;
    dans la grille, pas dans le champ ; seul le curseur clignote pour montrer
    que la saisie est active. */
 .comp-native-input { display: none; }
+/* Wrapper de l'input natif : sert d'ancre relative au compteur de lettres
+ * (qui se positionne en absolute a droite). Le wrapper et le compteur sont
+ * caches sur desktop comme l'input. */
+.comp-native-input-wrap { display: none; }
+.comp-letter-counter { display: none; }
 .motus-ingame-actions {
   display: flex;
   justify-content: center;
@@ -1111,12 +1116,19 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 
   /* Input natif : barre de saisie discrète qui déclenche le clavier du
      téléphone. font-size >= 16px pour empêcher le zoom auto d'iOS. */
+  .comp-native-input-wrap {
+    display: block;
+    position: relative;
+    margin-top: 6px;
+  }
   .comp-native-input {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    margin: 6px auto 0;
-    padding: 11px 12px;
+    margin: 0;
+    /* padding-right plus large pour laisser la place au compteur de lettres
+       positionne en absolute a droite. */
+    padding: 11px 56px 11px 12px;
     font-family: inherit;
     font-size: 16px;
     font-weight: 700;
@@ -1129,6 +1141,34 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
     border-radius: var(--rayon-sm);
     outline: none;
     transition: border-color 0.15s;
+  }
+  /* Compteur "X / N" : positionne sur le cote droit de l'input pour montrer
+     en temps reel le nombre de lettres tapees. Indispensable quand la grille
+     n'est pas visible (debut de manche, clavier natif ouvert qui pousse la
+     grille hors champ). Pointer-events: none pour ne pas voler les taps de
+     l'input. */
+  .comp-letter-counter {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--bleu-nuit);
+    background: var(--beige);
+    padding: 3px 8px;
+    border-radius: var(--rayon-sm);
+    pointer-events: none;
+    min-width: 36px;
+    text-align: center;
+  }
+  /* Met en evidence quand le mot est complet : passe au vert pour signaler
+     "tu peux valider" sans avoir a regarder la grille. */
+  .comp-letter-counter.complete {
+    color: var(--blanc);
+    background: var(--vert);
   }
   .comp-native-input::placeholder {
     color: var(--gris-texte);

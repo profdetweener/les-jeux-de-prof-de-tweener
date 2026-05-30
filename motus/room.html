@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=24">
+  <link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body>
   <header class="app-header">
@@ -260,12 +260,18 @@
           <div class="motus-keyboard" id="comp-keyboard"></div>
           <!-- Champ de saisie natif (mobile) : declenche le clavier du
                telephone. Les lettres s'affichent dans la grille, pas ici
-               (texte transparent). Cache en CSS sur desktop. -->
-          <input class="comp-native-input" id="comp-native-input" type="text"
-                 inputmode="text" autocomplete="off" autocorrect="off"
-                 autocapitalize="characters" spellcheck="false"
-                 enterkeyhint="go" aria-label="Tape ton mot"
-                 placeholder="Tape ton mot, puis Entrée">
+               (texte transparent). Cache en CSS sur desktop.
+               Le compteur "X / N" a droite donne au joueur le nombre de
+               lettres deja tapees, indispensable quand la grille n'est pas
+               visible (debut de manche, sous le clavier natif). -->
+          <div class="comp-native-input-wrap">
+            <input class="comp-native-input" id="comp-native-input" type="text"
+                   inputmode="text" autocomplete="off" autocorrect="off"
+                   autocapitalize="characters" spellcheck="false"
+                   enterkeyhint="go" aria-label="Tape ton mot"
+                   placeholder="Tape ton mot, puis Entrée">
+            <span class="comp-letter-counter" id="comp-letter-counter" aria-hidden="true"></span>
+          </div>
         </div>
 
         <!-- Miniatures adverses (couleurs only) -->
@@ -310,6 +316,6 @@
 
   <div class="toast-container" id="toast-container"></div>
 
-  <script type="module" src="js/room.js?v=24"></script>
+  <script type="module" src="js/room.js?v=25"></script>
 </body>
 </html>

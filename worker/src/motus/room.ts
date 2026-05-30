@@ -727,33 +727,35 @@ export class MotusRoom {
       const rank = found ? this.compFinishOrder.indexOf(pseudo) + 1 : null;
       let pts = 0;
       let breakdown = "";
+      // Helper d'affichage des points avec accord singulier/pluriel.
+      const ptsLabel = (n: number) => `${n}${n === 1 ? "pt" : "pts"}`;
       if (found) {
         const attemptsLeft = Math.max(0, maxAttempts - st.attempts.length);
+        const essaiNoun = attemptsLeft === 1 ? "essai restant" : "essais restants";
+        const suffix = rank === 1 ? "er" : "e";
         switch (scoring) {
           case "binary":
             pts = rank === 1 ? 1 : 0;
-            breakdown = rank === 1 ? "1er trouvé = 1 pt" : "Pas 1er = 0 pt";
+            breakdown = rank === 1 ? "1er trouvé (1pt)" : "Pas 1er trouvé (0pt)";
             break;
           case "attempts_left":
             pts = attemptsLeft + 1;
-            breakdown = `${attemptsLeft} essais restants + 1 (trouvé) = ${pts}`;
+            breakdown = `${attemptsLeft} ${essaiNoun} (${ptsLabel(attemptsLeft)}) + trouvé (1pt)`;
             break;
           case "position": {
             pts = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
-            const suffix = rank === 1 ? "er" : "e";
-            breakdown = `${rank}${suffix} place sur ${nbFinders} = ${pts}`;
+            breakdown = `${rank}${suffix} place (${ptsLabel(pts)})`;
             break;
           }
           case "combo": {
             const posBonus = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
             pts = attemptsLeft + 1 + posBonus;
-            const suffix = rank === 1 ? "er" : "e";
-            breakdown = `${attemptsLeft} essais restants + 1 (trouvé) + ${posBonus} (${rank}${suffix} place) = ${pts}`;
+            breakdown = `${attemptsLeft} ${essaiNoun} (${ptsLabel(attemptsLeft)}) + trouvé (1pt) + ${rank}${suffix} place (${ptsLabel(posBonus)})`;
             break;
           }
         }
       } else {
-        breakdown = "Pas trouvé = 0 pt";
+        breakdown = "Pas trouvé (0pt)";
       }
       const prevTotal = this.compScores.get(pseudo) ?? 0;
       const newTotal = prevTotal + pts;

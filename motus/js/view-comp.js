@@ -41,6 +41,7 @@ export function initCompView(state, conn) {
   const keyboardEl = document.getElementById("comp-keyboard");
   const opponentsEl = document.getElementById("comp-opponents");
   const nativeInput = document.getElementById("comp-native-input");
+  const letterCounterEl = document.getElementById("comp-letter-counter");
   const soundToggleEl = document.getElementById("comp-sound-toggle");
   const soundIconEl = document.getElementById("comp-sound-icon");
 
@@ -218,6 +219,9 @@ export function initCompView(state, conn) {
     revealing: false,      // true pendant l'animation de revelation d'une ligne
   };
   let typingBuffer = "";
+  // Horodate du dernier submitGuess, pour deduplication du double-fire
+  // keydown+blur sur iOS quand on tape le bouton "Go" du clavier natif.
+  let lastSubmitTs = 0;
   let keyButtons = {};
   let timerInterval = null;
   // Memorise si le recap actuellement affiche correspond a la derniere manche
@@ -283,7 +287,20 @@ export function initCompView(state, conn) {
       .slice(0, round.wordLength);
     typingBuffer = clean;
     if (nativeInput && nativeInput.value !== clean) nativeInput.value = clean;
+    updateLetterCounter();
     renderMyGrid();
+  }
+
+  /** Met a jour le compteur de lettres "X / N" affiche dans la barre de
+   *  saisie sur mobile. Bascule en "complete" (fond vert) quand le mot est
+   *  termine, pour confirmer visuellement qu'on peut valider sans avoir a
+   *  regarder la grille. */
+  function updateLetterCounter() {
+    if (!letterCounterEl) return;
+    const total = round.wordLength || 0;
+    const cur = typingBuffer.length;
+    letterCounterEl.textContent = `${cur} / ${total}`;
+    letterCounterEl.classList.toggle("complete", total > 0 && cur === total);
   }
 
   /** Redonne le focus a l'input natif (mobile) pour rouvrir le clavier. Best
@@ -332,6 +349,9 @@ export function initCompView(state, conn) {
       showToast(`Le mot doit commencer par ${round.firstLetter}.`, { type: "error" });
       return;
     }
+    // Horodate la soumission pour permettre au blur handler de dedupliquer
+    // (cf. listener blur sur nativeInput plus bas).
+    lastSubmitTs = Date.now();
     // Le submit est forcement consecutif a une gesture utilisateur (Enter,
     // coche iOS, ENTER du clavier visuel) : on en profite pour deverrouiller
     // l'AudioContext maintenant, avant que la reveal arrive en async.
@@ -659,6 +679,7 @@ export function initCompView(state, conn) {
       nativeInput.value = "";
       nativeInput.maxLength = round.wordLength;
     }
+    updateLetterCounter();
     // Pas de focus automatique : iOS ouvrirait immediatement le clavier
     // (et sa barre d'accessoires), parasitant la vue avant meme la premiere
     // frappe. Le joueur touche le champ "Tape ton mot" (ou la grille) quand
@@ -1076,8 +1097,14 @@ export function initCompView(state, conn) {
     // ainsi la coche valide au lieu de fermer le clavier sans rien faire.
     // Si le mot est incomplet, on ne fait rien (le buffer est preserve, le
     // joueur retouche la grille pour rouvrir le clavier).
+    //
+    // Garde-fou : sur iOS, taper le bouton "Go" du clavier natif declenche
+    // SIMULTANEMENT keydown(Enter) puis blur. Sans dedupe, le mot etait
+    // soumis deux fois (visible : la grille se remplissait sur 2 lignes).
+    // On verifie qu'on n'a pas deja soumis dans les 300 derniers ms.
     nativeInput.addEventListener("blur", () => {
       if (!canType()) return;
+      if (Date.now() - lastSubmitTs < 300) return;
       if (typingBuffer.length === round.wordLength) submitGuess();
     });
   }
@@ -1123,6 +1150,7 @@ export function initCompView(state, conn) {
       nativeInput.value = "";
       nativeInput.maxLength = round.wordLength;
     }
+    updateLetterCounter();
   }
 
   /**
