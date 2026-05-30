@@ -245,9 +245,11 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   margin: 0 auto 16px;
   width: 100%;
   /* Reserve la place pour le toggle son positionne en absolute a droite,
-     comme dans le header comp. */
-  padding-right: 42px;
+     comme dans le header comp. 52px = bouton (~36px) + petite marge pour
+     que le texte "X lettres" a droite ne soit jamais collé au toggle. */
+  padding-right: 52px;
   box-sizing: border-box;
+  gap: 8px;
   /* Aligne le header sur la meme largeur que la grille (qui est centree
      avec margin:0 auto et a une max-width calculee). */
   max-width: calc(56px * var(--motus-cols, 7) + 6px * (var(--motus-cols, 7) - 1));
@@ -1146,9 +1148,9 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
     width: 100%;
     box-sizing: border-box;
     margin: 0;
-    /* padding-right plus large pour laisser la place au compteur de lettres
-       positionne en absolute a droite. */
-    padding: 11px 56px 11px 12px;
+    /* padding-left pour laisser la place au compteur de lettres positionne
+       en absolute a gauche ; padding-right pour le bouton reset a droite. */
+    padding: 11px 44px 11px 56px;
     font-family: inherit;
     font-size: 16px;
     font-weight: 700;
@@ -1162,15 +1164,12 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
     outline: none;
     transition: border-color 0.15s;
   }
-  /* Compteur "X / N" : positionne sur le cote droit de l'input pour montrer
-     en temps reel le nombre de lettres tapees. Indispensable quand la grille
-     n'est pas visible (debut de manche, clavier natif ouvert qui pousse la
-     grille hors champ). Pointer-events: none pour ne pas voler les taps de
-     l'input. */
+  /* Compteur "X / N" : positionne sur le cote GAUCHE de l'input (echange
+     avec sa position d'avant, libere la place du reset a droite). */
   .comp-letter-counter {
     display: block;
     position: absolute;
-    right: 10px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
     font-family: inherit;
@@ -1190,6 +1189,30 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
     color: var(--blanc);
     background: var(--vert);
   }
+  /* Bouton reset (↺) : a DROITE de l'input, opposé du compteur. Cliquable
+     pour effacer le mot en cours quand le curseur iOS se bloque ou pour
+     simplement repartir de zero. */
+  .comp-reset-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--gris-clair);
+    background: var(--blanc);
+    color: var(--bleu-nuit);
+    border-radius: var(--rayon-sm);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, transform 0.05s;
+  }
+  .comp-reset-btn:hover { background: var(--beige); }
+  .comp-reset-btn:active { transform: translateY(-50%) scale(0.92); }
   .comp-native-input::placeholder {
     color: var(--gris-texte);
     letter-spacing: normal;

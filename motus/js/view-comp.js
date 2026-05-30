@@ -1128,6 +1128,19 @@ export function initCompView(state, conn) {
     gridEl.addEventListener("click", () => focusNativeInput());
   }
 
+  // Bouton "↺ reset" : vide entierement le buffer de la ligne courante.
+  // Utile quand le curseur iOS se bloque dans l'input ou pour repartir
+  // proprement. L'utilisateur devra retaper la 1ere lettre.
+  const compResetBtn = document.getElementById("comp-reset-btn");
+  if (compResetBtn) {
+    compResetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!canType()) return;
+      setTypingBuffer("");
+      focusNativeInput();
+    });
+  }
+
   // =========================================================================
   // Reconnexion : restaure l'etat de la manche depuis joined.compRound
   // =========================================================================

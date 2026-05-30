@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus chill — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
   <header class="app-header">
     <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
-    <h1>🟧 Motus chill</h1>
+    <h1>Motus chill</h1>
     <span class="header-info" id="server-status">connexion au serveur…</span>
   </header>
 
@@ -106,7 +106,6 @@
         <div class="game-main">
           <div class="motus-header">
             <span class="motus-status-line" id="motus-status">Essai 1 / 6</span>
-            <span class="motus-first-letter" id="motus-first-letter" aria-label="Première lettre du mot">—</span>
             <span class="motus-word-info" id="motus-word-info">7 lettres</span>
             <!-- Toggle 🔊/🔇 partage avec le mode comp (meme cle localStorage,
                  donc une seule preference pour les deux modes). -->
@@ -120,15 +119,19 @@
           <div class="motus-keyboard" id="motus-keyboard"></div>
           <!-- Champ de saisie natif (mobile) : declenche le clavier du
                telephone. Texte transparent ; les lettres s'affichent dans la
-               grille. Cache en CSS sur desktop. Le compteur "X / N" a droite
-               donne le nombre de lettres deja tapees. -->
+               grille. Cache en CSS sur desktop. Le compteur "X / N" a gauche
+               donne le nombre de lettres deja tapees ; le bouton "↺" a droite
+               permet de reset la ligne en cours (utile si le curseur iOS se
+               bloque ou si on veut repartir de zero). -->
           <div class="comp-native-input-wrap">
+            <span class="comp-letter-counter" id="chill-letter-counter" aria-hidden="true"></span>
             <input class="comp-native-input" id="chill-native-input" type="text"
                    inputmode="text" autocomplete="off" autocorrect="off"
                    autocapitalize="characters" spellcheck="false"
                    enterkeyhint="go" aria-label="Tape ton mot"
                    placeholder="Tape ton mot, puis Entrée">
-            <span class="comp-letter-counter" id="chill-letter-counter" aria-hidden="true"></span>
+            <button type="button" class="comp-reset-btn" id="chill-reset-btn"
+                    aria-label="Effacer le mot en cours" title="Effacer le mot en cours">↺</button>
           </div>
           <div class="motus-ingame-actions">
             <button type="button" class="btn btn-secondary btn-sm" id="give-up-btn">
@@ -157,6 +160,12 @@
     <div class="card view" id="view-between" style="display: none;">
       <div class="between-summary" id="between-summary"></div>
       <div class="between-word" id="between-word"></div>
+      <!-- Bouton de definition du mot revele (memes pattern que comp recap). -->
+      <div class="between-def-wrap">
+        <button type="button" class="btn btn-secondary btn-sm" id="between-def-btn">
+          📖 Voir la définition
+        </button>
+      </div>
       <div class="between-actions">
         <button class="btn btn-primary btn-block" id="next-word-btn">Mot suivant</button>
         <button class="btn btn-secondary btn-block" id="back-to-config-btn">Changer les options</button>
@@ -173,6 +182,6 @@
     <a href="../petitbac/mentions.html">Mentions légales</a>
   </footer>
 
-  <script type="module" src="js/chill.js?v=18"></script>
+  <script type="module" src="js/chill.js?v=19"></script>
 </body>
 </html>

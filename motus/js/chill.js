@@ -1051,6 +1051,17 @@ function goBetween() {
     els.betweenSummary.className = "between-summary failure";
   }
   els.betweenWord.textContent = game.revealedWord || "?";
+  // Bouton "Voir la definition" : visible uniquement si on a un mot revele
+  // (cas trouve OU abandonne OU essais epuises). Cache si pas de mot.
+  if (els.betweenDefBtn) {
+    if (game.revealedWord) {
+      els.betweenDefBtn.style.display = "";
+      // Pre-fetch en arriere-plan : ouverture instantanee de la modale au clic.
+      prefetchDefinition(game.revealedWord);
+    } else {
+      els.betweenDefBtn.style.display = "none";
+    }
+  }
   // Remet le scroll en haut a l'arrivee sur la vue between : evite le saut
   // de la banderole iOS apres une animation de revelation qui aurait pu
   // pousser le scroll vers le bas.
@@ -1196,6 +1207,7 @@ function bindElements() {
 
   els.betweenSummary = $("between-summary");
   els.betweenWord = $("between-word");
+  els.betweenDefBtn = $("between-def-btn");
   els.nextWordBtn = $("next-word-btn");
   els.backToConfigBtn = $("back-to-config-btn");
   els.giveUpBtn = $("give-up-btn");
@@ -1214,6 +1226,7 @@ function bindElements() {
   // Tous optionnels : si l'element n'existe pas, les helpers degradent en no-op.
   els.nativeInput = $("chill-native-input");
   els.letterCounter = $("chill-letter-counter");
+  els.resetBtn = $("chill-reset-btn");
   els.soundToggle = $("chill-sound-toggle");
   els.soundIcon = $("chill-sound-icon");
 }
@@ -1244,6 +1257,13 @@ async function init() {
   els.backToConfigBtn.addEventListener("click", () => {
     showView("config");
   });
+
+  // Clic sur "Voir la definition" du recap : ouvre la modale wiktionary.
+  if (els.betweenDefBtn) {
+    els.betweenDefBtn.addEventListener("click", () => {
+      if (game.revealedWord) openDefinition(game.revealedWord);
+    });
+  }
 
   if (els.giveUpBtn) {
     els.giveUpBtn.addEventListener("click", () => {
@@ -1323,6 +1343,20 @@ async function init() {
   // Tap sur la grille redonne le focus a l'input (rouvre le clavier natif).
   if (els.grid) {
     els.grid.addEventListener("click", () => focusNativeInput());
+  }
+
+  // Bouton "↺ reset" : remet la ligne courante a son etat initial (1ere
+  // lettre pre-saisie, reste vide, rowDirty=false). Utile si le curseur
+  // iOS se bloque ou si on veut repartir de zero sans avoir a effacer
+  // case par case via DEL.
+  if (els.resetBtn) {
+    els.resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!canType()) return;
+      resetTypingBuffer();
+      renderCurrentRow();
+      focusNativeInput();
+    });
   }
 }
 

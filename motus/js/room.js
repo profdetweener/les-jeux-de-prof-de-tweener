@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=26";
+import { initCompView } from "./view-comp.js?v=27";
 
 const params = new URLSearchParams(window.location.search);
 
