@@ -106,12 +106,36 @@ function playSound(key) {
   const ctx = ensureAudioCtx();
   if (!ctx) return;
   const buf = soundBuffers[key];
-  if (!buf) return; // Pas encore charge : on saute silencieusement.
+  if (buf) {
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch {}
+    return;
+  }
+  // Fallback synthetise : utilise tant que les MP3 ne sont pas decodes (cas
+  // typique : 1ere manche sur reseau mobile lent). Sans ce fallback, le
+  // joueur n'entend rien du tout pendant la 1ere revelation, donnant
+  // l'impression que la fonctionnalite est cassee.
   try {
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
+    const t0 = ctx.currentTime;
+    let freq, peak, dur;
+    if (key === "good")           { freq = 880; peak = 0.18; dur = 0.13; }
+    else if (key === "misplaced") { freq = 587; peak = 0.15; dur = 0.12; }
+    else if (key === "found")     { freq = 988; peak = 0.20; dur = 0.40; }
+    else                          { freq = 280; peak = 0.10; dur = 0.10; }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
   } catch {}
 }
 
@@ -1065,6 +1089,12 @@ async function startNewWord() {
   game.status = "in_progress";
   game.revealedWord = null;
   resetKeyboardColors();
+
+  // Preload audio le plus tot possible : on est dans le handler du clic
+  // "Lancer" / "Mot suivant" -> user gesture, donc on peut creer et resumer
+  // l'AudioContext. Le decodage des MP3 demarre en tache de fond pendant
+  // que l'utilisateur tape, ce qui evite le silence de la 1ere manche.
+  ensureAudioCtx();
 
   els.startBtn.disabled = true;
   const previousLabel = els.startBtn.textContent;
