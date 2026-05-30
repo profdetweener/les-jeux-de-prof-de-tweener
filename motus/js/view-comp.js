@@ -515,24 +515,6 @@ export function initCompView(state, conn) {
       status.textContent = "";
       head.appendChild(name);
       head.appendChild(status);
-      // Bouton "kick mid-game" (hote uniquement). Sur Motus comp, l'hote ne
-      // voit pas les mots des adversaires, mais pouvoir kicker reste utile
-      // pour evacuer un joueur deconnecte qui bloquerait la fin de manche.
-      if (state.isHost && pseudo !== state.myPseudo) {
-        const kickBtn = document.createElement("button");
-        kickBtn.type = "button";
-        kickBtn.className = "kick-inline-btn opp-kick";
-        kickBtn.textContent = "✕";
-        kickBtn.title = `Exclure ${pseudo} de la partie`;
-        kickBtn.setAttribute("aria-label", `Exclure ${pseudo}`);
-        kickBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (confirm(`Exclure ${pseudo} de la partie ?`)) {
-            conn.send({ type: "kick", targetPseudo: pseudo });
-          }
-        });
-        head.appendChild(kickBtn);
-      }
 
       const mini = document.createElement("div");
       mini.className = "opp-grid";
@@ -696,8 +678,8 @@ export function initCompView(state, conn) {
 
     // Jingle si le joueur a trouvé le mot ce coup-ci. On laisse un petit
     // souffle apres le dernier tick de la révélation pour que les deux sons
-    // ne se chevauchent pas.
-    if (msg.myStatus === "won") {
+    // ne se chevauchent pas. Le worker envoie "found" (pas "won").
+    if (msg.myStatus === "found") {
       setTimeout(() => playSound("found"), 120);
     }
 
@@ -740,6 +722,10 @@ export function initCompView(state, conn) {
 
   // Memorise le dernier mot revele (pour la definition au final)
   let lastRevealedWord = null;
+  // Cache du dernier message de recap, pour pouvoir re-rendre la table apres
+  // un kick (le worker ne renvoie pas round_ended quand on kicke entre 2
+  // manches, donc on doit rerender localement).
+  let lastRecapMsg = null;
 
   /**
    * Affiche/cache un panneau de definition Wiktionary. Lazy : ne fetch qu'au
@@ -812,6 +798,7 @@ export function initCompView(state, conn) {
   // =========================================================================
   function renderRecap(msg) {
     lastRevealedWord = msg.revealedWord;
+    lastRecapMsg = msg;
     isAtLastRoundRecap = !!msg.isLastRound;
     recapTitleEl.textContent = msg.isLastRound
       ? "Dernière manche terminée"
@@ -946,7 +933,15 @@ export function initCompView(state, conn) {
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
       const essais = r.found ? `${r.attemptsUsed}` : "—";
-      html += `<tr><td>${computed[i]}</td><td>${escapeHtml(r.playerId)}</td>`;
+      const pseudoHtml = escapeHtml(r.playerId);
+      // Bouton "kick" inline a cote du pseudo : uniquement sur la table de
+      // recap (showRoundPts=true), pour l'hote, et pas sur soi-meme. Sur le
+      // podium final (showRoundPts=false), kicker n'a plus de sens.
+      const showKick = showRoundPts && state.isHost && r.playerId !== state.myPseudo;
+      const kickHtml = showKick
+        ? ` <button type="button" class="kick-inline-btn" data-kick-target="${pseudoHtml}" title="Exclure ${pseudoHtml} de la partie" aria-label="Exclure ${pseudoHtml}">✕</button>`
+        : "";
+      html += `<tr><td>${computed[i]}</td><td><span class="pseudo-label">${pseudoHtml}</span>${kickHtml}</td>`;
       if (showRoundPts) {
         const detail = r.pointsBreakdown || (r.found ? "" : "—");
         html += `<td>${essais}</td><td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
@@ -999,6 +994,36 @@ export function initCompView(state, conn) {
     if (!state.isHost) return;
     conn.send({ type: "end_game" });
   });
+
+  // Event delegation pour les boutons "kick" inseres dans la table de recap.
+  // Les boutons sont generes via innerHTML par buildScoreTable, donc on ne
+  // peut pas leur attacher de listener individuel ; on ecoute le conteneur.
+  recapTableEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".kick-inline-btn[data-kick-target]");
+    if (!btn) return;
+    const target = btn.getAttribute("data-kick-target");
+    if (!target || target === state.myPseudo) return;
+    if (!state.isHost) return;
+    if (confirm(`Exclure ${target} de la partie ?`)) {
+      conn.send({ type: "kick", targetPseudo: target });
+    }
+  });
+
+  /**
+   * Re-rend la table de recap apres un changement de la liste de joueurs
+   * (kick, deconnexion definitive). Le worker ne renvoie pas round_ended
+   * dans ce cas, donc on doit re-rendre nous-memes en filtrant les
+   * resultats sur les joueurs encore presents.
+   */
+  function refreshRecapTable() {
+    if (!lastRecapMsg) return;
+    if (!Array.isArray(state.players)) return;
+    const stillHere = new Set(state.players.map((p) => p.pseudo));
+    const filtered = lastRecapMsg.results.filter((r) => stillHere.has(r.playerId));
+    if (filtered.length === lastRecapMsg.results.length) return; // rien a faire
+    lastRecapMsg = { ...lastRecapMsg, results: filtered };
+    recapTableEl.innerHTML = buildScoreTable(filtered, true);
+  }
 
   document.addEventListener("keydown", onPhysicalKey);
 
@@ -1102,6 +1127,7 @@ export function initCompView(state, conn) {
     restoreFromSnapshot,
     stopTimer,
     removeOpponent,
+    refreshRecapTable,
     // Pour la safety net : permet a room.js de declencher des pings rapides
     // quand la deadline serveur est depassee sans round_ended.
     getDeadlineTs: () => round.deadlineTs,

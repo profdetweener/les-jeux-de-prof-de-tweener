@@ -161,14 +161,55 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 .resume-banner-actions { display: flex; gap: 6px; }
 
 /* --- Lobby --- */
-.room-share { margin-bottom: 24px; }
-.invite-row { display: flex; gap: 8px; align-items: center; }
-.invite-url {
-  flex: 1; padding: 8px 12px;
-  background: var(--beige); border-radius: var(--rayon-sm);
-  font-family: "Menlo", "Consolas", monospace; font-size: 13px;
-  overflow-wrap: anywhere;
+/* Bandeau "lien d'invitation" du lobby : aligne sur le style petitbac
+   (fond bleu nuit, beige inside) pour la coherence visuelle entre jeux. */
+.room-code-banner {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  padding: 20px;
+  border-radius: var(--rayon);
+  text-align: center;
+  margin-bottom: 24px;
 }
+.room-code-banner .label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.75;
+  margin-bottom: 10px;
+}
+.room-share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.room-share .invite-url {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 14px;
+  opacity: 0.9;
+  word-break: break-all;
+  background: rgba(245, 237, 224, 0.1);
+  padding: 8px 12px;
+  border-radius: var(--rayon-sm);
+  max-width: 100%;
+  flex: none;
+  color: var(--beige);
+}
+.room-code-banner .copy-btn {
+  background: rgba(245, 237, 224, 0.15);
+  color: var(--beige);
+  border: 1px solid rgba(245, 237, 224, 0.3);
+  padding: 6px 14px;
+  border-radius: var(--rayon-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.room-code-banner .copy-btn:hover { background: rgba(245, 237, 224, 0.25); }
 
 .lobby-grid {
   display: grid;

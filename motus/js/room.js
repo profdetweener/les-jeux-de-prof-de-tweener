@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=22";
+import { initCompView } from "./view-comp.js?v=23";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -166,17 +166,28 @@ conn.on("room_state", (msg) => {
   state.hostPseudo = msg.hostPseudo;
   // Mettre a jour isHost : si on a ete promu apres depart de l'ancien hote
   state.isHost = msg.hostPseudo === state.pseudo;
-  // Si la phase a change cote serveur (ex. retour lobby apres end_game)
-  if (msg.phase !== state.phase) {
-    state.phase = msg.phase;
-    showView(state.phase);
-  }
+  // On force TOUJOURS le rafraichissement de la vue d'apres la phase serveur,
+  // et pas uniquement quand state.phase change. Sinon : si game_ended a deja
+  // set state.phase = "finished" et qu'un room_state arrive ensuite avec
+  // phase = "lobby", on bascule a "lobby". Mais le setTimeout(showView,1200)
+  // de game_ended ramene la vue sur "finished" apres coup, laissant
+  // state.phase ("lobby") et la vue ("finished") desynchronises. Au clic
+  // suivant sur "Retour au salon" -> end_game -> room_state phase=lobby,
+  // la garde "msg.phase !== state.phase" etait fausse et la vue restait
+  // bloquee. En forçant showView ici, on garantit la coherence.
+  state.phase = msg.phase;
+  showView(state.phase);
   lobbyView.refresh();
   gameView.refresh();
 
   // En mode comp et en pleine manche, retirer les cartes des joueurs partis.
   if (msg.phase === "in_round" && compView.removeOpponent) {
     for (const pseudo of gone) compView.removeOpponent(pseudo);
+  }
+  // Entre 2 manches : re-render de la table de recap pour retirer les
+  // joueurs partis (kick ou deconnexion definitive). Idempotent.
+  if (msg.phase === "between_rounds" && compView.refreshRecapTable) {
+    compView.refreshRecapTable();
   }
 });
 

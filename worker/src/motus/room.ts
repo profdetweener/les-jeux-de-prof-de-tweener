@@ -732,26 +732,28 @@ export class MotusRoom {
         switch (scoring) {
           case "binary":
             pts = rank === 1 ? 1 : 0;
-            breakdown = rank === 1 ? "1er trouvé = 1 pt" : `${rank}e (binaire) = 0`;
+            breakdown = rank === 1 ? "1er trouvé = 1 pt" : "Pas 1er = 0 pt";
             break;
           case "attempts_left":
             pts = attemptsLeft + 1;
-            breakdown = `${attemptsLeft} essais restants + 1 = ${pts}`;
+            breakdown = `${attemptsLeft} essais restants + 1 (trouvé) = ${pts}`;
             break;
           case "position": {
             pts = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
-            breakdown = `${rank}${rank === 1 ? "er" : "e"} sur ${nbFinders} = ${pts}`;
+            const suffix = rank === 1 ? "er" : "e";
+            breakdown = `${rank}${suffix} place sur ${nbFinders} = ${pts}`;
             break;
           }
           case "combo": {
             const posBonus = rank ? Math.max(0, nbFinders - (rank - 1)) : 0;
             pts = attemptsLeft + 1 + posBonus;
-            breakdown = `${attemptsLeft} essais restants + 1 + bonus ${rank}${rank === 1 ? "er" : "e"} (${posBonus}) = ${pts}`;
+            const suffix = rank === 1 ? "er" : "e";
+            breakdown = `${attemptsLeft} essais restants + 1 (trouvé) + ${posBonus} (${rank}${suffix} place) = ${pts}`;
             break;
           }
         }
       } else {
-        breakdown = "Pas trouvé";
+        breakdown = "Pas trouvé = 0 pt";
       }
       const prevTotal = this.compScores.get(pseudo) ?? 0;
       const newTotal = prevTotal + pts;
