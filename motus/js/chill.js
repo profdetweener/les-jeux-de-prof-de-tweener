@@ -43,6 +43,124 @@ const KEYBOARD_ROWS = [
 ];
 
 // =============================================================================
+// Detection tactile + module audio (samples MP3 officiels Motus) + compteur de
+// lettres mobile. Mirroir simplifie de view-comp.js : memes 4 sons, meme cle
+// localStorage pour partager le reglage 🔊/🔇 entre les deux modes.
+// =============================================================================
+
+const isTouch = typeof window !== "undefined" &&
+  window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+const SOUND_STORAGE_KEY = "motus_comp_sound";
+const SOUND_URLS = {
+  good:      "sounds/Bonne_Lettre.mp3",
+  misplaced: "sounds/Mal_Place.mp3",
+  absent:    "sounds/Mauvaise_Lettre.mp3",
+  found:     "sounds/Mot_Trouve.mp3",
+};
+const soundBuffers = {};
+let soundsLoading = false;
+let soundEnabled = (() => {
+  try { return window.localStorage.getItem(SOUND_STORAGE_KEY) !== "0"; }
+  catch { return true; }
+})();
+let audioCtx = null;
+// Horodate du dernier submit, pour deduplication du double-fire keydown+blur
+// sur iOS quand on tape "Go" sur le clavier natif.
+let lastSubmitTs = 0;
+
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { audioCtx = new AC(); } catch { return null; }
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  if (!soundsLoading) {
+    soundsLoading = true;
+    loadAllSounds();
+  }
+  return audioCtx;
+}
+
+async function loadOneSound(key, url) {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return;
+    const arr = await resp.arrayBuffer();
+    const buf = await new Promise((resolve, reject) => {
+      const p = audioCtx.decodeAudioData(arr, resolve, reject);
+      if (p && typeof p.then === "function") p.then(resolve, reject);
+    });
+    soundBuffers[key] = buf;
+  } catch {}
+}
+
+async function loadAllSounds() {
+  if (!audioCtx) return;
+  await Promise.all(Object.entries(SOUND_URLS).map(([k, u]) => loadOneSound(k, u)));
+}
+
+function playSound(key) {
+  if (!soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  if (!ctx) return;
+  const buf = soundBuffers[key];
+  if (!buf) return; // Pas encore charge : on saute silencieusement.
+  try {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch {}
+}
+
+function updateSoundToggleUI() {
+  if (!els.soundToggle) return;
+  els.soundToggle.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+  if (els.soundIcon) els.soundIcon.textContent = soundEnabled ? "🔊" : "🔇";
+  els.soundToggle.title = soundEnabled
+    ? "Sons activés — clic pour couper"
+    : "Sons coupés — clic pour activer";
+}
+
+/** Met a jour le compteur "X / N" affiche dans la barre de saisie (mobile).
+ *  Bascule en "complete" (fond vert) quand le mot est termine. */
+function updateLetterCounter() {
+  if (!els.letterCounter) return;
+  const total = game.wordLength || 0;
+  // Compte les lettres effectivement saisies dans le buffer.
+  const cur = (game.typingBuffer || []).filter((c) => c).length;
+  els.letterCounter.textContent = `${cur} / ${total}`;
+  els.letterCounter.classList.toggle("complete", total > 0 && cur === total);
+}
+
+/** Synchronise la valeur de l'input natif avec le buffer. Utilise quand le
+ *  buffer change suite a une frappe au clavier visuel ou physique, pour que
+ *  l'input natif refete l'etat courant. */
+function syncNativeInputFromBuffer() {
+  if (!els.nativeInput) return;
+  const v = (game.typingBuffer || []).join("");
+  if (els.nativeInput.value !== v) els.nativeInput.value = v;
+}
+
+function bringCurrentRowIntoView() {
+  if (!isTouch) return;
+  const idx = game.attempts.length;
+  const row = els.grid && els.grid.querySelector(`.motus-row[data-row="${idx}"]`);
+  if (row && typeof row.scrollIntoView === "function") {
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
+
+function focusNativeInput() {
+  if (!isTouch || !els.nativeInput) return;
+  if (!canType()) return;
+  try { els.nativeInput.focus({ preventScroll: true }); }
+  catch { els.nativeInput.focus(); }
+}
+
+// =============================================================================
 // Etat global
 // =============================================================================
 
@@ -303,6 +421,7 @@ async function animateAttemptRow(rowIndex, attempt) {
     cell.classList.add("filled", `status-${fb.status}`);
     if (fb.hasMore) cell.classList.add("has-more");
     updateKeyColor(fb.letter, fb.status, fb.hasMore);
+    playSound(fb.status);
     await sleep(REVEAL_DELAY_MS);
   }
   // Petit temps mort pour digerer le resultat avant la prochaine ligne
@@ -409,6 +528,8 @@ function resetTypingBuffer() {
   game.typingBuffer = new Array(game.wordLength).fill("");
   game.typingBuffer[0] = game.firstLetter;
   game.rowDirty = false;
+  updateLetterCounter();
+  syncNativeInputFromBuffer();
 }
 
 /**
@@ -471,6 +592,8 @@ function onKeyPress(key) {
       game.typingBuffer[idx] = "";
       renderCurrentRow();
     }
+    updateLetterCounter();
+    syncNativeInputFromBuffer();
     return;
   }
   if (/^[A-Z]$/.test(key)) {
@@ -486,6 +609,8 @@ function onKeyPress(key) {
     if (pos === -1) return; // plus de place libre
     game.typingBuffer[pos] = key;
     renderCurrentRow();
+    updateLetterCounter();
+    syncNativeInputFromBuffer();
   }
 }
 
@@ -496,6 +621,14 @@ async function submitGuess() {
     return;
   }
   const guess = buildGuessString();
+
+  // Mirroir du comp : sur mobile on ferme le clavier natif et on ramene la
+  // ligne courante au centre des la validation. L'AudioContext est
+  // deverrouille maintenant pour que le 1er son joue sans latence iOS.
+  lastSubmitTs = Date.now();
+  ensureAudioCtx();
+  if (els.nativeInput) els.nativeInput.blur();
+  bringCurrentRowIntoView();
 
   game.status = "submitting";
   try {
@@ -512,6 +645,9 @@ async function submitGuess() {
     if (res.status === "found") {
       game.status = "found";
       game.revealedWord = res.revealedWord;
+      // Jingle de victoire, decalle de 120ms pour ne pas se chevaucher avec
+      // le dernier tick de la revelation.
+      setTimeout(() => playSound("found"), 120);
       updateStatus();
       goBetween();
       return;
@@ -891,6 +1027,10 @@ function goBetween() {
     els.betweenSummary.className = "between-summary failure";
   }
   els.betweenWord.textContent = game.revealedWord || "?";
+  // Remet le scroll en haut a l'arrivee sur la vue between : evite le saut
+  // de la banderole iOS apres une animation de revelation qui aurait pu
+  // pousser le scroll vers le bas.
+  window.scrollTo(0, 0);
   showView("between");
 }
 
@@ -964,6 +1104,10 @@ async function startNewWord() {
     resetTypingBuffer();
     renderCurrentRow();
     updateStatus();
+    // Remet le scroll en haut : evite le saut visuel de la banderole iOS au
+    // demarrage d'un nouveau mot (la position de scroll de la fin du mot
+    // precedent ne doit pas se reporter).
+    window.scrollTo(0, 0);
     showView("in_game");
     // Demarre le chrono pour cette partie (et lance le timer live)
     startTimer();
@@ -1035,6 +1179,13 @@ function bindElements() {
   els.definitionBody = $("definition-body");
   els.definitionSourceLink = $("definition-source-link");
   els.definitionClose = $("definition-close");
+
+  // Input natif mobile (clavier du telephone) + compteur de lettres et toggle son.
+  // Tous optionnels : si l'element n'existe pas, les helpers degradent en no-op.
+  els.nativeInput = $("chill-native-input");
+  els.letterCounter = $("chill-letter-counter");
+  els.soundToggle = $("chill-sound-toggle");
+  els.soundIcon = $("chill-sound-icon");
 }
 
 async function init() {
@@ -1087,6 +1238,62 @@ async function init() {
   });
 
   showView("config");
+
+  // =========================================================================
+  // Mobile : clavier natif + compteur + toggle son. Mirroir simplifie de
+  // view-comp.js (cf. ce fichier pour la doc detaillee de chaque hook).
+  // =========================================================================
+  updateSoundToggleUI();
+  updateLetterCounter();
+
+  if (els.soundToggle) {
+    els.soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      try { window.localStorage.setItem(SOUND_STORAGE_KEY, soundEnabled ? "1" : "0"); } catch {}
+      updateSoundToggleUI();
+      ensureAudioCtx();
+      if (soundEnabled) playSound("good");
+    });
+  }
+
+  if (els.nativeInput) {
+    els.nativeInput.addEventListener("input", () => {
+      if (!canType()) {
+        els.nativeInput.value = (game.typingBuffer || []).join("");
+        return;
+      }
+      // Reconstruit le buffer depuis la valeur de l'input : on prend les
+      // lettres A-Z, on borne a wordLength, on padde a droite avec "".
+      const clean = (els.nativeInput.value || "")
+        .toUpperCase().replace(/[^A-Z]/g, "").slice(0, game.wordLength);
+      game.rowDirty = true;
+      game.typingBuffer = new Array(game.wordLength).fill("");
+      for (let i = 0; i < clean.length; i++) game.typingBuffer[i] = clean[i];
+      renderCurrentRow();
+      updateLetterCounter();
+      // Sync inverse : si on a normalise (e.g. accent retire), repercute.
+      if (els.nativeInput.value !== clean) els.nativeInput.value = clean;
+    });
+    // Entree / "Go" du clavier natif : soumet l'essai.
+    els.nativeInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (canType()) submitGuess();
+      }
+    });
+    // iOS : la coche "Done" declenche blur. Si le mot est complet, on
+    // soumet — sauf si on vient deja de soumettre (dedupe 300ms).
+    els.nativeInput.addEventListener("blur", () => {
+      if (!canType()) return;
+      if (Date.now() - lastSubmitTs < 300) return;
+      if (isBufferComplete()) submitGuess();
+    });
+  }
+
+  // Tap sur la grille redonne le focus a l'input (rouvre le clavier natif).
+  if (els.grid) {
+    els.grid.addEventListener("click", () => focusNativeInput());
+  }
 }
 
 init();

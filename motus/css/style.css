@@ -240,9 +240,14 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 
 /* --- Motus : grille --- */
 .motus-header {
+  position: relative;
   display: flex; justify-content: space-between; align-items: baseline;
   margin: 0 auto 16px;
   width: 100%;
+  /* Reserve la place pour le toggle son positionne en absolute a droite,
+     comme dans le header comp. */
+  padding-right: 42px;
+  box-sizing: border-box;
   /* Aligne le header sur la meme largeur que la grille (qui est centree
      avec margin:0 auto et a une max-width calculee). */
   max-width: calc(56px * var(--motus-cols, 7) + 6px * (var(--motus-cols, 7) - 1));
@@ -990,17 +995,28 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
    =========================================================================== */
 
 .comp-game-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
+  /* flex-wrap retire : le toggle son est positionne en absolute et ne
+     participe plus au flow, donc les 3 elements "manche / timer / essai"
+     tiennent sur une seule ligne meme sur mobile. */
+  padding-right: 42px;
 }
 .comp-round-info { font-weight: 700; color: var(--bleu-nuit); }
 .comp-attempt-info { font-size: 14px; color: var(--gris-texte); }
-/* Bouton 🔊 / 🔇 : petit, discret, dans l'en-tete de manche. */
+/* Bouton 🔊 / 🔇 : positionne en absolute dans le coin haut-droit du header
+ * pour ne pas etre balote par les variations de largeur du timer (les
+ * chiffres du serif Georgia ont des largeurs differentes ; sans isolation
+ * + tabular-nums, le toggle "part et revient" sur la ligne du dessous au
+ * fil des secondes). Ainsi sa position est totalement stable. */
 .comp-sound-toggle {
+  position: absolute;
+  top: -2px;
+  right: 0;
   background: transparent;
   border: 1px solid var(--gris-clair);
   border-radius: var(--rayon-sm);
@@ -1020,6 +1036,10 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   font-family: Georgia, serif;
   font-weight: 800;
   font-size: 26px;
+  /* Verrouille la largeur des chiffres : sans ca, Georgia rend "1" plus
+     etroit que "8" ou "4", donc la largeur du timer fluctue chaque seconde
+     et provoque des micro-shifts du layout entier. */
+  font-variant-numeric: tabular-nums;
   color: var(--bleu-nuit);
   padding: 2px 12px;
   border-radius: var(--rayon-sm);
