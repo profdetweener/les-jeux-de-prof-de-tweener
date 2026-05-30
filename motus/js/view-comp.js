@@ -336,6 +336,14 @@ export function initCompView(state, conn) {
     // coche iOS, ENTER du clavier visuel) : on en profite pour deverrouiller
     // l'AudioContext maintenant, avant que la reveal arrive en async.
     ensureAudioCtx();
+
+    // Sur mobile : ferme le clavier natif et ramene la ligne en cours au
+    // centre de la vue immediatement, au moment de la validation, plutot
+    // qu'apres la revelation. Ainsi le joueur voit son essai prendre place
+    // au bon endroit en temps reel pendant que les couleurs se devoilent.
+    if (nativeInput) nativeInput.blur();
+    bringRowIntoView(round.myAttempts.length);
+
     conn.send({ type: "submit_guess", guess: typingBuffer });
     // On ne vide pas le buffer tout de suite : on attend la reponse serveur
     // (guess_result) pour le consigner. Si refus (erreur), le buffer reste.
@@ -683,16 +691,12 @@ export function initCompView(state, conn) {
       setTimeout(() => playSound("found"), 120);
     }
 
-    // Apres la revelation : on ferme le clavier natif (et sa barre
-    // d'accessoires iOS, du coup) pour que le joueur voie sa grille a jour
-    // sans rien qui parasite. Il retouchera la grille / le champ pour relancer
-    // la saisie au prochain essai. On ramene aussi la ligne juste revelee
-    // au centre de la vue, au cas ou iOS avait scrolle jusqu'au champ.
+    // Vide le buffer pour le prochain essai. Le clavier natif a deja ete
+    // ferme et la grille deja repositionnee au moment du submit (cf.
+    // submitGuess), donc rien d'autre a faire ici.
     if (nativeInput) {
       nativeInput.value = "";
-      nativeInput.blur();
     }
-    bringRowIntoView(msg.attemptIndex);
   }
 
   function onOpponentProgress(msg) {
@@ -704,7 +708,20 @@ export function initCompView(state, conn) {
     renderOpponent(msg.playerId);
   }
 
-  function onRoundEnded(msg) {
+  async function onRoundEnded(msg) {
+    // Si une revelation est en cours (cas typique : le joueur vient de
+    // soumettre le mot gagnant, le worker a immediatement envoye
+    // round_ended apres guess_result), on attend qu'elle se termine avant
+    // de basculer vers le recap. Sinon l'animation est coupee a mi-parcours
+    // et le joueur ne voit pas son resultat. Idem si le chrono tombe
+    // pendant la revelation d'un essai.
+    while (round.revealing) {
+      await sleep(60);
+    }
+    // Petit souffle apres la revelation pour que la derniere case + le
+    // jingle eventuel de victoire soient bien percus avant le basculement.
+    await sleep(POST_REVEAL_DELAY_MS);
+
     round.active = false;
     stopTimer();
     clearRoundEndedSafetyNet();
@@ -712,7 +729,14 @@ export function initCompView(state, conn) {
     renderRecap(msg);
   }
 
-  function onGameEnded(msg) {
+  async function onGameEnded(msg) {
+    // Meme logique que onRoundEnded : attendre la fin de la revelation
+    // pour ne pas couper l'animation du dernier essai.
+    while (round.revealing) {
+      await sleep(60);
+    }
+    await sleep(POST_REVEAL_DELAY_MS);
+
     round.active = false;
     stopTimer();
     clearRoundEndedSafetyNet();
@@ -929,10 +953,12 @@ export function initCompView(state, conn) {
     // identique au podium : meme score = meme rang).
     const computed = ranks || computeRanks(results);
     let html = "<thead><tr><th>#</th><th>Joueur</th>";
-    if (showRoundPts) html += "<th>Essais</th><th>Succès</th><th>Manche</th>";
+    // Colonne "Essais" retiree : l'info apparait deja dans le breakdown
+    // pour ceux qui ont trouve ("3 essais restants + 1 (trouvé) = 4 pts"),
+    // et la colonne separee faisait deborder le tableau sur mobile.
+    if (showRoundPts) html += "<th>Succès</th><th>Manche</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
-      const essais = r.found ? `${r.attemptsUsed}` : "—";
       const pseudoHtml = escapeHtml(r.playerId);
       // Bouton "kick" inline a cote du pseudo : uniquement sur la table de
       // recap (showRoundPts=true), pour l'hote, et pas sur soi-meme. Sur le
@@ -944,7 +970,7 @@ export function initCompView(state, conn) {
       html += `<tr><td>${computed[i]}</td><td><span class="pseudo-label">${pseudoHtml}</span>${kickHtml}</td>`;
       if (showRoundPts) {
         const detail = r.pointsBreakdown || (r.found ? "" : "—");
-        html += `<td>${essais}</td><td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
+        html += `<td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
       }
       html += `<td><strong>${r.totalPoints}</strong></td></tr>`;
     });

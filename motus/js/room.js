@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=23";
+import { initCompView } from "./view-comp.js?v=24";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -124,11 +124,11 @@ function updateRoomTitle() {
   if (!roomTitleEl) return;
   const mode = state.config?.mode;
   if (mode === "competitive") {
-    roomTitleEl.textContent = "🟥 Motus : mode compétitif ⚔️";
+    roomTitleEl.textContent = "Motus : mode compétitif";
   } else if (mode === "coop_stream") {
-    roomTitleEl.textContent = "🟥 Motus : mode chill 🏖️";
+    roomTitleEl.textContent = "Motus : mode chill";
   } else {
-    roomTitleEl.textContent = "🟥 Motus";
+    roomTitleEl.textContent = "Motus";
   }
 }
 
@@ -241,21 +241,19 @@ conn.on("opponent_progress", (msg) => {
   compView.onOpponentProgress(msg);
 });
 
-conn.on("round_ended", (msg) => {
+conn.on("round_ended", async (msg) => {
   state.phase = "between_rounds";
-  compView.onRoundEnded(msg);
-  // On bascule TOUJOURS vers le recap : meme a la derniere manche, le joueur
-  // voit le detail (qui a trouve, en combien) avant le podium final. L'hote
-  // declenche ensuite explicitement le passage au podium via "Voir le
-  // classement final" (skip_to_final) ou quitte via "Quitter la partie"
-  // (end_game).
-  setTimeout(() => showView("between_rounds"), 1000);
+  // onRoundEnded attend la fin de la revelation eventuellement en cours
+  // (cf. view-comp.js). On ne bascule la vue qu'apres, donc plus besoin
+  // d'un setTimeout arbitraire ici.
+  await compView.onRoundEnded(msg);
+  showView("between_rounds");
 });
 
-conn.on("game_ended", (msg) => {
+conn.on("game_ended", async (msg) => {
   state.phase = "finished";
-  compView.onGameEnded(msg);
-  setTimeout(() => showView("finished"), 1200);
+  await compView.onGameEnded(msg);
+  showView("finished");
 });
 
 conn.on("kicked", (msg) => {
