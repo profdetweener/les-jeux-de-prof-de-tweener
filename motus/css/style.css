@@ -1471,7 +1471,11 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .comp-stats-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 480px; /* en dessous, on scrolle */
+  /* La carte est en view-wide (max-width: 920px), donc sur desktop la table
+     tient large. Sur mobile, le wrapper .comp-stats-table-wrap autorise un
+     scroll horizontal si la fenetre est vraiment etroite, mais on ne force
+     pas de min-width artificielle qui creerait du scroll inutile sur
+     ecrans moyens (tablette portrait, etc.). */
 }
 .comp-stats-table th {
   font-size: 10px;
@@ -1578,3 +1582,15 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 @media (max-width: 600px) {
   .comp-stats-highlights { grid-template-columns: 1fr; }
 }
+
+/* Espace entre la grille de highlights et le bouton "Retour au podium" :
+   sans ca, le bouton vient coller la derniere pill (specialement quand la
+   grille tombe a 1 colonne sur mobile). */
+#view-comp-stats .between-actions { margin-top: 18px; }
+
+/* Empeche "Manche 5 / 5" et "Essai 1 / 6" de passer a la ligne quand la
+   place est juste (timer rouge urgent qui occupe la pleine largeur, mobile
+   etroit). Sans ca, sur les dernieres secondes le header peut basculer sur
+   2 lignes et faire sauter le layout. */
+.comp-round-info,
+.comp-attempt-info { white-space: nowrap; }

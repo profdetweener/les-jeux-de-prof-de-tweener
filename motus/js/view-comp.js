@@ -1076,12 +1076,12 @@ export function initCompView(state, conn) {
   }
 
   /**
-   * Construit le bloc de totaux globaux (durée, mots résolus, temps moy.
-   * global). On a volontairement omis le total d'essais cumulés.
+   * Construit le bloc de totaux globaux (mots résolus, temps moy. global).
+   * La durée totale est volontairement omise : elle figure déjà dans le
+   * sous-titre. Et on n'affiche pas non plus le total d'essais cumulés.
    */
   function buildStatsTotals(gs) {
     const blocks = [
-      { num: fmtSec(gs.totalDurationSec), lbl: "Durée" },
       { num: `${gs.wordsResolved}/${gs.totalRounds}`, lbl: "Mots résolus" },
       { num: fmtSec(gs.avgTimeSec), lbl: "Temps moy. global" },
     ];
