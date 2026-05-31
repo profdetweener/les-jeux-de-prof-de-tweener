@@ -76,6 +76,37 @@ export class PetitBacRoom {
     this.answers = {};
     this.cellStates = {};
     this.currentResult = null;
+
+    // Charge l'identite de l'hote persistee en storage avant de traiter
+    // toute requete (cf. persistHostPseudo). Sans ce mecanisme, apres une
+    // eviction de la DurableObject (idle/memoire), le 1er joueur a se
+    // reconnecter devenait host par defaut, peu importe son role d'origine.
+    this.state.blockConcurrencyWhile(async () => {
+      try {
+        const persistedHost = await this.state.storage.get<string>("hostPseudo");
+        if (typeof persistedHost === "string" && persistedHost.length > 0) {
+          this.hostPseudo = persistedHost;
+        }
+      } catch {
+        /* tolerant aux echecs storage */
+      }
+    });
+  }
+
+  /**
+   * Persiste le pseudo de l'hote courant en storage durable. Tolerant aux
+   * echecs : la perte de persistence ne doit jamais bloquer le jeu.
+   */
+  private async persistHostPseudo(): Promise<void> {
+    try {
+      if (this.hostPseudo) {
+        await this.state.storage.put("hostPseudo", this.hostPseudo);
+      } else {
+        await this.state.storage.delete("hostPseudo");
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -254,9 +285,25 @@ export class PetitBacRoom {
     this.players.set(pseudo, session);
     this.wsToPseudo.set(ws, pseudo);
 
-    // Premier connecte = host
-    if (this.hostPseudo === null) {
+    // Decision "isHost" du nouveau joueur :
+    //  - Si on a un hostPseudo persiste (cas typique : DO redemarree apres
+    //    eviction) et que le nouveau joueur correspond a ce pseudo : il
+    //    recupere ses droits d'hote.
+    //  - Si aucun hostPseudo n'est connu (vraie creation de salon) : le 1er
+    //    joueur prend la main.
+    //  - Sinon (un autre joueur que l'hote d'origine arrive en 1er apres
+    //    redemarrage) : il rejoint en simple joueur. Evite le bug du
+    //    non-hote qui herite des droits apres une eviction.
+    const isFirstPlayer = this.players.size === 1; // (vient d'etre add)
+    let shouldBecomeHost = false;
+    if (this.hostPseudo === null && isFirstPlayer) {
+      shouldBecomeHost = true;
+    } else if (this.hostPseudo !== null && pseudosEqual(pseudo, this.hostPseudo)) {
+      shouldBecomeHost = true;
+    }
+    if (shouldBecomeHost) {
       this.hostPseudo = pseudo;
+      void this.persistHostPseudo();
     }
 
     // Si on rejoint en cours de partie, initialiser ses structures de donnees
@@ -377,6 +424,9 @@ export class PetitBacRoom {
         .filter((p) => p.ws !== null)
         .sort((a, b) => a.joinedAt - b.joinedAt)[0];
       this.hostPseudo = next ? next.pseudo : null;
+      // Persiste le nouveau host (ou son absence) pour survivre a une
+      // eviction de la DurableObject.
+      void this.persistHostPseudo();
     }
 
     // Nettoyage d'etat specifique a la phase, indispensable pour un kick

@@ -138,6 +138,41 @@ export class MotusRoom {
     this.compFinishOrder = [];
     this.compScores = new Map();
     this.recentFirstLetters = [];
+
+    // Charge l'identite de l'hote persistee en storage avant de traiter
+    // toute requete (cf. persistHostPseudo). blockConcurrencyWhile garantit
+    // que tout fetch entrant attend la fin de cette restauration. Sans ce
+    // mecanisme, apres une eviction de la DurableObject (idle/memoire), le
+    // 1er joueur a se reconnecter devenait host par defaut, peu importe son
+    // role d'origine.
+    this.state.blockConcurrencyWhile(async () => {
+      try {
+        const persistedHost = await this.state.storage.get<string>("hostPseudo");
+        if (typeof persistedHost === "string" && persistedHost.length > 0) {
+          this.hostPseudo = persistedHost;
+        }
+      } catch {
+        /* tolerant aux echecs storage : on redemarre simplement sans host connu */
+      }
+    });
+  }
+
+  /**
+   * Persiste le pseudo de l'hote courant en storage durable. Appele apres
+   * toute mutation de this.hostPseudo (creation de room, kick, migration,
+   * reset complet). Tolerant aux echecs : on log et on continue, la perte
+   * de persistence ne doit jamais bloquer le jeu.
+   */
+  private async persistHostPseudo(): Promise<void> {
+    try {
+      if (this.hostPseudo) {
+        await this.state.storage.put("hostPseudo", this.hostPseudo);
+      } else {
+        await this.state.storage.delete("hostPseudo");
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
@@ -331,20 +366,37 @@ export class MotusRoom {
       return;
     }
 
-    // Nouveau joueur
+    // Nouveau joueur. Decision "isHost" :
+    //  - Si on a un hostPseudo persiste (cas typique : DO redemarree apres
+    //    eviction) ET que ce nouveau joueur correspond a ce pseudo : il
+    //    recupere ses droits d'hote.
+    //  - Si on n'a aucun hostPseudo connu (vraie creation de salon) : le
+    //    1er joueur prend la main.
+    //  - Sinon (un autre joueur que l'hote d'origine arrive en 1er apres
+    //    redemarrage) : il rejoint en simple joueur, on attend que l'hote
+    //    d'origine revienne. Evite le bug du non-hote qui herite des droits
+    //    apres une eviction.
     const isFirstPlayer = this.players.size === 0;
+    let shouldBeHost = false;
+    if (this.hostPseudo === null && isFirstPlayer) {
+      shouldBeHost = true;
+    } else if (this.hostPseudo !== null && pseudosEqual(pseudo, this.hostPseudo)) {
+      shouldBeHost = true;
+    }
+
     const session: PlayerSession = {
       pseudo,
       ws,
       joinedAt: Date.now(),
       totalScore: 0,
-      isHost: isFirstPlayer,
+      isHost: shouldBeHost,
     };
     this.players.set(pseudo, session);
     this.wsToPseudo.set(ws, pseudo);
 
-    if (isFirstPlayer) {
+    if (shouldBeHost) {
       this.hostPseudo = pseudo;
+      void this.persistHostPseudo();
     }
     this.sendJoined(ws, session);
     this.broadcastRoomState();
@@ -466,6 +518,9 @@ export class MotusRoom {
       } else {
         this.hostPseudo = null;
       }
+      // Persiste le nouveau host (ou son absence) pour survivre a une
+      // eviction de la DurableObject.
+      void this.persistHostPseudo();
     }
 
     // Mode comp : retire le joueur des structures et reverifie si la manche
