@@ -1346,6 +1346,13 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   text-align: center;
   margin: 0 0 16px;
 }
+/* Mode chill : meme traitement que .comp-recap-definition pour le wrapper
+   du bouton "Voir la définition" entre 2 manches. Sans ca, le bouton se
+   retrouve aligne a gauche et colle au bouton "Mot suivant" en dessous. */
+.between-def-wrap {
+  text-align: center;
+  margin: 0 0 16px;
+}
 .comp-def-panel {
   text-align: left;
   background: var(--beige);
