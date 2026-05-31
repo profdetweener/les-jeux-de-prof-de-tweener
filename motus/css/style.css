@@ -942,7 +942,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .rules-panel h4 {
   margin: 16px 0 6px;
   font-size: 14px;
-  color: var(--bleu-nuit);
+  color: #64b0bd;
 }
 .rules-panel p { margin: 0 0 12px; }
 
@@ -1005,8 +1005,10 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   margin-bottom: 16px;
   /* flex-wrap retire : le toggle son est positionne en absolute et ne
      participe plus au flow, donc les 3 elements "manche / timer / essai"
-     tiennent sur une seule ligne meme sur mobile. */
-  padding-right: 42px;
+     tiennent sur une seule ligne meme sur mobile. Le padding-right
+     reserve la place pour le toggle (38px de large + marge de securite)
+     ; trop juste -> "Essai X / N" passe sous le bouton sur grand ecran. */
+  padding-right: 56px;
 }
 .comp-round-info { font-weight: 700; color: var(--bleu-nuit); }
 .comp-attempt-info { font-size: 14px; color: var(--gris-texte); }
@@ -1400,7 +1402,11 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .comp-scoreboard td.breakdown {
   text-align: left;
   font-size: 12px;
-  color: var(--gris-texte);
+  /* bleu-nuit pour TOUTES les lignes : avant, seule la 1ere ligne avait
+     cette couleur (via le selecteur :first-child plus bas), les suivantes
+     restaient en gris-texte ce qui faisait perdre en lisibilite et donnait
+     l'impression que les autres joueurs etaient "secondaires". */
+  color: var(--bleu-nuit);
   font-style: italic;
 }
 .comp-scoreboard tbody tr:first-child td { color: var(--bleu-nuit); }

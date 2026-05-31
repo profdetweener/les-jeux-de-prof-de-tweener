@@ -15,7 +15,7 @@
  */
 
 import { showToast } from "../../shared/js/toast.js";
-import { fetchDefinition } from "../../shared/js/wiktionary.js";
+import { fetchDefinition } from "../../shared/js/wiktionary.js?v=2";
 
 const KEYBOARD_ROWS = [
   ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],

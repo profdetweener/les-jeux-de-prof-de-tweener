@@ -18,7 +18,7 @@
 
 import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js";
 import { showToast } from "../../shared/js/toast.js";
-import { fetchDefinition, prefetchDefinition } from "../../shared/js/wiktionary.js";
+import { fetchDefinition, prefetchDefinition } from "../../shared/js/wiktionary.js?v=2";
 
 // =============================================================================
 // Bornes et defauts (alignes avec MOTUS_CONFIG cote worker)

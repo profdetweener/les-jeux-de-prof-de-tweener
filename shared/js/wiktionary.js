@@ -183,6 +183,16 @@ async function resolveAccentedTitle(asciiLower) {
     if (hit2) return hit2;
   }
 
+  // Troisième passe : full-text search via CirrusSearch (action=query/list=search).
+  // Contrairement aux 2 premières passes (opensearch est accent-sensible et
+  // souvent muet sur les ASCII non redirigés), CirrusSearch fait du matching
+  // diacritic-insensible : "pincee" remonte "pincée", "arete" remonte "arête",
+  // etc. C'est notre filet de secours pour les mots accentués pour lesquels
+  // Wiktionary FR ne maintient pas de redirection ASCII.
+  const candidates3 = await fulltextSearchSuggestions(asciiLower, 20);
+  const hit3 = pickAsciiMatch(candidates3, asciiLower);
+  if (hit3) return hit3;
+
   return null;
 }
 
@@ -212,6 +222,48 @@ async function opensearchSuggestions(query, limit) {
   }
   // opensearch renvoie [query, titres[], descriptions[], urls[]]
   return Array.isArray(data) && Array.isArray(data[1]) ? data[1] : [];
+}
+
+/**
+ * Cherche des titres de pages via l'API MediaWiki list=search (CirrusSearch).
+ * Contrairement a opensearch qui est accent-sensible, CirrusSearch sur le
+ * Wiktionnaire FR fait du matching diacritic-insensible dans sa chaine
+ * d'analyse : une requete sur "pincee" remonte "pincée", "arete" remonte
+ * "arête", etc. Utilise comme 3eme strategie de resolution, apres echec
+ * des deux passes d'opensearch.
+ */
+async function fulltextSearchSuggestions(query, limit) {
+  const params = new URLSearchParams({
+    action: "query",
+    list: "search",
+    srsearch: query,
+    srnamespace: "0",
+    srlimit: String(limit),
+    srprop: "",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  });
+  const url = `${MEDIAWIKI_ENDPOINT}?${params.toString()}`;
+  let res;
+  try {
+    res = await fetch(url);
+  } catch {
+    return [];
+  }
+  if (!res.ok) return [];
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    return [];
+  }
+  const hits = data && data.query && Array.isArray(data.query.search)
+    ? data.query.search
+    : [];
+  return hits
+    .map((h) => (h && typeof h.title === "string" ? h.title : null))
+    .filter((t) => t !== null);
 }
 
 /**
