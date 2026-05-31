@@ -17,7 +17,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initGameView } from "./view-game.js";
-import { initCompView } from "./view-comp.js?v=28";
+import { initCompView } from "./view-comp.js?v=29";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -83,6 +83,12 @@ function showView(phase) {
   for (const [name, el] of Object.entries(views)) {
     if (el) el.style.display = name === target ? "" : "none";
   }
+  // La vue stats détaillées est un toggle frontend (pas une phase serveur)
+  // posée par-dessus le podium final. Quand on bascule de phase (ex: retour
+  // au lobby), il faut la cacher explicitement sinon elle reste affichée
+  // par-dessus la nouvelle vue.
+  const statsEl = document.getElementById("view-comp-stats");
+  if (statsEl) statsEl.style.display = "none";
 }
 
 // =============================================================================

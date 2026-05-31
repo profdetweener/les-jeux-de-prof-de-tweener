@@ -205,6 +205,16 @@ export function initCompView(state, conn) {
   const finalDefPanel = document.getElementById("comp-final-def-panel");
   const backLobbyBtn = document.getElementById("comp-back-lobby-btn");
   const finalWaitingEl = document.getElementById("comp-final-waiting");
+  const showStatsBtn = document.getElementById("comp-show-stats-btn");
+
+  // Vue stats détaillées (toggle depuis le podium, pas une phase serveur)
+  const finalViewEl = document.getElementById("view-comp-final");
+  const statsViewEl = document.getElementById("view-comp-stats");
+  const statsSubEl = document.getElementById("comp-stats-sub");
+  const statsTableEl = document.getElementById("comp-stats-table");
+  const statsTotalsEl = document.getElementById("comp-stats-totals");
+  const statsHighlightsEl = document.getElementById("comp-stats-highlights");
+  const statsBackBtn = document.getElementById("comp-stats-back-btn");
 
   // --- Etat local de la manche ---
   const round = {
@@ -768,6 +778,10 @@ export function initCompView(state, conn) {
     stopTimer();
     clearRoundEndedSafetyNet();
     if (nativeInput) nativeInput.blur();
+    // Memorise gameStats (optionnel : peut etre undefined si version
+    // anterieure du worker) et les results pour navigation podium <-> stats.
+    lastGameStats = msg.gameStats || null;
+    lastFinalResults = msg.results;
     renderFinal(msg.results);
   }
 
@@ -777,6 +791,10 @@ export function initCompView(state, conn) {
   // un kick (le worker ne renvoie pas round_ended quand on kicke entre 2
   // manches, donc on doit rerender localement).
   let lastRecapMsg = null;
+  // Memorise les stats de fin de partie + results pour pouvoir basculer
+  // entre podium et stats detaillees sans re-demander au serveur.
+  let lastGameStats = null;
+  let lastFinalResults = null;
 
   /**
    * Affiche/cache un panneau de definition Wiktionary. Lazy : ne fetch qu'au
@@ -980,7 +998,211 @@ export function initCompView(state, conn) {
       finalWaitingEl.style.display = "";
       finalWaitingEl.textContent = `En attente de ${state.hostPseudo || "l'hôte"}…`;
     }
+
+    // Bouton "Voir les stats détaillées" : visible si on a au moins une
+    // manche dans gameStats (sinon rien d'interessant a montrer).
+    if (showStatsBtn) {
+      const hasStats = lastGameStats && lastGameStats.totalRounds > 0;
+      showStatsBtn.style.display = hasStats ? "" : "none";
+    }
   }
+
+  /**
+   * Formatte une duree en secondes vers une chaine compacte adaptee
+   * a un récap. < 60s -> "23 s", sinon -> "m min s s" (ex: "8 min 42 s").
+   * Retourne "—" si valeur null/non finie.
+   */
+  function fmtSec(sec) {
+    if (sec === null || sec === undefined || !isFinite(sec)) return "—";
+    const s = Math.round(sec);
+    if (s < 60) return `${s} s`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem === 0 ? `${m} min` : `${m} min ${rem} s`;
+  }
+
+  /**
+   * Formatte une moyenne d'essais : 2.83 -> "2,8" (1 decimale, virgule fr).
+   * Retourne "—" si null.
+   */
+  function fmtAvg(v) {
+    if (v === null || v === undefined || !isFinite(v)) return "—";
+    return v.toFixed(1).replace(".", ",");
+  }
+
+  /**
+   * Construit le HTML de la table de stats individuelles.
+   * Colonnes : rang · pseudo · Mots · 1er · Essais moy. · Meilleur · Temps moy. · Record
+   * Sur petit ecran, le scroll horizontal du wrapper prend le relais.
+   */
+  function buildStatsTable(playerStats, ranks) {
+    const head =
+      '<thead><tr>' +
+      '<th></th>' +
+      '<th class="left">Joueur</th>' +
+      '<th>Mots</th>' +
+      '<th>1<sup>er</sup></th>' +
+      '<th>Essais moy.</th>' +
+      '<th>Meilleur</th>' +
+      '<th>Temps moy.</th>' +
+      '<th>Record</th>' +
+      '</tr></thead>';
+    let rows = "";
+    for (let i = 0; i < playerStats.length; i++) {
+      const p = playerStats[i];
+      const rank = ranks[i];
+      const rankClass = rank === 1 ? "stats-rank stats-rank-1" : "stats-rank";
+      const bestCell =
+        p.bestAttempts !== null && p.bestWord
+          ? `<span class="num">${p.bestAttempts}</span> · <span class="stats-word">${escapeHtml(p.bestWord)}</span>`
+          : "—";
+      const recordCell =
+        p.recordTimeSec !== null && p.recordWord
+          ? `${fmtSec(p.recordTimeSec)}`
+          : "—";
+      rows +=
+        '<tr>' +
+        `<td><span class="${rankClass}">${rank}</span></td>` +
+        `<td class="left">${escapeHtml(p.playerId)}</td>` +
+        `<td class="num">${p.foundCount}/${lastGameStats.totalRounds}</td>` +
+        `<td class="num">${p.firstCount}</td>` +
+        `<td class="num">${fmtAvg(p.avgAttempts)}</td>` +
+        `<td>${bestCell}</td>` +
+        `<td class="num">${fmtSec(p.avgTimeSec)}</td>` +
+        `<td class="num">${recordCell}</td>` +
+        '</tr>';
+    }
+    return head + "<tbody>" + rows + "</tbody>";
+  }
+
+  /**
+   * Construit le bloc de totaux globaux (durée, mots résolus, temps moy.
+   * global). On a volontairement omis le total d'essais cumulés.
+   */
+  function buildStatsTotals(gs) {
+    const blocks = [
+      { num: fmtSec(gs.totalDurationSec), lbl: "Durée" },
+      { num: `${gs.wordsResolved}/${gs.totalRounds}`, lbl: "Mots résolus" },
+      { num: fmtSec(gs.avgTimeSec), lbl: "Temps moy. global" },
+    ];
+    return blocks
+      .map(
+        (b) =>
+          `<div class="stats-total-block"><span class="stats-total-num">${escapeHtml(b.num)}</span><span class="stats-total-lbl">${escapeHtml(b.lbl)}</span></div>`
+      )
+      .join("");
+  }
+
+  /**
+   * Construit le bloc highlights. Chaque highlight est optionnel ; si null
+   * on saute la pill (au lieu d'afficher du "—" partout).
+   */
+  function buildStatsHighlights(gs) {
+    const h = gs.highlights;
+    const pills = [];
+    if (h.hardestWord) {
+      pills.push({
+        label: "😱 Mot du désespoir",
+        value: escapeHtml(h.hardestWord.word),
+        detail: "Personne ne l'a trouvé",
+      });
+    }
+    if (h.fastestRound) {
+      pills.push({
+        label: "⚡ Manche éclair",
+        value: `${escapeHtml(h.fastestRound.word)} · ${fmtSec(h.fastestRound.timeSec)}`,
+        detail: "Premier à trouver le plus rapide",
+      });
+    }
+    if (h.inExtremis) {
+      const att = h.inExtremis.attemptsUsed;
+      const noun = att === 1 ? "essai" : "essais";
+      pills.push({
+        label: "💪 In extremis",
+        value: `${escapeHtml(h.inExtremis.word)} · ${att} ${noun}`,
+        detail: `${escapeHtml(h.inExtremis.playerId)}, n'a rien lâché`,
+      });
+    }
+    if (h.solidarityRound) {
+      const att = h.solidarityRound.attemptsUsed;
+      const suffix = att === 1 ? "er" : "e";
+      pills.push({
+        label: "🤝 Manche solidaire",
+        value: escapeHtml(h.solidarityRound.word),
+        detail: `Tout le monde au ${att}<sup>${suffix}</sup> essai`,
+      });
+    }
+    if (h.firstFinderKing) {
+      pills.push({
+        label: "🎯 Roi du 1<sup>er</sup>",
+        value: `${escapeHtml(h.firstFinderKing.playerId)} · ${h.firstFinderKing.count}/${h.firstFinderKing.total}`,
+        detail: "Plus souvent premier à trouver",
+      });
+    }
+    if (h.absoluteRecord) {
+      pills.push({
+        label: "⏱ Record absolu",
+        value: fmtSec(h.absoluteRecord.timeSec),
+        detail: `${escapeHtml(h.absoluteRecord.playerId)}, sur ${escapeHtml(h.absoluteRecord.word)}`,
+      });
+    }
+    if (pills.length === 0) {
+      return '<p class="info-line" style="grid-column: 1 / -1;">Pas de moments marquants à signaler cette partie.</p>';
+    }
+    return pills
+      .map(
+        (p) =>
+          '<div class="stats-highlight-pill">' +
+          `<div class="stats-hl-label">${p.label}</div>` +
+          `<div class="stats-hl-value">${p.value}</div>` +
+          `<div class="stats-hl-detail">${p.detail}</div>` +
+          '</div>'
+      )
+      .join("");
+  }
+
+  /**
+   * Rend l'écran stats détaillées à partir de lastGameStats et lastFinalResults.
+   * On reprend computeRanks pour que l'ordre des joueurs (et leur rang affiché)
+   * soit aligné sur le podium et la scoreboard finale.
+   */
+  function renderStats() {
+    if (!lastGameStats || !lastFinalResults) return;
+    window.scrollTo(0, 0);
+
+    const gs = lastGameStats;
+    const ranks = computeRanks(lastFinalResults);
+
+    const nbPlayers = gs.players.length;
+    const playerNoun = nbPlayers === 1 ? "joueur" : "joueurs";
+    const roundNoun = gs.totalRounds === 1 ? "manche" : "manches";
+    statsSubEl.textContent =
+      `Partie de ${gs.totalRounds} ${roundNoun} · ${nbPlayers} ${playerNoun} · ${fmtSec(gs.totalDurationSec)}`;
+
+    statsTableEl.innerHTML = buildStatsTable(gs.players, ranks);
+    statsTotalsEl.innerHTML = buildStatsTotals(gs);
+    statsHighlightsEl.innerHTML = buildStatsHighlights(gs);
+  }
+
+  /**
+   * Bascule podium <-> stats. C'est un toggle purement frontend : on cache
+   * la vue finale et on montre la vue stats (ou l'inverse). Aucun message
+   * serveur n'est echange.
+   */
+  function showStatsView() {
+    if (!lastGameStats) return;
+    renderStats();
+    if (finalViewEl) finalViewEl.style.display = "none";
+    if (statsViewEl) statsViewEl.style.display = "";
+  }
+  function hideStatsView() {
+    if (statsViewEl) statsViewEl.style.display = "none";
+    if (finalViewEl) finalViewEl.style.display = "";
+    window.scrollTo(0, 0);
+  }
+
+  if (showStatsBtn) showStatsBtn.addEventListener("click", showStatsView);
+  if (statsBackBtn) statsBackBtn.addEventListener("click", hideStatsView);
 
   function buildScoreTable(results, showRoundPts, ranks) {
     // Si ranks n'est pas fourni, on calcule sur place (gestion ex-aequo

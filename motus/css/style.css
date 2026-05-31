@@ -1442,3 +1442,139 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   white-space: nowrap;
 }
 .podium-score { font-size: 13px; color: var(--gris-texte); }
+
+/* ==========================================================================
+   Stats détaillées de fin de partie comp (#view-comp-stats)
+   ========================================================================== */
+.comp-stats-sub {
+  font-size: 13px;
+  color: var(--gris-texte);
+  margin: -6px 0 14px;
+}
+.comp-stats-section-h {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gris-texte);
+  margin: 18px 0 10px;
+  font-weight: 600;
+}
+.comp-stats-section-h:first-of-type { margin-top: 0; }
+
+/* Table individuelle : 8 colonnes, scroll horizontal sur petits ecrans */
+.comp-stats-table-wrap {
+  /* Sur mobile, table large > 600px : on autorise le scroll lateral pour
+     ne pas casser la mise en page. Sur desktop, la table tient tres bien. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.comp-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 480px; /* en dessous, on scrolle */
+}
+.comp-stats-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris-texte);
+  font-weight: 600;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--beige-fonce);
+  text-align: center;
+}
+.comp-stats-table th.left { text-align: left; padding-left: 8px; }
+.comp-stats-table td {
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--beige-fonce);
+  text-align: center;
+  font-size: 13px;
+  color: var(--bleu-nuit);
+}
+.comp-stats-table td.left {
+  text-align: left;
+  padding-left: 8px;
+  font-weight: 600;
+}
+.comp-stats-table tbody tr:last-child td { border-bottom: none; }
+.comp-stats-table .num { font-variant-numeric: tabular-nums; }
+.comp-stats-table .stats-rank {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 50%;
+  background: var(--beige);
+  font-size: 11px;
+  font-weight: 700;
+}
+.comp-stats-table .stats-rank-1 { background: #f6e6b8; }
+.comp-stats-table .stats-word {
+  color: var(--vert);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Bloc totaux globaux (durée, mots résolus, temps moy.) */
+.comp-stats-totals {
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 10px 14px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stats-total-block {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.stats-total-num {
+  font-weight: 700;
+  color: var(--bleu-nuit);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.stats-total-lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris-texte);
+}
+
+/* Highlights : grille de pills */
+.comp-stats-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.stats-highlight-pill {
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 10px 12px;
+}
+.stats-hl-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gris-texte);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.stats-hl-value {
+  font-size: 13px;
+  color: var(--bleu-nuit);
+  font-weight: 700;
+}
+.stats-hl-detail {
+  font-size: 11px;
+  color: var(--gris-texte);
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .comp-stats-highlights { grid-template-columns: 1fr; }
+}

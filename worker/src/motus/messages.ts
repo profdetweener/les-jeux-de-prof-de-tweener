@@ -262,6 +262,50 @@ export interface RoundResult {
   pointsBreakdown: string;
 }
 
+/**
+ * Stats individuelles d'un joueur calculees a la fin de la partie comp.
+ * Tous les champs "moy" / "best" / "record" sont calcules uniquement sur les
+ * manches OU le joueur a trouve. Si aucun mot trouve sur la partie : ces
+ * champs sont null (l'UI affiche "—").
+ */
+export interface PlayerGameStats {
+  playerId: string;
+  foundCount: number;          // nb manches ou le joueur a trouve
+  firstCount: number;          // nb manches ou il a ete 1er a trouver
+  avgAttempts: number | null;  // moyenne d'essais sur les manches trouvees
+  bestAttempts: number | null; // min d'essais sur une manche trouvee
+  bestWord: string | null;     // mot associe au bestAttempts (le 1er rencontre en cas d'ex-aequo)
+  avgTimeSec: number | null;   // temps moyen pour trouver (en secondes)
+  recordTimeSec: number | null; // temps min pour trouver (en secondes)
+  recordWord: string | null;   // mot associe au record (le 1er en cas d'ex-aequo)
+}
+
+/**
+ * Highlights collectifs : moments memorables de la partie. Chaque highlight
+ * est optionnel — si la donnee n'existe pas (ex: tous les mots ont ete
+ * trouves -> pas de mot du desespoir), le champ est null et l'UI cache la pill.
+ */
+export interface GameHighlights {
+  hardestWord: { word: string } | null;             // mot que personne n'a trouve
+  fastestRound: { word: string; timeSec: number } | null;  // manche au premier trouveur le plus rapide
+  inExtremis: { word: string; playerId: string; attemptsUsed: number } | null;  // joueur qui a trouve avec le plus d'essais
+  solidarityRound: { word: string; attemptsUsed: number } | null;  // manche ou tout le monde a trouve avec le meme nb d'essais
+  firstFinderKing: { playerId: string; count: number; total: number } | null;  // joueur le plus souvent 1er
+  absoluteRecord: { playerId: string; word: string; timeSec: number } | null;  // temps individuel le plus court
+}
+
+/**
+ * Stats globales de la partie comp, envoyees avec game_ended.
+ */
+export interface GameStats {
+  totalRounds: number;                  // nb de manches jouees
+  totalDurationSec: number;             // duree totale (depuis le debut de la 1ere manche jusqu'a la fin de la derniere)
+  wordsResolved: number;                // nb de manches ou au moins 1 joueur a trouve
+  avgTimeSec: number | null;            // temps moyen global pour trouver (sur tous joueurs / toutes manches trouvees)
+  players: PlayerGameStats[];           // ordre = meme que results final (par totalPoints desc)
+  highlights: GameHighlights;
+}
+
 // ===========================================
 // Messages CLIENT -> SERVEUR
 // ===========================================
@@ -398,6 +442,7 @@ export type ServerMessage =
   | {
       type: "game_ended";
       results: RoundResult[];     // classement final (totalPoints desc)
+      gameStats?: GameStats;      // stats detaillees, presentes uniquement si on a un historique de manches
     };
 
 // ===========================================

@@ -21,8 +21,10 @@ import type {
   ErrorCode,
   GameFormat,
   GameMode,
+  GameStats,
   MotusConfig,
   OpponentState,
+  PlayerGameStats,
   PlayerInfo,
   PlayerRoundStatus,
   RoomPhase,
@@ -110,6 +112,27 @@ export class MotusRoom {
   private compFinishOrder: string[];
   /** Score cumule par joueur sur la partie. pseudo -> points. */
   private compScores: Map<string, number>;
+  /** Timestamp de debut de la manche en cours (Date.now()), pour calcul des temps de trouvaille. */
+  private compRoundStartedAtMs: number | null;
+  /**
+   * Historique de toutes les manches jouees dans la partie courante, pour
+   * generer les stats de fin de partie (gameStats). Push a chaque
+   * endCompRound. Reset au demarrage d'une nouvelle partie comp et a
+   * end_game.
+   */
+  private compRoundHistory: Array<{
+    roundIndex: number;
+    word: string;
+    startedAtMs: number;
+    endedAtMs: number;
+    players: Array<{
+      playerId: string;
+      found: boolean;
+      attemptsUsed: number;
+      finishRank: number | null;
+      foundAtMs: number | null;   // pour calcul du temps (foundAtMs - startedAtMs)
+    }>;
+  }>;
   /**
    * Historique des premieres lettres tirees recemment, pour reduire la
    * repetition d'une meme initiale sur plusieurs manches d'affilee. Fenetre
@@ -137,6 +160,8 @@ export class MotusRoom {
     this.compPlayers = new Map();
     this.compFinishOrder = [];
     this.compScores = new Map();
+    this.compRoundStartedAtMs = null;
+    this.compRoundHistory = [];
     this.recentFirstLetters = [];
 
     // Charge l'identite de l'hote persistee en storage avant de traiter
@@ -587,6 +612,7 @@ export class MotusRoom {
       this.compScores = new Map();
       for (const p of this.players.keys()) this.compScores.set(p, 0);
       this.compRoundIndex = 0;
+      this.compRoundHistory = []; // nouvelle partie : reset des stats accumulees
       this.startCompRound();
       return;
     }
@@ -659,6 +685,7 @@ export class MotusRoom {
 
     const timerSec = this.config.timerSeconds ?? 90;
     this.compDeadlineTs = Date.now() + timerSec * 1000;
+    this.compRoundStartedAtMs = Date.now();
     this.phase = "in_round";
 
     // Arme l'alarme pour la fin de manche au timer
@@ -855,6 +882,37 @@ export class MotusRoom {
     // Tri par score cumule decroissant
     results.sort((a, b) => b.totalPoints - a.totalPoints);
 
+    // Push une entree dans l'historique de la partie pour le calcul des
+    // stats finales. On capture le state par joueur de cette manche (found,
+    // attemptsUsed, finishRank, foundAtMs) ainsi que le timing de la manche.
+    const startedAtMs = this.compRoundStartedAtMs ?? Date.now();
+    const endedAtMs = Date.now();
+    const historyPlayers: Array<{
+      playerId: string;
+      found: boolean;
+      attemptsUsed: number;
+      finishRank: number | null;
+      foundAtMs: number | null;
+    }> = [];
+    for (const [pseudo, st] of this.compPlayers) {
+      const found = st.status === "found";
+      const rank = found ? this.compFinishOrder.indexOf(pseudo) + 1 : null;
+      historyPlayers.push({
+        playerId: pseudo,
+        found,
+        attemptsUsed: st.attempts.length,
+        finishRank: rank,
+        foundAtMs: st.foundAtMs,
+      });
+    }
+    this.compRoundHistory.push({
+      roundIndex: this.compRoundIndex,
+      word,
+      startedAtMs,
+      endedAtMs,
+      players: historyPlayers,
+    });
+
     // La partie est-elle finie ?
     const isLast = this.isCompGameOver();
     const totalRounds =
@@ -878,6 +936,237 @@ export class MotusRoom {
       // La phase reste "between_rounds" jusque-la.
       this.phase = "between_rounds";
     }
+  }
+  /**
+   * Calcule les stats finales de la partie comp a partir de l'historique des
+   * manches. Retourne null si aucune manche jouee. Les highlights sont
+   * optionnels : null si la donnee n'a pas de sens (ex: hardestWord = null
+   * si tous les mots ont ete trouves par au moins un joueur).
+   *
+   * L'argument `finalResults` sert UNIQUEMENT a ordonner playerStats dans le
+   * meme ordre que le classement final (= meme ordre que dans la table du
+   * podium), pour que le frontend puisse mapper ligne a ligne sans relogique.
+   */
+  private computeGameStats(finalResults: RoundResult[]): GameStats | null {
+    const history = this.compRoundHistory;
+    if (history.length === 0) return null;
+
+    // Collecte par joueur, sur toute la partie
+    type Acc = {
+      foundCount: number;
+      firstCount: number;
+      attemptsSum: number;
+      timeSumMs: number;
+      bestAttempts: number | null;
+      bestWord: string | null;
+      recordTimeMs: number | null;
+      recordWord: string | null;
+    };
+    const accByPlayer = new Map<string, Acc>();
+
+    // Aggregats globaux pour highlights
+    let absoluteRecordTimeMs: number | null = null;
+    let absoluteRecordPlayer: string | null = null;
+    let absoluteRecordWord: string | null = null;
+    let fastestRoundTimeMs: number | null = null;
+    let fastestRoundWord: string | null = null;
+    let inExtremisAttempts = 0;
+    let inExtremisPlayer: string | null = null;
+    let inExtremisWord: string | null = null;
+    let hardestWord: string | null = null;
+    let solidarityWord: string | null = null;
+    let solidarityAttempts = 0;
+    let wordsResolved = 0;
+    let globalTimeSumMs = 0;
+    let globalFoundCount = 0;
+
+    for (const round of history) {
+      // Premier trouveur de la manche (finishRank === 1)
+      let firstFinderTimeMs: number | null = null;
+
+      // Solidarity check : tous trouvent et meme attemptsUsed
+      let allFound = round.players.length > 0;
+      const allAttempts: number[] = [];
+      let anyFound = false;
+
+      for (const p of round.players) {
+        let acc = accByPlayer.get(p.playerId);
+        if (!acc) {
+          acc = {
+            foundCount: 0,
+            firstCount: 0,
+            attemptsSum: 0,
+            timeSumMs: 0,
+            bestAttempts: null,
+            bestWord: null,
+            recordTimeMs: null,
+            recordWord: null,
+          };
+          accByPlayer.set(p.playerId, acc);
+        }
+        if (p.found) {
+          anyFound = true;
+          acc.foundCount += 1;
+          acc.attemptsSum += p.attemptsUsed;
+          if (acc.bestAttempts === null || p.attemptsUsed < acc.bestAttempts) {
+            acc.bestAttempts = p.attemptsUsed;
+            acc.bestWord = round.word;
+          }
+          if (p.foundAtMs !== null) {
+            const t = p.foundAtMs - round.startedAtMs;
+            if (t >= 0) {
+              acc.timeSumMs += t;
+              if (acc.recordTimeMs === null || t < acc.recordTimeMs) {
+                acc.recordTimeMs = t;
+                acc.recordWord = round.word;
+              }
+              globalTimeSumMs += t;
+              globalFoundCount += 1;
+              if (absoluteRecordTimeMs === null || t < absoluteRecordTimeMs) {
+                absoluteRecordTimeMs = t;
+                absoluteRecordPlayer = p.playerId;
+                absoluteRecordWord = round.word;
+              }
+              if (p.finishRank === 1) {
+                firstFinderTimeMs = t;
+              }
+            }
+          }
+          if (p.finishRank === 1) {
+            acc.firstCount += 1;
+          }
+          // In extremis : joueur qui a trouve avec le plus d'essais sur l'ensemble
+          if (p.attemptsUsed > inExtremisAttempts) {
+            inExtremisAttempts = p.attemptsUsed;
+            inExtremisPlayer = p.playerId;
+            inExtremisWord = round.word;
+          }
+          allAttempts.push(p.attemptsUsed);
+        } else {
+          allFound = false;
+        }
+      }
+
+      if (anyFound) wordsResolved += 1;
+
+      // Mot du desespoir : on prend le PREMIER mot que personne n'a trouve
+      // (si plusieurs, on garde le 1er rencontre — souvent le plus marquant
+      // pour les joueurs qui se souviennent du debut de partie).
+      if (!anyFound && hardestWord === null && round.players.length > 0) {
+        hardestWord = round.word;
+      }
+
+      // Manche eclair : la manche ou le PREMIER a ete le plus rapide
+      if (firstFinderTimeMs !== null) {
+        if (fastestRoundTimeMs === null || firstFinderTimeMs < fastestRoundTimeMs) {
+          fastestRoundTimeMs = firstFinderTimeMs;
+          fastestRoundWord = round.word;
+        }
+      }
+
+      // Manche solidaire : tout le monde a trouve avec le meme attemptsUsed
+      if (allFound && allAttempts.length >= 2) {
+        const same = allAttempts.every((v) => v === allAttempts[0]);
+        if (same && solidarityWord === null) {
+          solidarityWord = round.word;
+          solidarityAttempts = allAttempts[0];
+        }
+      }
+    }
+
+    // Roi du 1er : joueur avec le firstCount le plus eleve (au moins 1).
+    // Tie-break par ordre du classement final (1er entre dans le ranking arrive en premier).
+    let firstKingPlayer: string | null = null;
+    let firstKingCount = 0;
+    for (const r of finalResults) {
+      const acc = accByPlayer.get(r.playerId);
+      if (!acc) continue;
+      if (acc.firstCount > firstKingCount) {
+        firstKingCount = acc.firstCount;
+        firstKingPlayer = r.playerId;
+      }
+    }
+
+    // Construit playerStats dans l'ordre du classement final
+    const players: PlayerGameStats[] = finalResults.map((r) => {
+      const acc = accByPlayer.get(r.playerId);
+      if (!acc) {
+        return {
+          playerId: r.playerId,
+          foundCount: 0,
+          firstCount: 0,
+          avgAttempts: null,
+          bestAttempts: null,
+          bestWord: null,
+          avgTimeSec: null,
+          recordTimeSec: null,
+          recordWord: null,
+        };
+      }
+      const avgAttempts = acc.foundCount > 0 ? acc.attemptsSum / acc.foundCount : null;
+      // avgTimeSec uniquement sur les manches ou on a un foundAtMs valide
+      // (peut etre < acc.foundCount si foundAtMs manquant, cas pathologique).
+      const avgTimeSec = acc.foundCount > 0 && acc.timeSumMs > 0
+        ? acc.timeSumMs / acc.foundCount / 1000
+        : null;
+      return {
+        playerId: r.playerId,
+        foundCount: acc.foundCount,
+        firstCount: acc.firstCount,
+        avgAttempts,
+        bestAttempts: acc.bestAttempts,
+        bestWord: acc.bestWord,
+        avgTimeSec,
+        recordTimeSec: acc.recordTimeMs !== null ? acc.recordTimeMs / 1000 : null,
+        recordWord: acc.recordWord,
+      };
+    });
+
+    // Duree totale = du debut de la 1ere manche a la fin de la derniere.
+    const totalDurationSec = Math.max(
+      0,
+      (history[history.length - 1].endedAtMs - history[0].startedAtMs) / 1000
+    );
+
+    const avgTimeSec = globalFoundCount > 0 ? globalTimeSumMs / globalFoundCount / 1000 : null;
+
+    return {
+      totalRounds: history.length,
+      totalDurationSec,
+      wordsResolved,
+      avgTimeSec,
+      players,
+      highlights: {
+        hardestWord: hardestWord ? { word: hardestWord } : null,
+        fastestRound:
+          fastestRoundWord && fastestRoundTimeMs !== null
+            ? { word: fastestRoundWord, timeSec: fastestRoundTimeMs / 1000 }
+            : null,
+        inExtremis:
+          inExtremisPlayer && inExtremisWord
+            ? {
+                word: inExtremisWord,
+                playerId: inExtremisPlayer,
+                attemptsUsed: inExtremisAttempts,
+              }
+            : null,
+        solidarityRound: solidarityWord
+          ? { word: solidarityWord, attemptsUsed: solidarityAttempts }
+          : null,
+        firstFinderKing:
+          firstKingPlayer && firstKingCount > 0
+            ? { playerId: firstKingPlayer, count: firstKingCount, total: history.length }
+            : null,
+        absoluteRecord:
+          absoluteRecordPlayer && absoluteRecordWord && absoluteRecordTimeMs !== null
+            ? {
+                playerId: absoluteRecordPlayer,
+                word: absoluteRecordWord,
+                timeSec: absoluteRecordTimeMs / 1000,
+              }
+            : null,
+      },
+    };
   }
 
   /**
@@ -943,7 +1232,12 @@ export class MotusRoom {
     }
     finalResults.sort((a, b) => b.totalPoints - a.totalPoints);
     this.phase = "finished";
-    this.broadcast({ type: "game_ended", results: finalResults });
+    const gameStats = this.computeGameStats(finalResults);
+    this.broadcast({
+      type: "game_ended",
+      results: finalResults,
+      ...(gameStats ? { gameStats } : {}),
+    });
   }
 
   /**
@@ -1091,7 +1385,12 @@ export class MotusRoom {
         });
       }
       finalResults.sort((a, b) => b.totalPoints - a.totalPoints);
-      this.broadcast({ type: "game_ended", results: finalResults });
+      const gameStats = this.computeGameStats(finalResults);
+      this.broadcast({
+        type: "game_ended",
+        results: finalResults,
+        ...(gameStats ? { gameStats } : {}),
+      });
     }
 
     // Cleanup etat comp + alarme
@@ -1102,6 +1401,8 @@ export class MotusRoom {
     this.compPlayers = new Map();
     this.compFinishOrder = [];
     this.compScores = new Map();
+    this.compRoundStartedAtMs = null;
+    this.compRoundHistory = [];
 
     // Retour au lobby pour une nouvelle partie
     this.phase = "lobby";

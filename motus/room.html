@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Motus — Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=29">
+  <link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
   <header class="app-header">
@@ -308,9 +308,30 @@
       </div>
       <table class="comp-scoreboard" id="comp-final-table"></table>
       <div class="between-actions">
+        <button class="btn btn-secondary btn-block" id="comp-show-stats-btn" style="display: none;">📊 Voir les stats détaillées</button>
         <button class="btn btn-primary btn-block" id="comp-back-lobby-btn">Retour au salon</button>
       </div>
       <p class="info-line" id="comp-final-waiting" style="display: none;"></p>
+    </div>
+
+    <!-- MODE COMP : ECRAN STATS DETAILLEES -->
+    <div class="card view" id="view-comp-stats" style="display: none;">
+      <h2>📊 Stats détaillées</h2>
+      <p class="comp-stats-sub" id="comp-stats-sub"></p>
+
+      <p class="comp-stats-section-h">Classement détaillé</p>
+      <div class="comp-stats-table-wrap">
+        <table class="comp-stats-table" id="comp-stats-table"></table>
+      </div>
+
+      <div class="comp-stats-totals" id="comp-stats-totals"></div>
+
+      <p class="comp-stats-section-h">Moments de la partie</p>
+      <div class="comp-stats-highlights" id="comp-stats-highlights"></div>
+
+      <div class="between-actions">
+        <button class="btn btn-secondary btn-block" id="comp-stats-back-btn">← Retour au podium</button>
+      </div>
     </div>
 
   </main>
@@ -323,6 +344,6 @@
     <a href="../petitbac/mentions.html">Mentions légales</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=28"></script>
+  <script type="module" src="js/room.js?v=29"></script>
 </body>
 </html>
