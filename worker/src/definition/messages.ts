@@ -33,11 +33,11 @@ export const DEF_CONFIG = {
   MIN_ROUNDS: 1,
   MAX_ROUNDS: 30, // 0 = illimite
   MAX_DEFINITION_LEN: 280, // longueur max d'une proposition (caracteres)
-  MIN_POINTS_PER_ROUND: 10,
-  MAX_POINTS_PER_ROUND: 1000,
-  DEFAULT_POINTS_PER_ROUND: 100,
-  // Valeurs de vote autorisees (paliers de 0.25)
-  VOTE_VALUES: [0, 0.25, 0.5, 0.75, 1] as const,
+  /**
+   * Bareme fixe : le score d'une manche = round(agregat(0..1) × POINTS_PER_ROUND).
+   * Avec 10, une moyenne de 0.7 rapporte 7 points.
+   */
+  POINTS_PER_ROUND: 10,
   DEFAULT_AGGREGATION: "trimmed" as Aggregation,
 } as const;
 
@@ -62,12 +62,6 @@ export interface GameConfig {
   timerSeconds: number;
   /** Methode d'agregation des votes. */
   aggregation: Aggregation;
-  /**
-   * Bareme : le score d'une manche pour un auteur vaut
-   *   round(agregat(0..1) × maxPointsPerRound).
-   * Une note moyenne de 0.75 avec maxPointsPerRound = 100 donne donc 75 points.
-   */
-  maxPointsPerRound: number;
 }
 
 // ===========================================

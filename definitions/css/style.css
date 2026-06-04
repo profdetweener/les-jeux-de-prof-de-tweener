@@ -1345,7 +1345,6 @@ input.code-input::placeholder {
 .vote-matrix {
   border-collapse: collapse;
   width: 100%;
-  min-width: 520px;
   font-size: 14px;
 }
 .vote-matrix th, .vote-matrix td {
@@ -1353,6 +1352,8 @@ input.code-input::placeholder {
   padding: 8px 10px;
   vertical-align: top;
 }
+/* En-tete uniforme : pas de distinction visuelle pour MA colonne, le slider
+   en dessous est deja un indicateur suffisant. */
 .vote-matrix thead th {
   background: var(--bleu-nuit);
   color: var(--beige);
@@ -1365,20 +1366,20 @@ input.code-input::placeholder {
 }
 .vote-matrix thead th.col-author {
   text-align: left;
-  min-width: 220px;
   position: sticky;
   left: 0;
   z-index: 2;
 }
-.vote-matrix th.voter-me { background: var(--bleu-accent); }
+/* Premiere colonne (pseudo + definition) : largeur dynamique, fond blanc */
 .vote-matrix .author-cell {
-  background: var(--beige);
+  background: var(--blanc);
   position: sticky;
   left: 0;
   z-index: 1;
-  min-width: 220px;
+  min-width: 140px;
+  max-width: 280px;
 }
-.vote-matrix tr.is-self .author-cell { background: #fff7e6; }
+.vote-matrix tr.is-self .author-cell { background: #fff8ec; }
 .vote-matrix .author-name { font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .vote-matrix .author-def {
   display: block;
@@ -1390,60 +1391,75 @@ input.code-input::placeholder {
 }
 .vote-matrix .author-def.empty { font-style: italic; opacity: 0.6; }
 
-/* Cellule de vote (lecture seule : la note d'un autre votant) */
-.vote-cell { text-align: center; min-width: 64px; }
-.vote-cell.diagonal {
-  background: repeating-linear-gradient(45deg, #efe7d7, #efe7d7 6px, #e4d9c2 6px, #e4d9c2 12px);
-}
-.vote-readonly {
-  display: inline-block;
-  min-width: 34px;
-  padding: 3px 6px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--blanc);
-}
-.vote-readonly.pending { background: var(--gris-clair); color: var(--gris-texte); font-weight: 500; }
-
-/* Cellule éditable (ma colonne) : 5 mini-boutons 0 ¼ ½ ¾ 1 */
-.vote-cell.editable { background: #f3f7fc; }
-.rating-group {
-  display: inline-flex;
-  gap: 3px;
-}
-.rating-btn {
-  border: 1.5px solid var(--bleu-accent);
+/* Cellule de vote : fond rempli par la couleur du vote (pastel) via JS.
+   Pas de chiffre affiche : la couleur EST l'information. */
+.vote-cell {
+  text-align: center;
+  min-width: 80px;
   background: var(--blanc);
-  color: var(--bleu-nuit);
-  border-radius: 6px;
-  padding: 4px 6px;
-  min-width: 30px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  line-height: 1.1;
-  transition: background 0.12s, color 0.12s, transform 0.05s;
+  transition: background 0.15s ease;
 }
-.rating-btn:hover { background: #e3edf8; }
-.rating-btn:active { transform: translateY(1px); }
-.rating-btn.active { background: var(--bleu-nuit); color: var(--beige); border-color: var(--bleu-nuit); }
+.vote-cell.pending {
+  background: #fafafa;
+}
+/* Diagonale (auto-vote interdit) : rayures grises discretes */
+.vote-cell.diagonal {
+  background: repeating-linear-gradient(45deg, #ececec, #ececec 6px, #f6f6f6 6px, #f6f6f6 12px);
+}
+
+/* Cellule editable : on garde un fond blanc tant que rien n'est vote,
+   puis JS applique la couleur du vote. */
+.vote-cell.editable {
+  padding: 10px 8px;
+}
+
+/* Slider de vote (range input) */
+.vote-slider {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-width: 70px;
+  max-width: 130px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+    hsl(0, 70%, 78%),
+    hsl(60, 70%, 78%),
+    hsl(120, 60%, 75%));
+  outline: none;
+  cursor: pointer;
+  margin: 4px 0;
+  /* Quand l'utilisateur n'a pas encore vote, le slider est legerement attenue */
+}
+.vote-slider.vote-slider-pristine {
+  opacity: 0.55;
+}
+.vote-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--blanc);
+  border: 2px solid var(--bleu-nuit);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.vote-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--blanc);
+  border: 2px solid var(--bleu-nuit);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.vote-slider:focus-visible {
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.35);
+}
 
 .vote-progress { margin: 14px 0 4px; font-size: 13px; color: var(--gris-texte); }
-
-/* --- Légende des couleurs de note --- */
-.vote-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--gris-texte);
-  margin-top: 8px;
-}
-.vote-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.vote-legend .chip {
-  width: 14px; height: 14px; border-radius: 4px; display: inline-block;
-}
 
 /* --- Tableau des scores de manche (scoring) --- */
 .def-score-line .def-text {
@@ -1477,6 +1493,7 @@ input.code-input::placeholder {
 /* --- Responsive : sur petit écran, la matrice scrolle horizontalement --- */
 @media (max-width: 640px) {
   .word-banner .word-value { font-size: 24px; }
-  .vote-matrix { font-size: 13px; }
-  .vote-matrix thead th.col-author, .vote-matrix .author-cell { min-width: 150px; }
+  .vote-matrix { font-size: 13px; min-width: 480px; }
+  .vote-matrix thead th.col-author, .vote-matrix .author-cell { min-width: 110px; }
+  .vote-slider { min-width: 60px; max-width: 100px; }
 }

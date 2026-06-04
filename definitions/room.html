@@ -71,14 +71,6 @@
           <p class="info-line" id="aggregation-hint" style="font-size: 12px; margin-top: 4px;"></p>
         </div>
 
-        <div class="form-group">
-          <label for="points-input">Points max par manche</label>
-          <input type="number" id="points-input" value="100" min="10" max="1000" step="10">
-          <p class="info-line" style="font-size: 12px; margin-top: 4px;">
-            Le score d'une manche = note moyenne (0 à 1) × ce nombre. Avec 100, une note moyenne de 0,75 rapporte 75 points.
-          </p>
-        </div>
-
         <button class="btn btn-primary btn-block" id="btn-start-game">
           🚀 Démarrer la partie
         </button>
@@ -101,15 +93,9 @@
             <div class="readonly-value" id="guest-timer">—</div>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="sub-label">Calcul du score</label>
-            <div class="readonly-value" id="guest-aggregation">—</div>
-          </div>
-          <div class="form-group">
-            <label class="sub-label">Points max / manche</label>
-            <div class="readonly-value" id="guest-points">—</div>
-          </div>
+        <div class="form-group">
+          <label class="sub-label">Calcul du score</label>
+          <div class="readonly-value" id="guest-aggregation">—</div>
         </div>
         <p class="info-line" style="text-align: center; font-style: italic;">
           ⏳ En attente du lancement de la partie par l'hôte…
@@ -181,13 +167,8 @@
       </div>
 
       <p class="info-line" style="margin-bottom: 8px;">
-        🗳️ Note la définition de chaque adversaire de 0 à 1. Tu ne te notes pas toi-même (case barrée). Les votes de chacun sont visibles en direct.
+        Note la définition de chaque adversaire de 0 à 1. Les votes de chacun sont visibles en direct.
       </p>
-      <div class="vote-legend">
-        <span><span class="chip" style="background: hsl(0,62%,42%);"></span> 0 — à côté</span>
-        <span><span class="chip" style="background: hsl(60,62%,42%);"></span> ½ — pas mal</span>
-        <span><span class="chip" style="background: hsl(120,62%,42%);"></span> 1 — excellente</span>
-      </div>
 
       <div class="vote-progress" id="vote-progress"></div>
 

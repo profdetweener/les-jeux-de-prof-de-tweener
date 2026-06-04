@@ -3,7 +3,7 @@
  *
  * Le score d'un AUTEUR pour une manche depend des votes que LES AUTRES ont
  * donnes a sa proposition. On agrege ces votes (0..1) selon la methode choisie,
- * puis on multiplie par maxPointsPerRound.
+ * puis on multiplie par DEF_CONFIG.POINTS_PER_ROUND (= 10, fixe).
  *
  * L'agregation est aussi le rempart anti-malveillance : la moyenne tronquee et
  * la mediane neutralisent un saboteur isole qui mettrait 0 (ou 1) a tout le
@@ -14,14 +14,12 @@ import type { Aggregation, GameConfig, VoteMatrix } from "./messages";
 import { DEF_CONFIG } from "./messages";
 
 /**
- * Une valeur de vote est-elle autorisee ? (0, 0.25, 0.5, 0.75, 1)
- * On tolere une petite erreur d'arrondi flottant.
+ * Une valeur de vote est-elle autorisee ?
+ * On accepte tout nombre fini dans [0, 1] (slider continu cote client).
  */
 export function isValidVoteValue(v: unknown): v is number {
   if (typeof v !== "number" || !Number.isFinite(v)) return false;
-  return (DEF_CONFIG.VOTE_VALUES as readonly number[]).some(
-    (allowed) => Math.abs(allowed - v) < 1e-9
-  );
+  return v >= 0 && v <= 1;
 }
 
 /**
@@ -88,7 +86,7 @@ export function computeRoundScores(
     }
     const agg = aggregate(received, config.aggregation);
     aggregateByAuthor[author] = agg;
-    scoreByPlayer[author] = Math.round(agg * config.maxPointsPerRound);
+    scoreByPlayer[author] = Math.round(agg * DEF_CONFIG.POINTS_PER_ROUND);
   }
 
   return { aggregateByAuthor, scoreByPlayer };
@@ -129,14 +127,6 @@ export function validateGameConfig(
     c.aggregation !== "median"
   ) {
     return { ok: false, error: "Méthode d'agrégation invalide." };
-  }
-  if (
-    typeof c.maxPointsPerRound !== "number" ||
-    !Number.isInteger(c.maxPointsPerRound) ||
-    c.maxPointsPerRound < DEF_CONFIG.MIN_POINTS_PER_ROUND ||
-    c.maxPointsPerRound > DEF_CONFIG.MAX_POINTS_PER_ROUND
-  ) {
-    return { ok: false, error: "Points par manche invalides." };
   }
   return { ok: true };
 }

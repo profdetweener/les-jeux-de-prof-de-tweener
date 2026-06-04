@@ -5,14 +5,15 @@
  *   - LIGNES   = auteurs (pseudo + leur définition proposée)
  *   - COLONNES = votants
  *   - cellule (auteur, votant) = la note que `votant` a donnée à `auteur`
- *   - diagonale (auteur == votant) : barrée (on ne se note pas soi-même)
- *   - MA colonne est éditable (5 boutons 0 ¼ ½ ¾ 1) ; les autres colonnes sont
+ *   - diagonale (auteur == votant) : grisée (on ne se note pas soi-même)
+ *   - MA colonne est éditable (slider 0..1) ; les autres colonnes sont
  *     en lecture seule mais se mettent à jour en direct.
+ *   - Le vote se lit a la COULEUR de la cellule (pastel rouge -> vert).
  *
  * La vraie définition (révélée) est affichée au-dessus comme référence.
  */
 
-import { VOTE_VALUES, VOTE_LABELS, voteColor, formatVote } from "./constants.js";
+import { VOTE_STEP, voteCellBg } from "./constants.js";
 
 export function initVotingView(state, conn) {
   const roundNumberEl = document.getElementById("vo-round-number");
@@ -144,7 +145,8 @@ export function initVotingView(state, conn) {
 
   function renderCell(td, author, voter) {
     td.innerHTML = "";
-    td.classList.remove("diagonal", "editable");
+    td.classList.remove("diagonal", "editable", "has-vote", "pending");
+    td.style.background = "";
 
     // Diagonale : on ne vote pas pour soi-même
     if (author === voter) {
@@ -154,43 +156,54 @@ export function initVotingView(state, conn) {
     }
 
     const current = votes[voter]?.[author];
+    const hasVote = current !== undefined;
 
     if (voter === state.myPseudo) {
-      // Cellule éditable : 5 mini-boutons
+      // Cellule editable : slider 0..1
       td.classList.add("editable");
-      const group = document.createElement("div");
-      group.className = "rating-group";
-      for (const v of VOTE_VALUES) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "rating-btn";
-        btn.textContent = VOTE_LABELS[v];
-        btn.title = `Note ${v}`;
-        if (current !== undefined && Math.abs(current - v) < 1e-9) {
-          btn.classList.add("active");
-        }
-        btn.addEventListener("click", () => {
-          conn.send({ type: "set_vote", author, value: v });
-        });
-        group.appendChild(btn);
+      if (hasVote) {
+        td.classList.add("has-vote");
+        td.style.background = voteCellBg(current);
       }
-      td.appendChild(group);
+
+      const slider = document.createElement("input");
+      slider.type = "range";
+      slider.min = "0";
+      slider.max = "1";
+      slider.step = String(VOTE_STEP);
+      slider.value = hasVote ? String(current) : "0.5";
+      slider.className = "vote-slider";
+      if (!hasVote) slider.classList.add("vote-slider-pristine");
+      slider.setAttribute("aria-label", `Note pour ${author}`);
+
+      // Feedback visuel en direct pendant le drag (sans envoyer au serveur)
+      slider.addEventListener("input", () => {
+        const v = Math.max(0, Math.min(1, Number(slider.value)));
+        td.classList.add("has-vote");
+        td.classList.remove("pending");
+        slider.classList.remove("vote-slider-pristine");
+        td.style.background = voteCellBg(v);
+      });
+      // Envoi au serveur quand l'utilisateur relâche
+      slider.addEventListener("change", () => {
+        const v = Math.max(0, Math.min(1, Number(slider.value)));
+        // Arrondi a 2 decimales pour eviter les flottants laids
+        const rounded = Math.round(v * 100) / 100;
+        conn.send({ type: "set_vote", author, value: rounded });
+      });
+      td.appendChild(slider);
       return;
     }
 
-    // Cellule lecture seule : la note d'un autre votant
-    const pill = document.createElement("span");
-    pill.className = "vote-readonly";
-    if (current === undefined) {
-      pill.classList.add("pending");
-      pill.textContent = "·";
-      pill.title = "Pas encore voté";
+    // Cellule lecture seule : la note d'un autre votant -> couleur du fond
+    if (hasVote) {
+      td.classList.add("has-vote");
+      td.style.background = voteCellBg(current);
+      td.title = `Note : ${Math.round(current * 100)} %`;
     } else {
-      pill.textContent = formatVote(current);
-      pill.style.background = voteColor(current);
-      pill.title = `Note : ${current}`;
+      td.classList.add("pending");
+      td.title = "Pas encore voté";
     }
-    td.appendChild(pill);
   }
 
   function refreshAllCells() {

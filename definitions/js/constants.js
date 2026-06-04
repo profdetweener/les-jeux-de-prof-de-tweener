@@ -10,20 +10,20 @@ export const LIMITS = {
   MIN_ROUNDS: 1,
   MAX_ROUNDS: 30,
   MAX_DEFINITION_LEN: 280,
-  MIN_POINTS_PER_ROUND: 10,
-  MAX_POINTS_PER_ROUND: 1000,
-  DEFAULT_POINTS_PER_ROUND: 100,
 };
 
-// Valeurs de vote autorisees + libelles courts pour les boutons
-export const VOTE_VALUES = [0, 0.25, 0.5, 0.75, 1];
-export const VOTE_LABELS = {
-  0: "0",
-  0.25: "¼",
-  0.5: "½",
-  0.75: "¾",
-  1: "1",
-};
+/**
+ * Bareme fixe : le score d'une manche pour un auteur vaut
+ *   round(agregat(0..1) × POINTS_PER_ROUND).
+ * Une moyenne de 0.7 donne donc 7 points.
+ */
+export const POINTS_PER_ROUND = 10;
+
+/**
+ * Granularite du slider de vote (cote client). Le serveur accepte n'importe
+ * quelle valeur dans [0, 1] et arrondit a 2 decimales.
+ */
+export const VOTE_STEP = 0.05;
 
 export const AGGREGATION_LABELS = {
   trimmed: "Moyenne tronquée (recommandé)",
@@ -39,22 +39,28 @@ export const AGGREGATION_HINTS = {
 };
 
 /**
- * Couleur d'une note (0..1) : échelle rouge -> jaune -> vert.
- * Sert pour les pastilles de vote (lecture seule) et les badges d'agrégat.
+ * Couleur SATUREE d'une note (0..1) : echelle rouge -> jaune -> vert.
+ * Sert pour les badges d'agregat dans la vue Scores (texte blanc dessus).
  */
 export function voteColor(value) {
   const v = Math.max(0, Math.min(1, Number(value) || 0));
-  // 0 -> rouge (0deg), 0.5 -> jaune (~50deg), 1 -> vert (~120deg)
+  // 0 -> rouge (0deg), 0.5 -> jaune (~60deg), 1 -> vert (~120deg)
   const hue = Math.round(v * 120);
   return `hsl(${hue}, 62%, 42%)`;
 }
 
-/** Formate une note 0..1 de façon compacte (0, ¼, ½, ¾, 1 si pile, sinon 0.62). */
-export function formatVote(value) {
-  if (value === null || value === undefined) return "·";
-  const labels = VOTE_LABELS;
-  if (Object.prototype.hasOwnProperty.call(labels, value)) return labels[value];
-  return (Math.round(value * 100) / 100).toString();
+/**
+ * Couleur PASTEL d'une note (0..1) : pour remplir le fond des cellules de la
+ * matrice de vote. Pensee pour avoir une lecture immediate, sans texte.
+ */
+export function voteCellBg(value) {
+  const v = Math.max(0, Math.min(1, Number(value) || 0));
+  const hue = Math.round(v * 120);
+  // Saturation moderee + clarte haute = pastel. La clarte baisse legerement
+  // au milieu pour eviter un jaune trop delave.
+  const sat = 70;
+  const light = 80 - Math.abs(v - 0.5) * 6; // 80 -> 77 au centre -> 80
+  return `hsl(${hue}, ${sat}%, ${light}%)`;
 }
 
 /** Formate un agrégat 0..1 en pourcentage lisible (ex. "0.75" -> "75 %"). */

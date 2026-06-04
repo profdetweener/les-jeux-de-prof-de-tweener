@@ -19,14 +19,12 @@ export function initLobbyView(state, conn, roomCode) {
   const timerInput = document.getElementById("timer-input");
   const aggregationInput = document.getElementById("aggregation-input");
   const aggregationHint = document.getElementById("aggregation-hint");
-  const pointsInput = document.getElementById("points-input");
   const startBtn = document.getElementById("btn-start-game");
 
   // Affichage invité
   const guestRounds = document.getElementById("guest-rounds");
   const guestTimer = document.getElementById("guest-timer");
   const guestAggregation = document.getElementById("guest-aggregation");
-  const guestPoints = document.getElementById("guest-points");
 
   let configPushTimer = null;
 
@@ -113,18 +111,11 @@ export function initLobbyView(state, conn, roomCode) {
     if (!Number.isFinite(timerSeconds)) timerSeconds = LIMITS.DEFAULT_TIMER_SEC;
     timerSeconds = Math.max(LIMITS.MIN_TIMER_SEC, Math.min(LIMITS.MAX_TIMER_SEC, timerSeconds));
 
-    let maxPointsPerRound = parseInt(pointsInput.value, 10);
-    if (!Number.isFinite(maxPointsPerRound)) maxPointsPerRound = LIMITS.DEFAULT_POINTS_PER_ROUND;
-    maxPointsPerRound = Math.max(
-      LIMITS.MIN_POINTS_PER_ROUND,
-      Math.min(LIMITS.MAX_POINTS_PER_ROUND, maxPointsPerRound)
-    );
-
     const aggregation = ["trimmed", "mean", "median"].includes(aggregationInput.value)
       ? aggregationInput.value
       : "trimmed";
 
-    return { totalRounds, timerSeconds, aggregation, maxPointsPerRound };
+    return { totalRounds, timerSeconds, aggregation };
   }
 
   function updateAggregationHint() {
@@ -160,7 +151,6 @@ export function initLobbyView(state, conn, roomCode) {
     }
     timerInput.value = config.timerSeconds;
     aggregationInput.value = config.aggregation;
-    pointsInput.value = config.maxPointsPerRound;
     updateAggregationHint();
   };
 
@@ -170,7 +160,6 @@ export function initLobbyView(state, conn, roomCode) {
     guestRounds.textContent = config.totalRounds === 0 ? "Illimité" : String(config.totalRounds);
     guestTimer.textContent = `${config.timerSeconds} sec`;
     guestAggregation.textContent = AGGREGATION_LABELS[config.aggregation] ?? config.aggregation;
-    guestPoints.textContent = String(config.maxPointsPerRound);
   };
 
   // --- Écouteurs sur les inputs hôte ---
@@ -178,7 +167,7 @@ export function initLobbyView(state, conn, roomCode) {
     roundsInput.disabled = roundsUnlimitedInput.checked;
     scheduleConfigPush();
   });
-  for (const el of [roundsInput, timerInput, pointsInput]) {
+  for (const el of [roundsInput, timerInput]) {
     el.addEventListener("input", scheduleConfigPush);
   }
   aggregationInput.addEventListener("change", scheduleConfigPush);
