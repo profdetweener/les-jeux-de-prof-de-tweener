@@ -23,10 +23,12 @@ import { ROOM_CONFIG } from "./shared/types";
 import { handleChillRoute } from "./motus/chill";
 export { PetitBacRoom } from "./petitbac/room";
 export { MotusRoom } from "./motus/room";
+export { DefinitionRoom } from "./definition/room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
   MOTUS_ROOMS: DurableObjectNamespace;
+  DEFINITION_ROOMS: DurableObjectNamespace;
   // Secret HMAC pour le mode chill stateless. Fallback dev "dev-secret-do-not-use-in-prod".
   // En prod, definir via : npx wrangler secret put CHILL_SECRET
   CHILL_SECRET?: string;
@@ -164,7 +166,7 @@ export default {
       return jsonResponse({
         status: "ok",
         service: "les-jeux-de-prof-de-tweener",
-        games: ["petitbac", "motus"],
+        games: ["petitbac", "motus", "definitions"],
         timestamp: new Date().toISOString(),
       });
     }
@@ -202,6 +204,15 @@ export default {
     if (url.pathname.startsWith("/motus/")) {
       const subPath = url.pathname.slice("/motus".length);
       const res = await handleGameRoutes(request, subPath, env.MOTUS_ROOMS);
+      if (res) return res;
+    }
+
+    if (url.pathname.startsWith("/definitions/") || url.pathname.startsWith("/definition/")) {
+      // Tolere les deux prefixes (/definitions et /definition) pour eviter
+      // un bug si le slug frontend differe d'une lettre.
+      const prefix = url.pathname.startsWith("/definitions/") ? "/definitions" : "/definition";
+      const subPath = url.pathname.slice(prefix.length);
+      const res = await handleGameRoutes(request, subPath, env.DEFINITION_ROOMS);
       if (res) return res;
     }
 

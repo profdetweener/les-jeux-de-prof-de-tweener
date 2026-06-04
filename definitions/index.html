@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Définitions multijoueur</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
+    <h1>📖 Définitions multijoueur</h1>
+    <span class="header-info" id="server-status">connexion au serveur…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Bienvenue !</h2>
+      <p class="subtitle" id="subtitle-create">Choisis un pseudo et crée une nouvelle partie.</p>
+      <p class="subtitle" id="subtitle-join" style="display: none;">
+        Tu es invité à rejoindre la partie <strong id="join-code-label">—</strong>. Choisis ton pseudo pour entrer.
+      </p>
+
+      <div class="resume-banner" id="resume-banner">
+        <div class="resume-banner-text">
+          <strong>Tu étais dans une partie</strong>
+          <span>Code <span id="resume-banner-code">—</span> · Pseudo <span id="resume-banner-pseudo">—</span></span>
+        </div>
+        <div class="resume-banner-actions">
+          <button class="btn btn-primary btn-sm" id="resume-banner-btn">Reprendre</button>
+          <button class="btn btn-secondary btn-sm" id="resume-banner-dismiss" aria-label="Fermer">×</button>
+        </div>
+      </div>
+
+      <div class="alert alert-error" id="error-box"></div>
+
+      <div class="form-group">
+        <label for="pseudo-input">Ton pseudo</label>
+        <input type="text" id="pseudo-input" placeholder="Ex : Max" maxlength="20" autocomplete="off">
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-action">
+        Créer une partie
+      </button>
+
+      <p class="info-line" style="margin-top: 16px; text-align: center;">
+        Le principe : un mot difficile, chacun écrit sa définition, puis tout le monde se note. À jouer à 3 joueurs ou plus pour que le vote soit intéressant.
+      </p>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+  </footer>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <meta name="format-detection" content="telephone=no">
+  <title>Partie — Définitions</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a href="../index.html" class="app-header-home" title="Tous les jeux">←</a>
+    <h1>📖 Définitions</h1>
+    <span class="connection-status" id="connection-status">
+      <span class="dot"></span>
+      <span class="text">connexion…</span>
+    </span>
+  </header>
+
+  <main>
+    <!-- VUE 1 : LOBBY -->
+    <div class="card view" id="view-lobby" style="display: none;">
+      <div class="room-code-banner">
+        <span class="label">Lien d'invitation</span>
+        <div class="room-share">
+          <span class="invite-url" id="invite-url" title="Lien d'invitation">—</span>
+          <button class="copy-btn" id="copy-btn">Copier le lien</button>
+        </div>
+      </div>
+
+      <div class="alert alert-error" id="error-box"></div>
+      <div class="alert alert-info" id="info-box"></div>
+
+      <div class="players-section">
+        <h3>
+          Joueurs
+          <span class="count" id="players-count">0</span>
+        </h3>
+        <ul class="players-list" id="players-list"></ul>
+      </div>
+
+      <!-- Config HÔTE -->
+      <div class="host-actions" id="host-actions" style="display: none;">
+        <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rounds-input">Nombre de manches</label>
+            <div class="rounds-control">
+              <input type="number" id="rounds-input" value="5" min="1" max="30" step="1">
+              <label class="rounds-unlimited">
+                <input type="checkbox" id="rounds-unlimited-input">
+                <span>Illimité</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="timer-input">Temps d'écriture (sec)</label>
+            <input type="number" id="timer-input" value="120" min="30" max="600" step="10">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="aggregation-input">Calcul du score (agrégation des votes)</label>
+          <select id="aggregation-input">
+            <option value="trimmed" selected>Moyenne tronquée (recommandé)</option>
+            <option value="mean">Moyenne simple</option>
+            <option value="median">Médiane</option>
+          </select>
+          <p class="info-line" id="aggregation-hint" style="font-size: 12px; margin-top: 4px;"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="points-input">Points max par manche</label>
+          <input type="number" id="points-input" value="100" min="10" max="1000" step="10">
+          <p class="info-line" style="font-size: 12px; margin-top: 4px;">
+            Le score d'une manche = note moyenne (0 à 1) × ce nombre. Avec 100, une note moyenne de 0,75 rapporte 75 points.
+          </p>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-start-game">
+          🚀 Démarrer la partie
+        </button>
+        <p class="info-line" style="margin-top: 8px; text-align: center;">
+          Minimum 2 joueurs connectés (3+ recommandé)
+        </p>
+      </div>
+
+      <!-- Config INVITÉ (lecture seule) -->
+      <div class="guest-config" id="guest-config" style="display: none;">
+        <h3 style="margin-top: 24px;">📋 Configuration de la partie</h3>
+        <p class="info-line">L'hôte configure la partie. Les paramètres se mettent à jour en temps réel.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Nombre de manches</label>
+            <div class="readonly-value" id="guest-rounds">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Temps d'écriture</label>
+            <div class="readonly-value" id="guest-timer">—</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Calcul du score</label>
+            <div class="readonly-value" id="guest-aggregation">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Points max / manche</label>
+            <div class="readonly-value" id="guest-points">—</div>
+          </div>
+        </div>
+        <p class="info-line" style="text-align: center; font-style: italic;">
+          ⏳ En attente du lancement de la partie par l'hôte…
+        </p>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Retour à l'accueil</a>
+      </div>
+    </div>
+
+    <!-- VUE 2 : ÉCRITURE -->
+    <div class="card view" id="view-writing" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="wr-round-number">1</span>
+          <span class="round-total" id="wr-round-total"></span>
+        </div>
+        <div class="timer-display" id="wr-timer-display">
+          <span class="timer-label">Temps restant</span>
+          <span class="timer-value" id="wr-timer-value">--:--</span>
+        </div>
+      </div>
+
+      <div class="word-banner">
+        <span class="word-label">Définis ce mot / cette expression</span>
+        <span class="word-value" id="wr-word">—</span>
+      </div>
+
+      <p class="info-line" style="margin-bottom: 10px;">
+        ✍️ Écris ta meilleure proposition de définition. Tu écris à l'aveugle : la vraie définition sera révélée à la fin de la manche, et chacun notera les propositions des autres.
+      </p>
+
+      <div class="def-form">
+        <textarea id="def-textarea" maxlength="280" placeholder="Ta définition…" autocomplete="off" spellcheck="true"></textarea>
+        <div class="def-charcount" id="def-charcount">0 / 280</div>
+      </div>
+
+      <div class="round-actions">
+        <button type="button" class="btn btn-primary btn-block" id="btn-lock">
+          ✅ Valider ma définition
+        </button>
+        <p class="info-line" id="writing-status"></p>
+        <div class="writers-status" id="writers-status"></div>
+      </div>
+    </div>
+
+    <!-- VUE 3 : VOTE -->
+    <div class="card view view-wide" id="view-voting" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="vo-round-number">1</span>
+          <span class="round-total" id="vo-round-total"></span>
+          <span> &mdash; Vote</span>
+        </div>
+        <div class="round-end-reason" id="vo-end-reason"></div>
+      </div>
+
+      <div class="word-banner word-banner-sm">
+        <span class="word-label">Le mot était</span>
+        <span class="word-value" id="vo-word">—</span>
+      </div>
+
+      <div class="reveal-box">
+        <span class="reveal-label">✅ Vraie définition</span>
+        <span class="reveal-text" id="vo-real-def">—</span>
+      </div>
+
+      <p class="info-line" style="margin-bottom: 8px;">
+        🗳️ Note la définition de chaque adversaire de 0 à 1. Tu ne te notes pas toi-même (case barrée). Les votes de chacun sont visibles en direct.
+      </p>
+      <div class="vote-legend">
+        <span><span class="chip" style="background: hsl(0,62%,42%);"></span> 0 — à côté</span>
+        <span><span class="chip" style="background: hsl(60,62%,42%);"></span> ½ — pas mal</span>
+        <span><span class="chip" style="background: hsl(120,62%,42%);"></span> 1 — excellente</span>
+      </div>
+
+      <div class="vote-progress" id="vote-progress"></div>
+
+      <div class="vote-matrix-wrap">
+        <table class="vote-matrix" id="vote-matrix"></table>
+      </div>
+
+      <div class="host-actions" id="voting-host-actions" style="display: none; margin-top: 16px;">
+        <button class="btn btn-primary btn-block" id="btn-finish-voting">
+          ✅ Calculer les scores
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-voting" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="voting-waiting" style="text-align: center;">
+        En attente de l'hôte pour passer aux scores…
+      </p>
+    </div>
+
+    <!-- VUE 4 : SCORES -->
+    <div class="card view view-wide" id="view-scoring" style="display: none;">
+      <div class="round-header">
+        <div>
+          <span class="round-label">Manche</span>
+          <span class="round-number" id="sc-round-number">1</span>
+          <span class="round-total" id="sc-round-total"></span>
+          <span> &mdash; Résultats</span>
+        </div>
+      </div>
+
+      <div class="word-banner word-banner-sm">
+        <span class="word-label">Le mot était</span>
+        <span class="word-value" id="sc-word">—</span>
+      </div>
+      <div class="reveal-box">
+        <span class="reveal-label">✅ Vraie définition</span>
+        <span class="reveal-text" id="sc-real-def">—</span>
+      </div>
+
+      <div class="scores-section">
+        <h3>Notes de la manche</h3>
+        <table class="scores-table" id="round-scores-table"></table>
+      </div>
+
+      <div class="scores-section">
+        <h3>Classement cumulé</h3>
+        <ol class="ranking-list" id="cumulative-ranking"></ol>
+      </div>
+
+      <div class="host-actions" id="scoring-host-actions" style="display: none;">
+        <button class="btn btn-primary btn-block" id="btn-next-round">
+          Manche suivante →
+        </button>
+        <button class="btn btn-danger btn-block" id="btn-end-game-scoring" style="margin-top: 8px;">
+          🏁 Terminer la partie maintenant
+        </button>
+      </div>
+      <p class="info-line" id="scoring-waiting" style="text-align: center;">
+        En attente de l'hôte…
+      </p>
+    </div>
+
+    <!-- VUE 5 : FIN -->
+    <div class="card view" id="view-finished" style="display: none;">
+      <h2 style="text-align: center;">🏆 Fin de la partie !</h2>
+      <ol class="ranking-list ranking-final" id="final-ranking"></ol>
+      <div class="host-actions" id="finished-host-actions" style="display: none; margin-top: 24px;">
+        <button class="btn btn-primary btn-block" id="btn-back-lobby">
+          🔄 Retour au lobby (rejouer)
+        </button>
+      </div>
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Quitter</a>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+  </footer>
+
+  <script type="module" src="js/lobby.js"></script>
+</body>
+</html>

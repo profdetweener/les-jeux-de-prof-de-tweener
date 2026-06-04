@@ -7,10 +7,12 @@ URL : https://profdetweener.github.io/les-jeux-de-prof-de-tweener/
 ## Jeux disponibles
 
 - **Petit Bac** — Le classique, en multijoueur temps réel avec validation collaborative.
+- **Motus** — Mode chill (stream, solo) et mode compétitif multijoueur.
+- **Définitions** — Un mot difficile, chacun écrit sa définition, la vraie est révélée, puis tout le monde se note dans une grille (matrice de votes, moyenne tronquée).
 
 ## Jeux à venir
 
-- **Motus** — Mode coop (stream) et mode compétitif.
+- Modération des votes par l'hôte et notation par IA pour **Définitions** (reportées après la v1).
 
 ## Architecture
 
@@ -52,6 +54,10 @@ les-jeux-de-prof-de-tweener/
 
 Les anciennes routes `/rooms`, `/rooms/:code/exists`, `/room/:code` sont aussi
 acceptees et redirigees vers Petit Bac (retrocompat pendant la transition).
+
+Le jeu **Définitions** suit le même schéma sous le préfixe `/definitions/`
+(`POST /definitions/rooms`, `GET /definitions/rooms/:code/exists`,
+`GET /definitions/room/:code` → Durable Object `DefinitionRoom`).
 
 ## Deploiement
 

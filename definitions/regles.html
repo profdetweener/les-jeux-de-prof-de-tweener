@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Définitions — Règles du jeu</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>📖 Définitions — Règles</h1>
+    <a href="index.html" class="app-header-home" title="Retour">← Retour</a>
+  </header>
+
+  <main>
+    <div class="card rules-card">
+      <h2>Le principe</h2>
+      <p class="subtitle">
+        Un mot ou une expression difficile s'affiche. Chacun en écrit sa définition.
+        La vraie définition est révélée, puis tout le monde se note. Le plus juste (ou le plus malin) gagne.
+      </p>
+
+      <h3>Déroulé d'une manche</h3>
+      <ol class="rules-steps">
+        <li>
+          <strong>Le mot.</strong> Un mot ou une expression peu courante apparaît — sans sa définition.
+        </li>
+        <li>
+          <strong>L'écriture.</strong> Chacun rédige sa proposition de définition, à l'aveugle,
+          avant la fin du temps imparti. Tu peux la modifier tant que tu n'as pas cliqué sur
+          « Valider ma définition ». La manche se termine quand tout le monde a validé, ou au timer.
+        </li>
+        <li>
+          <strong>La révélation.</strong> La <em>vraie</em> définition s'affiche, ainsi que toutes les
+          propositions (le jeu n'est pas anonyme : on voit qui a écrit quoi).
+        </li>
+        <li>
+          <strong>Le vote.</strong> Chacun note la proposition de chaque adversaire de
+          <strong>0 à 1</strong> (0, ¼, ½, ¾, 1), en s'aidant de la vraie définition.
+          On ne se note pas soi-même. Les votes de chacun sont visibles en direct dans une grille.
+        </li>
+        <li>
+          <strong>Le score.</strong> Le score d'une manche pour un joueur = la note moyenne reçue
+          × les points par manche (100 par défaut, donc une moyenne de ¾ rapporte 75 points).
+          On additionne les manches ; le total fait le classement.
+        </li>
+      </ol>
+
+      <h3>Le calcul de la note moyenne</h3>
+      <p>
+        Trois méthodes au choix de l'hôte, pour agréger les votes reçus par une définition :
+      </p>
+      <ul class="rules-steps">
+        <li><strong>Moyenne tronquée</strong> (recommandée) — on retire la note la plus haute
+          <em>et</em> la plus basse avant de moyenner (dès qu'il y a au moins 4 votes). Un joueur qui
+          mettrait exprès des mauvaises notes à tout le monde est ainsi neutralisé automatiquement.</li>
+        <li><strong>Moyenne simple</strong> — la moyenne de tous les votes. Simple, mais sensible aux
+          votes extrêmes.</li>
+        <li><strong>Médiane</strong> — la valeur centrale des votes. Très robuste à un vote isolé.</li>
+      </ul>
+
+      <p class="rules-note">
+        💡 À jouer à <strong>3 joueurs ou plus</strong> : à deux, chacun n'a qu'un seul vote à donner,
+        ce qui rend le calcul moins intéressant. L'hôte peut configurer le nombre de manches, le temps
+        d'écriture, la méthode de calcul et les points par manche.
+      </p>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="../index.html">Accueil</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+  </footer>
+</body>
+</html>

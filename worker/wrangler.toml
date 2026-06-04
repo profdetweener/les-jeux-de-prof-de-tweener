@@ -18,6 +18,10 @@ class_name = "PetitBacRoom"
 name = "MOTUS_ROOMS"
 class_name = "MotusRoom"
 
+[[durable_objects.bindings]]
+name = "DEFINITION_ROOMS"
+class_name = "DefinitionRoom"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PetitBacRoom"]
@@ -25,3 +29,7 @@ new_sqlite_classes = ["PetitBacRoom"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["MotusRoom"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["DefinitionRoom"]

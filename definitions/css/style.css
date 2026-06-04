@@ -1,0 +1,1482 @@
+/* ==========================================================================
+   Petit Bac — Frontend (phase 4)
+   Palette : bleu nuit + beige
+   ========================================================================== */
+
+:root {
+  --bleu-nuit: #1a2540;
+  --bleu-nuit-clair: #2a3556;
+  --bleu-accent: #4a6fa5;
+  --beige: #f5ede0;
+  --beige-fonce: #e8dcc4;
+  --blanc: #ffffff;
+  --rouge: #c84545;
+  --vert: #4a8c5a;
+  --jaune: #d4a830;
+  --gris-texte: #5a5a5a;
+  --gris-clair: #d9d9d9;
+  --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
+  --ombre-forte: 0 8px 24px rgba(26, 37, 64, 0.2);
+  --rayon: 10px;
+  --rayon-sm: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--beige); color: var(--bleu-nuit);
+  min-height: 100vh; line-height: 1.5;
+}
+body { display: flex; flex-direction: column; }
+
+.app-header {
+  background: var(--bleu-nuit); color: var(--beige);
+  padding: 18px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--ombre);
+}
+.app-header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
+.app-header .header-info { font-size: 14px; opacity: 0.85; font-family: "Menlo", "Consolas", monospace; }
+.app-header-home {
+  color: var(--beige);
+  text-decoration: none;
+  font-size: 13px;
+  opacity: 0.8;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.app-header-home:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
+
+main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+
+.card {
+  background: var(--blanc); border-radius: var(--rayon);
+  box-shadow: var(--ombre); padding: 32px;
+  width: 100%; max-width: 480px;
+}
+.card.view-wide { max-width: 920px; }
+.card h2 { margin: 0 0 8px; font-size: 20px; }
+.card .subtitle { margin: 0 0 24px; color: var(--gris-texte); font-size: 14px; }
+
+.form-group { margin-bottom: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--bleu-nuit); }
+label.sub-label { font-size: 12px; font-weight: 500; color: var(--gris-texte); margin-bottom: 4px; }
+
+input[type="text"], input[type="number"], select {
+  width: 100%; padding: 12px 14px;
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  font-size: 16px; font-family: inherit;
+  background: var(--beige); color: var(--bleu-nuit);
+  transition: border-color 0.15s, background 0.15s;
+}
+input:focus, select:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+
+/* Placeholder : couleur grise et opacite reduite pour qu'on voie clairement
+   que c'est un exemple, pas une valeur deja entree. */
+input::placeholder {
+  color: var(--gris-texte);
+  opacity: 0.45;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+input.code-input {
+  text-transform: uppercase; letter-spacing: 4px;
+  font-family: "Menlo", "Consolas", monospace;
+  text-align: center; font-size: 22px; font-weight: 700;
+}
+/* Sur le code-input, on attenue encore plus le placeholder car le styling
+   gros + monospace lui donne un look "tres rempli" sinon. */
+input.code-input::placeholder {
+  opacity: 0.3;
+  letter-spacing: 2px;
+  font-weight: 400;
+  font-size: 16px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px; border: none; border-radius: var(--rayon-sm);
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--bleu-nuit); color: var(--beige); }
+.btn-primary:hover:not(:disabled) { background: var(--bleu-nuit-clair); }
+.btn-secondary { background: var(--beige-fonce); color: var(--bleu-nuit); }
+.btn-secondary:hover:not(:disabled) { background: #ddd0b3; }
+.btn-danger { background: var(--rouge); color: var(--blanc); }
+.btn-danger:hover:not(:disabled) { background: #a73a3a; }
+.btn-block { width: 100%; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+
+.divider {
+  display: flex; align-items: center; margin: 24px 0;
+  color: var(--gris-texte); font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--beige-fonce); }
+.divider::before { margin-right: 12px; }
+.divider::after { margin-left: 12px; }
+
+.alert { padding: 12px 14px; border-radius: var(--rayon-sm); font-size: 14px; margin-bottom: 18px; display: none; }
+.alert.show { display: block; }
+.alert-error { background: #fdecec; color: var(--rouge); border-left: 3px solid var(--rouge); }
+.alert-info { background: #eaf2fc; color: var(--bleu-accent); border-left: 3px solid var(--bleu-accent); }
+
+.room-code-banner {
+  background: var(--bleu-nuit); color: var(--beige);
+  padding: 20px; border-radius: var(--rayon);
+  text-align: center; margin-bottom: 24px;
+}
+.room-code-banner .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; margin-bottom: 10px; }
+.room-share { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.room-share .invite-url {
+  font-family: "Menlo", "Consolas", monospace; font-size: 14px;
+  opacity: 0.9; word-break: break-all;
+  background: rgba(245, 237, 224, 0.1);
+  padding: 8px 12px; border-radius: var(--rayon-sm);
+  max-width: 100%;
+}
+.room-code-banner .copy-btn {
+  background: rgba(245, 237, 224, 0.15); color: var(--beige);
+  border: 1px solid rgba(245, 237, 224, 0.3);
+  padding: 6px 14px; border-radius: var(--rayon-sm);
+  cursor: pointer; font-size: 13px; font-family: inherit;
+  transition: background 0.15s;
+}
+.room-code-banner .copy-btn:hover { background: rgba(245, 237, 224, 0.25); }
+
+/* ==========================================================================
+   Panneau "malus tricheur" (phase validating)
+   ========================================================================== */
+.cheater-panel {
+  background: #fff5e6; border: 1px solid #e0b85c;
+  border-radius: var(--rayon); padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.cheater-panel-info { flex: 1; min-width: 200px; }
+.cheater-panel-info strong { display: block; font-size: 15px; color: #8a5a00; margin-bottom: 4px; }
+.cheater-panel-info .info-line { margin: 0; font-size: 13px; color: var(--gris-texte); }
+.cheater-panel-info #cheater-panel-result { font-weight: 600; color: var(--rouge); margin-top: 4px; }
+.cheater-panel-controls {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--blanc); border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon); padding: 4px;
+}
+.cheater-btn {
+  background: transparent; border: none;
+  width: 36px; height: 36px;
+  font-size: 22px; font-weight: 700;
+  color: var(--bleu-nuit); cursor: pointer;
+  border-radius: var(--rayon-sm);
+  transition: background 0.15s;
+}
+.cheater-btn:hover { background: var(--beige); }
+.cheater-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.cheater-count {
+  font-size: 22px; font-weight: 700; min-width: 32px; text-align: center;
+  color: var(--bleu-nuit);
+}
+
+.players-section h3 {
+  margin: 0 0 12px; font-size: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.players-section h3 .count { font-size: 13px; font-weight: 500; color: var(--gris-texte); }
+.players-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.player-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--beige);
+  border-radius: var(--rayon-sm);
+  border-left: 3px solid var(--beige-fonce);
+}
+.player-item.is-host { border-left-color: var(--jaune); }
+.player-item.is-self { background: #eaf2fc; }
+.player-item.disconnected { opacity: 0.5; }
+.player-info { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.player-badge {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 8px; border-radius: 12px; font-weight: 700;
+}
+.player-badge.host { background: var(--jaune); color: var(--bleu-nuit); }
+.player-badge.self { background: var(--bleu-accent); color: var(--blanc); }
+.player-badge.disconnected { background: var(--gris-clair); color: var(--gris-texte); }
+
+.host-actions {
+  margin-top: 24px; padding-top: 20px;
+  border-top: 1px solid var(--beige-fonce);
+}
+.host-actions .info-line { font-size: 13px; color: var(--gris-texte); margin-bottom: 12px; }
+
+.categories-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.category-preset-btn {
+  padding: 6px 12px; border: 2px solid var(--beige-fonce);
+  background: var(--blanc); color: var(--bleu-nuit);
+  border-radius: 16px; font-size: 13px; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.category-preset-btn:hover { border-color: var(--bleu-accent); }
+.category-preset-btn.selected {
+  background: var(--bleu-nuit); color: var(--beige); border-color: var(--bleu-nuit);
+}
+.categories-custom { display: flex; gap: 8px; margin-bottom: 12px; }
+.categories-custom input { flex: 1; }
+.categories-selected {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.categories-selected li {
+  background: var(--beige);
+  border-radius: 14px;
+  padding: 4px 10px 4px 12px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px;
+}
+.categories-selected li button {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--rouge); font-weight: 700; font-size: 16px;
+  padding: 0; line-height: 1;
+}
+
+.scoring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scoring-grid input { font-size: 18px; font-weight: 700; text-align: center; }
+
+/* Nombre de manches : input + case a cocher "Illimite" cote a cote */
+.rounds-control {
+  display: flex; align-items: center; gap: 12px;
+}
+.rounds-control > input[type="number"] {
+  flex: 1; min-width: 0;
+  font-size: 18px; font-weight: 700; text-align: center;
+}
+.rounds-control > input[type="number"]:disabled {
+  background: var(--beige);
+  color: var(--gris-clair);
+  cursor: not-allowed;
+}
+.rounds-unlimited {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--bleu-nuit);
+  cursor: pointer; white-space: nowrap;
+  padding: 6px 4px;
+}
+.rounds-unlimited input { width: 18px; height: 18px; cursor: pointer; }
+
+/* Contrainte de longueur des mots (radio min/max/aucun + input numerique). */
+.length-constraint-row {
+  display: flex; align-items: center; gap: 14px;
+  flex-wrap: wrap;
+}
+.length-mode-option {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; padding: 6px 4px;
+  font-size: 14px; font-weight: 500; color: var(--bleu-nuit);
+  cursor: pointer; white-space: nowrap;
+}
+.length-mode-option input[type="radio"] {
+  width: 18px; height: 18px; margin: 0; cursor: pointer;
+}
+.length-constraint-row > input[type="number"] {
+  width: 80px; flex: 0 0 auto;
+  font-size: 18px; font-weight: 700; text-align: center;
+}
+.length-constraint-row > input[type="number"]:disabled {
+  background: var(--beige);
+  color: var(--gris-clair);
+  cursor: not-allowed;
+}
+.length-unit {
+  font-size: 13px; color: var(--gris-texte); font-style: italic;
+}
+
+/* Separateur visuel entre sections de config */
+.config-sep {
+  border: none;
+  border-top: 1px solid var(--beige-fonce);
+  margin: 28px 0;
+}
+
+/* Grille de selection des lettres autorisees (host) */
+.letters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.letter-btn {
+  padding: 8px 0;
+  background: var(--blanc);
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gris-clair);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 36px;
+  /* Forcer le centrage meme quand l'element est un <span> (vue guest readonly) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+.letter-btn:hover { border-color: var(--bleu-accent); }
+.letter-btn.selected {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border-color: var(--bleu-nuit);
+}
+.letter-btn.was-last-game {
+  /* Petit point orange en haut a droite pour les lettres tirees la derniere partie */
+  position: relative;
+}
+.letter-btn.was-last-game::after {
+  content: "";
+  position: absolute;
+  top: 2px; right: 4px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--jaune);
+}
+.letters-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+}
+.letters-last-info {
+  color: var(--gris-texte);
+}
+
+/* Variante "lecture seule" pour le guest : lettres non cliquables.
+   Les lettres non selectionnees sont grisees mais doivent rester lisibles. */
+.letters-grid-readonly .letter-btn {
+  cursor: default;
+  pointer-events: none;
+}
+.letters-grid-readonly .letter-btn:not(.selected) {
+  /* Plus visible que avant : on baisse l'opacite moins fort et on change
+     la couleur de texte pour qu'on lise quand meme la lettre. */
+  background: var(--beige);
+  border-color: var(--beige-fonce);
+  color: var(--gris-texte);
+  opacity: 0.7;
+}
+
+.readonly-value {
+  padding: 12px 14px;
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  font-weight: 600;
+  color: var(--bleu-nuit);
+  text-align: center;
+  border: 2px solid transparent;
+}
+
+.guest-config {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--beige-fonce);
+}
+
+.connection-status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--beige); opacity: 0.85; }
+.connection-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gris-texte); }
+.connection-status.connected .dot { background: var(--vert); box-shadow: 0 0 6px var(--vert); }
+.connection-status.connecting .dot { background: var(--jaune); animation: pulse 1.2s ease-in-out infinite; }
+.connection-status.disconnected .dot { background: var(--rouge); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+.toast {
+  background: var(--bleu-nuit); color: var(--beige);
+  padding: 12px 18px; border-radius: var(--rayon-sm);
+  box-shadow: var(--ombre-forte); font-size: 14px;
+  animation: slide-in 0.2s ease-out; max-width: 320px;
+}
+.toast.error { background: var(--rouge); color: var(--blanc); }
+.toast.success { background: var(--vert); color: var(--blanc); }
+@keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* === PHASE 4 === */
+
+.round-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--beige-fonce);
+}
+.round-label, .letter-label, .timer-label {
+  display: block;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--gris-texte); font-weight: 600;
+}
+.round-number { font-size: 28px; font-weight: 700; }
+.round-total { font-size: 14px; color: var(--gris-texte); margin-left: 6px; }
+
+.letter-display {
+  background: var(--bleu-nuit); color: var(--beige);
+  border-radius: var(--rayon);
+  padding: 12px 20px; text-align: center;
+}
+.letter-display .letter-label { color: var(--beige); opacity: 0.7; }
+.letter-value {
+  font-size: 48px; font-weight: 800;
+  font-family: Georgia, serif;
+  display: block; line-height: 1;
+}
+/* Rappel discret de la contrainte de longueur, juste sous la grosse lettre.
+   Format court ("≥ 5 lettres") pour ne pas voler la vedette. */
+.letter-length-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px; font-weight: 600;
+  color: var(--beige); opacity: 0.85;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-display { text-align: right; }
+.timer-value {
+  font-size: 28px; font-weight: 700;
+  font-family: "Menlo", "Consolas", monospace;
+  display: block;
+}
+.timer-display.warning .timer-value { color: var(--jaune); }
+.timer-display.critical .timer-value { color: var(--rouge); animation: pulse 0.6s ease-in-out infinite; }
+
+.round-end-reason {
+  font-size: 13px; color: var(--gris-texte);
+  text-align: right; font-style: italic;
+}
+
+.answers-form {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-bottom: 24px;
+}
+.answer-row { display: flex; align-items: center; gap: 12px; }
+.answer-row label { flex: 0 0 180px; margin: 0; font-size: 14px; }
+.answer-row input { flex: 1; font-size: 16px; }
+/* Marquage visuel des reponses syntaxiquement invalides : mauvaise lettre OU
+   contrainte de longueur violee. Couleur + bordure + un soupcon de fond. */
+.answer-row input.answer-bad-letter,
+.answer-row input.answer-bad-length {
+  border-color: var(--rouge);
+  background: rgba(220, 53, 69, 0.06);
+}
+
+.round-actions { margin-top: 16px; }
+.round-actions .info-line { margin-top: 12px; font-size: 13px; color: var(--gris-texte); text-align: center; }
+
+.validation-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 24px;
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+}
+.validation-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.validation-table th, .validation-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--beige-fonce);
+  text-align: left; vertical-align: middle;
+}
+.validation-table th {
+  background: var(--bleu-nuit); color: var(--beige);
+  font-weight: 600; font-size: 13px;
+  position: sticky; top: 0; z-index: 1;
+}
+.validation-table th.col-category { background: var(--bleu-nuit-clair); }
+.validation-table tr:nth-child(even) td { background: rgba(245, 237, 224, 0.4); }
+.validation-table .category-cell {
+  font-weight: 600; background: var(--beige) !important;
+  white-space: nowrap;
+}
+
+/* ===========================================================================
+ * Bouton "kick mid-game" inline (✕ a cote du pseudo) dans les vues en jeu.
+ * Visible uniquement par l'hote, sur les pseudos des autres joueurs. Pose
+ * dans .category-cell (validating) et .col-category (scoring).
+ * =========================================================================== */
+.pseudo-label { display: inline-block; }
+.kick-inline-btn {
+  margin-left: 8px;
+  width: 22px; height: 22px;
+  padding: 0;
+  border: 1px solid var(--rouge);
+  background: transparent;
+  color: var(--rouge);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.05s;
+}
+.kick-inline-btn:hover {
+  opacity: 1;
+  background: var(--rouge);
+  color: var(--blanc);
+}
+.kick-inline-btn:active { transform: scale(0.92); }
+
+.validation-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.validation-cell .answer-text { flex: 1; min-width: 80px; font-style: italic; }
+.validation-cell .answer-empty { color: var(--gris-texte); font-style: italic; opacity: 0.6; }
+.validation-cell .answer-bad-letter { color: var(--rouge); text-decoration: line-through; }
+.validation-cell .answer-bad-length { color: var(--rouge); text-decoration: line-through; text-decoration-style: wavy; }
+
+.vote-buttons { display: inline-flex; gap: 4px; }
+.vote-btn {
+  width: 28px; height: 28px;
+  border: 2px solid var(--beige-fonce);
+  background: var(--blanc);
+  border-radius: 50%; cursor: pointer; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.vote-btn:hover { transform: scale(1.1); }
+.vote-btn.unique.active { background: var(--vert); border-color: var(--vert); color: var(--blanc); }
+.vote-btn.duplicate.active { background: #e08c2e; border-color: #e08c2e; color: var(--blanc); }
+.vote-btn.reject.active { background: var(--rouge); border-color: var(--rouge); color: var(--blanc); }
+/* Indications hover legeres pour aider l'utilisateur a distinguer les boutons */
+.vote-btn.unique:hover:not(.active) { border-color: var(--vert); }
+.vote-btn.duplicate:hover:not(.active) { border-color: #e08c2e; }
+.vote-btn.reject:hover:not(.active) { border-color: var(--rouge); }
+.vote-tally { font-size: 11px; color: var(--gris-texte); margin-left: 4px; font-family: "Menlo", "Consolas", monospace; }
+
+.scores-section { margin-bottom: 24px; }
+.scores-section h3 { margin: 0 0 12px; font-size: 16px; }
+.scores-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.scores-table th, .scores-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--beige-fonce);
+  text-align: center;
+}
+.scores-table th { background: var(--bleu-nuit); color: var(--beige); font-size: 13px; font-weight: 600; }
+.scores-table th.col-category, .scores-table td.col-category {
+  text-align: left; background: var(--beige); font-weight: 600;
+}
+.scores-table tfoot td { background: var(--bleu-nuit-clair); color: var(--beige); font-weight: 700; }
+.scores-table .score-cell.alone { background: #fcf3d4; font-weight: 700; }
+.scores-table .score-cell.unique { background: #e6f4ea; }
+.scores-table .score-cell.duplicate { background: #fff1e6; }
+.scores-table .score-cell.invalid { color: var(--gris-texte); }
+
+.ranking-list { list-style: none; margin: 0; padding: 0; counter-reset: rank; }
+.ranking-list li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  margin-bottom: 8px;
+  counter-increment: rank;
+  border-left: 3px solid var(--beige-fonce);
+}
+.ranking-list li::before {
+  content: counter(rank);
+  font-weight: 700; font-size: 18px;
+  color: var(--bleu-nuit); min-width: 24px;
+}
+.ranking-list li .rank-pseudo { flex: 1; font-weight: 600; }
+.ranking-list li .rank-score { font-weight: 700; font-family: "Menlo", "Consolas", monospace; }
+.ranking-list.ranking-final li:nth-child(1) { border-left-color: var(--jaune); background: #fcf3d4; }
+.ranking-list.ranking-final li:nth-child(2) { border-left-color: #aaa; background: #f0f0f0; }
+.ranking-list.ranking-final li:nth-child(3) { border-left-color: #c98c5a; background: #f5e6dc; }
+
+/* ==========================================================================
+   Helpers ajoutes pour le scoring (anciens styles inline, deplaces en CSS)
+   ========================================================================== */
+.score-cell-points { font-weight: 700; }
+.score-cell-answer { font-size: 11px; color: var(--gris-texte); font-style: italic; }
+.score-total-cell {
+  font-weight: 700;
+  background: var(--bleu-nuit-clair);
+  color: var(--beige);
+}
+/* Stoppeur penalise : total + detail du malus */
+.score-total-cell .score-total-main { font-size: 18px; line-height: 1.1; }
+.score-total-cell .score-total-breakdown {
+  font-size: 11px; font-weight: 500;
+  opacity: 0.85;
+  font-family: "Menlo", "Consolas", monospace;
+  margin-top: 2px;
+}
+.scores-table tr.has-cheater-penalty { background: rgba(200, 69, 69, 0.04); }
+.scores-table tr.has-cheater-penalty .col-category::after {
+  content: " 🛑";
+  font-size: 12px;
+}
+.cheater-applied-note {
+  margin: 12px 0 16px;
+  padding: 10px 14px;
+  background: #fff5e6;
+  border-left: 4px solid #e0b85c;
+  border-radius: var(--rayon-sm);
+  font-size: 13px;
+  color: #8a5a00;
+}
+
+/* ==========================================================================
+   Footer — pied de page minimal pour les liens vers mentions légales
+   ========================================================================== */
+.app-footer {
+  text-align: center;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  font-size: 13px;
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  margin-top: auto;
+}
+.app-footer a {
+  color: var(--beige);
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
+  opacity: 0.9;
+}
+.app-footer a:hover { opacity: 1; border-bottom-color: var(--beige); }
+.app-footer .footer-sep { margin: 0 8px; opacity: 0.4; }
+.app-footer .footer-current { font-weight: 600; opacity: 1; border-bottom-color: var(--beige); }
+
+/* ==========================================================================
+   Page mentions légales / politique de confidentialité
+   ========================================================================== */
+.legal-page { max-width: 720px; }
+.legal-page h2 {
+  font-size: 22px;
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--beige-fonce);
+}
+.legal-page h3 {
+  font-size: 16px;
+  margin: 0 0 8px;
+  color: var(--bleu-nuit);
+}
+.legal-page section { margin-bottom: 24px; }
+.legal-page p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; }
+.legal-page ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.legal-page ul li { margin-bottom: 6px; }
+/* Liens dans le texte (pas les boutons stylés en .btn) */
+.legal-page a:not(.btn) {
+  color: var(--bleu-accent);
+  text-decoration: underline;
+}
+.legal-page a:not(.btn):hover { color: var(--bleu-nuit); }
+/* Bouton final "Lancer une partie" : texte blanc, pas de soulignement,
+   pour rester cohérent avec les autres .btn-primary du site */
+.legal-page a.btn-primary {
+  color: #ffffff;
+  text-decoration: none;
+}
+.legal-page code {
+  background: var(--beige);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: "Menlo", "Consolas", monospace;
+}
+.legal-note {
+  font-size: 12px;
+  color: var(--gris-texte);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Page règles : intro + légende des votes
+   ========================================================================== */
+.rules-intro {
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 14px 16px;
+  background: var(--beige);
+  border-left: 3px solid var(--bleu-accent);
+  border-radius: var(--rayon-sm);
+  margin-bottom: 24px !important;
+}
+/* Légende des votes : icône colorée + texte sur chaque ligne */
+.rules-vote-legend {
+  list-style: none;
+  padding-left: 0 !important;
+  margin: 12px 0 !important;
+}
+.rules-vote-legend li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--beige-fonce);
+}
+.rules-vote-legend li:last-child { border-bottom: none; }
+.vote-demo {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rayon-sm);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--blanc);
+}
+.vote-demo-unique { background: var(--vert); }
+.vote-demo-duplicate { background: #e08c2e; }
+.vote-demo-reject { background: var(--rouge); }
+
+
+.resume-banner {
+  display: none; /* visible via .show ajoute par JS si pseudo+code en localStorage */
+  background: #eaf2fc;
+  border-left: 3px solid var(--bleu-accent);
+  border-radius: var(--rayon-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.resume-banner.show { display: flex; }
+.resume-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--bleu-nuit);
+  min-width: 0;
+}
+.resume-banner-text strong { font-size: 14px; }
+.resume-banner-text span { font-size: 13px; color: var(--gris-texte); }
+.resume-banner-text span span {
+  color: var(--bleu-nuit);
+  font-weight: 600;
+  font-family: "Menlo", "Consolas", monospace;
+}
+.resume-banner-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+#resume-banner-dismiss {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Barre sticky compacte (visible uniquement sur mobile dans la vue manche)
+   ========================================================================== */
+.round-sticky-bar {
+  display: none; /* affichee en mobile via media query */
+}
+
+/* ==========================================================================
+   MOBILE — tablettes & telephones (<= 760px)
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* --- Layout global --- */
+  .app-header {
+    padding: 12px 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    /* Securise l'encoche iPhone */
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .app-header h1 { font-size: 17px; }
+  .app-header .header-info,
+  .app-header .connection-status .text { font-size: 12px; }
+
+  main {
+    padding: 16px 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .card { padding: 20px 16px; max-width: 100%; }
+  .card.view-wide { max-width: 100%; }
+
+  /* --- Forms : grilles 2 cols -> 1 col --- */
+  .form-row,
+  .scoring-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Inputs / boutons : tap target >= 44px (Apple HIG) */
+  input[type="text"], input[type="number"], select {
+    padding: 14px 14px;
+    font-size: 16px; /* evite le zoom auto iOS */
+    min-height: 48px;
+  }
+  .btn { padding: 14px 20px; min-height: 48px; font-size: 15px; }
+  .btn-sm { padding: 10px 14px; min-height: 38px; font-size: 13px; }
+
+  /* Banniere reprise sur mobile : passe en colonne pour eviter le tassement */
+  .resume-banner { flex-direction: column; align-items: stretch; gap: 10px; }
+  .resume-banner-actions { justify-content: flex-end; }
+  .resume-banner-actions #resume-banner-btn { flex: 1; }
+
+  /* --- Lobby : code de room --- */
+  .room-code-banner { padding: 16px; margin-bottom: 16px; }
+  .room-share .invite-url { font-size: 13px; }
+  .room-code-banner .copy-btn { padding: 10px 16px; font-size: 14px; min-height: 40px; }
+
+  /* --- Lobby : categories --- */
+  .categories-presets { gap: 6px; }
+  .category-preset-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+  .categories-custom {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .categories-custom .btn { width: 100%; }
+  .categories-selected li {
+    padding: 8px 12px 8px 14px;
+    font-size: 14px;
+  }
+  .categories-selected li button {
+    font-size: 22px;
+    padding: 0 4px;
+    min-width: 28px;
+  }
+
+  /* --- Lobby : bareme score --- */
+  .scoring-grid input { font-size: 18px; padding: 12px 10px; }
+
+  /* --- Lobby : liste joueurs --- */
+  .player-item { padding: 12px 14px; }
+
+  /* --- Validating : panneau malus tricheur (stack vertical) --- */
+  .cheater-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .cheater-panel-controls { align-self: center; }
+  .cheater-btn { width: 44px; height: 44px; }
+  .cheater-count { font-size: 24px; min-width: 40px; }
+
+  /* --- Lobby : grille des lettres autorisees --- */
+  .letters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 5px;
+  }
+  .letter-btn { min-height: 40px; font-size: 14px; }
+  .letters-actions .btn { font-size: 13px; padding: 8px 10px; }
+  .config-sep { margin: 22px 0; }
+
+  /* ==========================================================================
+     VUE MANCHE
+     ========================================================================== */
+  /* On masque le gros header pendant la manche : on garde la barre sticky a la place. */
+  #view-round .round-header {
+    display: none;
+  }
+
+  #view-round .round-sticky-bar {
+    display: grid;
+    /* 4 colonnes : lettre / manche (contractable) / longueur (si presente) / timer.
+       La colonne "manche" prend l'espace dispo (minmax(0, 1fr)) pour pouvoir
+       se faire grignoter sans pousser le timer sous la ligne. */
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: -20px -16px 16px;
+    padding: 10px 16px;
+    /* Compense le safe area top (notch / dynamic island) */
+    padding-top: max(10px, env(safe-area-inset-top));
+    background: var(--bleu-nuit);
+    color: var(--beige);
+    border-radius: var(--rayon) var(--rayon) 0 0;
+    box-shadow: var(--ombre);
+  }
+  .round-sticky-bar.stopped { opacity: 0.65; }
+
+  .rsb-letter {
+    font-family: Georgia, serif;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    background: var(--beige);
+    color: var(--bleu-nuit);
+    border-radius: 8px;
+    padding: 4px 10px;
+    min-width: 40px;
+    text-align: center;
+  }
+  .rsb-round {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
+    /* Peut se tronquer si vraiment ecrase, pour proteger le reste */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Rappel ultra-compact de la contrainte de longueur ("≥5" ou "≤8")
+     dans la barre sticky mobile, encadre pour bien le distinguer du reste. */
+  .rsb-length {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: var(--beige);
+    color: var(--bleu-nuit);
+    border-radius: 6px;
+    padding: 2px 7px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .rsb-timer {
+    font-family: "Menlo", "Consolas", monospace;
+    font-size: 20px;
+    font-weight: 700;
+    min-width: 58px;
+    text-align: right;
+  }
+  .round-sticky-bar.warning .rsb-timer { color: var(--jaune); }
+  .round-sticky-bar.critical .rsb-timer { color: var(--rouge); animation: pulse 0.6s ease-in-out infinite; }
+
+  /* Inputs de la manche */
+  .answer-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .answer-row label {
+    flex: none;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .answer-row input {
+    font-size: 16px;
+    padding: 14px 14px;
+    min-height: 48px;
+  }
+
+  /* Bouton STOP : bien visible, large */
+  #btn-stop {
+    font-size: 17px;
+    padding: 16px 20px;
+    min-height: 56px;
+  }
+  /* Quand on a stoppe, le bouton retombe a une taille normale */
+  #btn-stop:disabled { font-size: 15px; min-height: 48px; }
+
+  /* ==========================================================================
+     VUE VALIDATION : tableau -> cartes par joueur
+     ========================================================================== */
+  /* Le wrap perd son scroll horizontal (on n'en a plus besoin) */
+  #view-validating .validation-table-wrap {
+    overflow: visible;
+    border: none;
+    background: transparent;
+    margin-bottom: 16px;
+  }
+  /* Le tableau lui-meme devient un conteneur en blocs */
+  #view-validating .validation-table,
+  #view-validating .validation-table thead,
+  #view-validating .validation-table tbody,
+  #view-validating .validation-table tr,
+  #view-validating .validation-table th,
+  #view-validating .validation-table td {
+    display: block;
+    width: 100%;
+  }
+  /* Header global (Joueur / Categorie 1 / ...) : on le cache, on a le pseudo dans chaque carte */
+  #view-validating .validation-table thead { display: none; }
+
+  /* Chaque <tr> = une carte joueur */
+  #view-validating .validation-table tbody tr {
+    background: var(--blanc);
+    border: 1px solid var(--beige-fonce);
+    border-radius: var(--rayon-sm);
+    margin-bottom: 14px;
+    padding: 0;
+    overflow: hidden;
+  }
+  #view-validating .validation-table tbody tr.is-self {
+    border-color: var(--bleu-accent);
+    box-shadow: 0 0 0 1px var(--bleu-accent) inset;
+  }
+  #view-validating .validation-table tbody tr:nth-child(even) td { background: transparent; }
+
+  /* Cellule pseudo : header de la carte */
+  #view-validating .validation-table .category-cell {
+    background: var(--bleu-nuit) !important;
+    color: var(--beige);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 12px 14px;
+    border: none;
+    white-space: normal;
+  }
+
+  /* Chaque cellule reponse : ligne avec label categorie + reponse + boutons */
+  #view-validating .validation-table tbody td[data-label] {
+    padding: 12px 14px;
+    border: none;
+    border-top: 1px solid var(--beige-fonce);
+    background: var(--blanc);
+    text-align: left;
+  }
+  /* Label de la categorie (injecte via ::before, lu depuis data-label) */
+  #view-validating .validation-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gris-texte);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* La cellule de validation : reponse + boutons en row, boutons GROS */
+  #view-validating .validation-cell {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  #view-validating .validation-cell .answer-text {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+  }
+  #view-validating .validation-cell .answer-empty,
+  #view-validating .validation-cell .answer-bad-letter,
+  #view-validating .validation-cell .answer-bad-length {
+    font-size: 15px;
+  }
+  #view-validating .vote-buttons {
+    gap: 10px;
+    width: 100%;
+    justify-content: stretch;
+  }
+  #view-validating .vote-btn {
+    flex: 1;
+    width: auto;
+    height: 48px;
+    border-radius: var(--rayon-sm);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  #view-validating .vote-btn:hover { transform: none; }
+
+  /* ==========================================================================
+     VUE SCORING : meme pattern, tableau -> cartes par joueur
+     ========================================================================== */
+  #view-scoring .scores-table,
+  #view-scoring .scores-table thead,
+  #view-scoring .scores-table tbody,
+  #view-scoring .scores-table tr,
+  #view-scoring .scores-table th,
+  #view-scoring .scores-table td {
+    display: block;
+    width: 100%;
+  }
+  #view-scoring .scores-table thead { display: none; }
+  #view-scoring .scores-table tfoot { display: none; }
+
+  #view-scoring .scores-table tbody tr {
+    background: var(--blanc);
+    border: 1px solid var(--beige-fonce);
+    border-radius: var(--rayon-sm);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  #view-scoring .scores-table tbody tr.is-self {
+    border-color: var(--bleu-accent);
+    box-shadow: 0 0 0 1px var(--bleu-accent) inset;
+  }
+
+  /* Pseudo : header de carte */
+  #view-scoring .scores-table .col-category {
+    background: var(--bleu-nuit) !important;
+    color: var(--beige);
+    font-weight: 700;
+    font-size: 15px;
+    padding: 12px 14px;
+    text-align: left;
+    border: none;
+  }
+
+  /* Cellule total : pleine largeur dans la carte, en bas */
+  #view-scoring .scores-table .score-total-cell {
+    padding: 12px 14px;
+    text-align: right;
+    font-size: 18px;
+    border: none;
+    border-top: 2px solid var(--beige-fonce);
+  }
+  #view-scoring .scores-table .score-total-cell::before {
+    content: "Total manche";
+    float: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    font-weight: 600;
+    padding-top: 4px;
+  }
+
+  /* Cellules score par categorie : en grille 2 cols pour densite */
+  #view-scoring .scores-table tbody td[data-label]:not(.score-total-cell) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border: none;
+    border-top: 1px solid var(--beige-fonce);
+    text-align: left;
+  }
+  #view-scoring .scores-table tbody td[data-label]:not(.score-total-cell)::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gris-texte);
+    font-weight: 600;
+  }
+  #view-scoring .scores-table .score-cell-points {
+    margin-left: auto;
+    font-size: 18px;
+    min-width: 36px;
+    text-align: right;
+  }
+  #view-scoring .scores-table .score-cell-answer {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: right;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--gris-texte);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* --- Page mentions / footer sur mobile --- */
+  .legal-page h2 { font-size: 18px; }
+  .legal-page h3 { font-size: 14px; }
+  .legal-page p, .legal-page ul { font-size: 13px; }
+  .app-footer { font-size: 12px; }
+
+  /* ==========================================================================
+     CLASSEMENT (cumule + final)
+     ========================================================================== */
+  .ranking-list li {
+    padding: 14px 14px;
+    gap: 14px;
+  }
+  .ranking-list li::before {
+    font-size: 20px;
+    min-width: 28px;
+  }
+  .ranking-list li .rank-pseudo { font-size: 16px; }
+  .ranking-list li .rank-score { font-size: 16px; }
+
+  /* ==========================================================================
+     TOASTS
+     ========================================================================== */
+  .toast-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .toast {
+    max-width: 100%;
+    font-size: 14px;
+  }
+}
+
+/* ==========================================================================
+   PETITS ECRANS (<= 380px) — derniers ajustements
+   ========================================================================== */
+@media (max-width: 380px) {
+  .app-header h1 { font-size: 15px; }
+  .card { padding: 16px 12px; }
+  .room-share .invite-url { font-size: 12px; }
+  #view-round .round-sticky-bar { gap: 8px; padding: 10px 12px; }
+  .rsb-letter { font-size: 26px; padding: 3px 8px; min-width: 36px; }
+  .rsb-timer { font-size: 18px; min-width: 52px; }
+  .rsb-round { font-size: 11px; letter-spacing: 0.5px; }
+  .rsb-length { font-size: 11px; padding: 1px 6px; }
+}
+
+/* ==========================================================================
+   PAYSAGE TELEPHONE (hauteur faible) — on compresse pour laisser place au clavier
+   ========================================================================== */
+@media (max-width: 900px) and (max-height: 500px) {
+  .app-header { padding: 8px 16px; }
+  .app-header h1 { font-size: 15px; }
+  main { padding: 8px 12px; }
+  .card { padding: 14px; }
+  #view-round .round-sticky-bar { padding: 6px 12px; }
+  .rsb-letter { font-size: 24px; padding: 2px 10px; }
+  .rsb-timer { font-size: 18px; }
+  .answer-row { gap: 4px; }
+  .answers-form { gap: 8px; margin-bottom: 16px; }
+}
+
+/* ==========================================================================
+   DÉFINITIONS — styles spécifiques au jeu
+   (le reste du fichier est la base partagée, héritée de Petit Bac)
+   ========================================================================== */
+
+/* --- Bandeau du mot à définir (phase writing & voting) --- */
+.word-banner {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border-radius: var(--rayon);
+  padding: 20px 24px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: var(--ombre);
+}
+.word-banner .word-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+.word-banner .word-value {
+  display: block;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  word-break: break-word;
+}
+.word-banner.word-banner-sm .word-value { font-size: 24px; }
+
+/* --- Zone de saisie de la définition (writing) --- */
+.def-form textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.5;
+  background: var(--beige);
+  color: var(--bleu-nuit);
+  resize: vertical;
+  transition: border-color 0.15s, background 0.15s;
+}
+.def-form textarea:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+.def-form textarea:disabled { opacity: 0.7; cursor: not-allowed; }
+.def-charcount { text-align: right; font-size: 12px; color: var(--gris-texte); margin-top: 4px; }
+.def-charcount.over { color: var(--rouge); font-weight: 700; }
+
+.writers-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--gris-texte);
+}
+.writers-status .locked-list { font-style: italic; }
+
+/* --- Boîte "vraie définition révélée" (voting & scoring) --- */
+.reveal-box {
+  border: 2px solid var(--vert);
+  background: #eef6f0;
+  border-radius: var(--rayon-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.reveal-box .reveal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vert);
+  margin-bottom: 4px;
+}
+.reveal-box .reveal-text { font-size: 15px; line-height: 1.5; }
+
+/* --- Matrice de votes (voting) ---
+   Lignes = auteurs (+ leur définition), Colonnes = votants.
+   Diagonale (auteur == votant) barrée. Ma colonne est éditable. */
+.vote-matrix-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--rayon-sm);
+  border: 1px solid var(--beige-fonce);
+}
+.vote-matrix {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  font-size: 14px;
+}
+.vote-matrix th, .vote-matrix td {
+  border: 1px solid var(--beige-fonce);
+  padding: 8px 10px;
+  vertical-align: top;
+}
+.vote-matrix thead th {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.vote-matrix thead th.col-author {
+  text-align: left;
+  min-width: 220px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.vote-matrix th.voter-me { background: var(--bleu-accent); }
+.vote-matrix .author-cell {
+  background: var(--beige);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 220px;
+}
+.vote-matrix tr.is-self .author-cell { background: #fff7e6; }
+.vote-matrix .author-name { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.vote-matrix .author-def {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--gris-texte);
+  line-height: 1.45;
+  white-space: normal;
+}
+.vote-matrix .author-def.empty { font-style: italic; opacity: 0.6; }
+
+/* Cellule de vote (lecture seule : la note d'un autre votant) */
+.vote-cell { text-align: center; min-width: 64px; }
+.vote-cell.diagonal {
+  background: repeating-linear-gradient(45deg, #efe7d7, #efe7d7 6px, #e4d9c2 6px, #e4d9c2 12px);
+}
+.vote-readonly {
+  display: inline-block;
+  min-width: 34px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--blanc);
+}
+.vote-readonly.pending { background: var(--gris-clair); color: var(--gris-texte); font-weight: 500; }
+
+/* Cellule éditable (ma colonne) : 5 mini-boutons 0 ¼ ½ ¾ 1 */
+.vote-cell.editable { background: #f3f7fc; }
+.rating-group {
+  display: inline-flex;
+  gap: 3px;
+}
+.rating-btn {
+  border: 1.5px solid var(--bleu-accent);
+  background: var(--blanc);
+  color: var(--bleu-nuit);
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-width: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.1;
+  transition: background 0.12s, color 0.12s, transform 0.05s;
+}
+.rating-btn:hover { background: #e3edf8; }
+.rating-btn:active { transform: translateY(1px); }
+.rating-btn.active { background: var(--bleu-nuit); color: var(--beige); border-color: var(--bleu-nuit); }
+
+.vote-progress { margin: 14px 0 4px; font-size: 13px; color: var(--gris-texte); }
+
+/* --- Légende des couleurs de note --- */
+.vote-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--gris-texte);
+  margin-top: 8px;
+}
+.vote-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.vote-legend .chip {
+  width: 14px; height: 14px; border-radius: 4px; display: inline-block;
+}
+
+/* --- Tableau des scores de manche (scoring) --- */
+.def-score-line .def-text {
+  font-size: 13px;
+  color: var(--gris-texte);
+  line-height: 1.45;
+}
+.agg-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--blanc);
+}
+
+/* --- Règles : onglets simples --- */
+.rules-card { max-width: 720px; }
+.rules-steps { padding-left: 18px; }
+.rules-steps li { margin-bottom: 10px; }
+.rules-note {
+  background: var(--beige);
+  border-left: 4px solid var(--bleu-accent);
+  padding: 10px 14px;
+  border-radius: var(--rayon-sm);
+  font-size: 13px;
+  color: var(--gris-texte);
+  margin-top: 16px;
+}
+
+/* --- Responsive : sur petit écran, la matrice scrolle horizontalement --- */
+@media (max-width: 640px) {
+  .word-banner .word-value { font-size: 24px; }
+  .vote-matrix { font-size: 13px; }
+  .vote-matrix thead th.col-author, .vote-matrix .author-cell { min-width: 150px; }
+}
