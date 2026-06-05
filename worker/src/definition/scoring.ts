@@ -103,7 +103,11 @@ export function computeRoundScores(
     }
     const agg = aggregate(received, config.aggregation);
     aggregateByAuthor[author] = agg;
-    scoreByPlayer[author] = Math.round(agg * DEF_CONFIG.POINTS_PER_ROUND);
+    // Bareme : on multiplie par POINTS_PER_ROUND sans arrondir, juste un
+    // arrondi a 1 decimale pour eviter les flottants laids (7.7000001).
+    // 0.77 * 10 = 7.7, pas 8.
+    scoreByPlayer[author] =
+      Math.round(agg * DEF_CONFIG.POINTS_PER_ROUND * 10) / 10;
   }
 
   return { aggregateByAuthor, scoreByPlayer };

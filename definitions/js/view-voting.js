@@ -50,8 +50,8 @@ export function initVotingView(state, conn) {
     toolbarEl.className = "host-override-toolbar";
     toolbarEl.innerHTML = `
       <div class="host-override-toolbar-label">
-        <strong>✏️ Mode correction</strong> — utile a 3 joueurs face a un saboteur.
-        Active pour corriger un vote d'un autre joueur.
+        <strong>✏️ Mode correction</strong> : utile face à un saboteur.
+        Active pour corriger le vote d'un autre joueur.
       </div>
       <button type="button" class="host-override-toggle">Activer</button>
     `;

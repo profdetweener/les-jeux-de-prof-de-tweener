@@ -466,10 +466,17 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 
 /* --- Footer (page home) --- */
 .app-footer {
-  background: var(--bleu-nuit); color: var(--beige);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
   padding: 16px 24px;
-  display: flex; justify-content: center; gap: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   font-size: 13px;
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  margin-top: auto;
 }
 .app-footer a { color: var(--beige); text-decoration: none; opacity: 0.85; }
 .app-footer a:hover { text-decoration: underline; opacity: 1; }
@@ -942,7 +949,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .rules-panel h4 {
   margin: 16px 0 6px;
   font-size: 14px;
-  color: #64b0bd;
+  color: #4a6fa5;
 }
 .rules-panel p { margin: 0 0 12px; }
 

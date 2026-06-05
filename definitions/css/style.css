@@ -635,8 +635,12 @@ input.code-input::placeholder {
    Footer — pied de page minimal pour les liens vers mentions légales
    ========================================================================== */
 .app-footer {
-  text-align: center;
-  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 16px 24px;
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   font-size: 13px;
   background: var(--bleu-nuit);
@@ -650,7 +654,7 @@ input.code-input::placeholder {
   opacity: 0.9;
 }
 .app-footer a:hover { opacity: 1; border-bottom-color: var(--beige); }
-.app-footer .footer-sep { margin: 0 8px; opacity: 0.4; }
+.app-footer .footer-sep { opacity: 0.4; }
 .app-footer .footer-current { font-weight: 600; opacity: 1; border-bottom-color: var(--beige); }
 
 /* ==========================================================================

@@ -11,7 +11,7 @@
 <body>
   <header class="app-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">←</a>
-    <h1>📖 Définitions compétitif</h1>
+    <h1>Définitions compétitif</h1>
     <span class="connection-status" id="connection-status">
       <span class="dot"></span>
       <span class="text">connexion…</span>
@@ -43,13 +43,6 @@
       <!-- Config HÔTE -->
       <div class="host-actions" id="host-actions" style="display: none;">
         <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
-
-        <!-- Pill visible uniquement si le mode a ete fige par le picker (?mode=) -->
-        <div class="mode-pill" id="host-mode-pill" style="display: none;" hidden>
-          <span class="mode-pill-label">Mode :</span>
-          <span class="mode-pill-value" id="host-mode-pill-value">—</span>
-          <a href="index.html" class="mode-pill-change" title="Changer de mode">changer</a>
-        </div>
 
         <!-- Mode chill = solo (cf. chill.html). Cote multijoueur on n'expose
              plus que le mode competitif. La radio chill reste presente dans
@@ -191,10 +184,6 @@
         <span class="word-label">Définis ce mot / cette expression</span>
         <span class="word-value" id="wr-word">—</span>
       </div>
-
-      <p class="info-line" style="margin-bottom: 10px;">
-        ✍️ Écris ta meilleure proposition de définition. Tu écris à l'aveugle : la vraie définition sera révélée à la fin de la manche, et chacun notera les propositions des autres.
-      </p>
 
       <div class="def-form">
         <textarea id="def-textarea" maxlength="280" placeholder="Ta définition…" autocomplete="off" spellcheck="true"></textarea>

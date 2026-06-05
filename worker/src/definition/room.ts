@@ -668,7 +668,11 @@ export class DefinitionRoom {
 
       for (const [p, score] of Object.entries(scoreByPlayer)) {
         const session = this.players.get(p);
-        if (session) session.totalScore += score;
+        if (session) {
+          // Arrondi a 1 decimale pour eviter les derives flottantes
+          // (7.7 + 0.1 != 7.8 en arithmetique IEEE754).
+          session.totalScore = Math.round((session.totalScore + score) * 10) / 10;
+        }
       }
       this.phase = "scoring";
       this.broadcast({
