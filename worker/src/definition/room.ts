@@ -168,6 +168,9 @@ export class DefinitionRoom {
       case "set_vote":
         this.handleSetVote(ws, msg.author, msg.value);
         break;
+      case "host_override_vote":
+        this.handleHostOverrideVote(ws, msg.voter, msg.author, msg.value);
+        break;
       case "next_round":
         this.handleNextRound(ws);
         break;
@@ -421,7 +424,11 @@ export class DefinitionRoom {
   private startNextRound(): void {
     if (!this.config) return;
     this.currentRound += 1;
-    const { index, entry } = drawWord(this.drawnIndices);
+    const { index, entry } = drawWord(
+      this.drawnIndices,
+      this.config.minDifficulty ?? 1,
+      this.config.maxDifficulty ?? 5
+    );
     this.drawnIndices.push(index);
     this.currentWord = entry.word;
     this.currentRealDef = entry.definition;
@@ -561,6 +568,57 @@ export class DefinitionRoom {
     }
     if (this.definitions[author] === undefined) {
       this.sendError(ws, "TARGET_NOT_FOUND", "Auteur inconnu.");
+      return;
+    }
+    if (!isValidVoteValue(value)) {
+      this.sendError(ws, "INVALID_VOTE", "Valeur de vote invalide.");
+      return;
+    }
+    if (!this.votes[voter]) this.votes[voter] = {};
+    this.votes[voter][author] = value;
+    if (this.currentResult) this.currentResult.votes = this.votes;
+    this.broadcast({ type: "vote_update", votes: this.votes });
+  }
+
+  /**
+   * Override d'un vote par l'hote. Sert essentiellement aux parties a 3
+   * joueurs face a un saboteur : la methode MAD anti-saboteur ne s'active
+   * qu'a partir de 4 votes (cf. scoring.ts), donc en-dessous l'hote a la
+   * possibilite de corriger un vote aberrant avant la fin de la phase de
+   * vote. Le vote corrige est diffuse comme un vote normal.
+   *
+   * Regles :
+   *   - Phase 'voting' uniquement (avant que next_round ne declenche le scoring).
+   *   - Seul l'hote peut emettre.
+   *   - On n'override pas un auto-vote (qui n'existe pas).
+   *   - On peut override meme un vote inexistant : ca cree l'entree.
+   */
+  private handleHostOverrideVote(
+    ws: WebSocket,
+    voter: string,
+    author: string,
+    value: number
+  ): void {
+    const senderPseudo = this.wsToPseudo.get(ws);
+    if (!senderPseudo || senderPseudo !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Seul l'hote peut corriger un vote.");
+      return;
+    }
+    if (this.phase !== "voting") {
+      this.sendError(ws, "WRONG_PHASE", "Pas de phase de vote en cours.");
+      return;
+    }
+    if (voter === author) {
+      this.sendError(ws, "INVALID_VOTE", "On ne note pas une auto-proposition.");
+      return;
+    }
+    if (this.definitions[author] === undefined) {
+      this.sendError(ws, "TARGET_NOT_FOUND", "Auteur inconnu.");
+      return;
+    }
+    if (this.definitions[voter] === undefined) {
+      // Le voter doit etre un joueur reel de la manche
+      this.sendError(ws, "TARGET_NOT_FOUND", "Votant inconnu.");
       return;
     }
     if (!isValidVoteValue(value)) {

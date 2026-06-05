@@ -130,11 +130,11 @@ function updateRoomTitle() {
   if (!roomTitleEl) return;
   const mode = state.config?.mode;
   if (mode === "competitive") {
-    roomTitleEl.textContent = "Motus : mode compétitif";
+    roomTitleEl.textContent = "🟥 Motus compétitif";
   } else if (mode === "coop_stream") {
-    roomTitleEl.textContent = "Motus : mode chill";
+    roomTitleEl.textContent = "🟥 Motus chill";
   } else {
-    roomTitleEl.textContent = "Motus";
+    roomTitleEl.textContent = "🟥 Motus";
   }
 }
 

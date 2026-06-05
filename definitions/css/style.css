@@ -1671,3 +1671,74 @@ input.code-input::placeholder {
   .vote-cell { min-width: 78px; }
   .mode-toggle { flex-direction: column; }
 }
+
+/* --- Selecteur de fourchette de difficulte (compet config hote) --------- */
+.diff-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diff-range select {
+  flex: 1;
+  min-width: 0;
+}
+.diff-range-sep {
+  color: var(--gris-texte);
+  font-weight: 700;
+  flex: none;
+}
+
+/* --- Mode "correction des votes" par l'hote (phase voting) --------------- */
+.host-override-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fff4e0;
+  border: 1px solid #f0c878;
+  border-radius: var(--rayon-sm);
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.host-override-toolbar.is-active {
+  background: #ffe9bf;
+  border-color: #d99f3a;
+}
+.host-override-toolbar-label {
+  flex: 1;
+  color: #5a4310;
+}
+.host-override-toolbar-label strong { color: #3a2a08; }
+.host-override-toggle {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.host-override-toggle:hover { background: #0f1a30; }
+.host-override-toolbar.is-active .host-override-toggle {
+  background: #d99f3a;
+}
+/* Marqueur visuel sur une cellule overridee par l'hote */
+.vote-cell.is-overridden {
+  outline: 2px dashed #d99f3a;
+  outline-offset: -2px;
+}
+.vote-cell.is-overridden::after {
+  content: "✎";
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 11px;
+  color: #d99f3a;
+  font-weight: 700;
+  pointer-events: none;
+}
+.vote-cell {
+  position: relative;
+}

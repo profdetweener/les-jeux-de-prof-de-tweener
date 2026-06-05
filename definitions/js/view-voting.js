@@ -32,6 +32,41 @@ export function initVotingView(state, conn) {
   let definitions = {};       // author -> texte
   let votes = {};             // voter -> author -> valeur
 
+  // --- Mode "correction des votes" par l'hote -----------------------------
+  // Quand actif, l'hote peut editer les cellules d'autres votants. Sert
+  // surtout aux parties a 3 joueurs face a un saboteur (la methode MAD
+  // anti-saboteur necessite >=4 votes par auteur pour fonctionner).
+  let overrideMode = false;
+  // Cellules deja corrigees par l'hote dans cette manche (cle "voter::author").
+  // Sert juste a afficher un petit marqueur visuel.
+  const overriddenCells = new Set();
+
+  // Toolbar qu'on insere au-dessus de la matrice (host only).
+  // Injectee paresseusement la 1ere fois qu'on rend la table.
+  let toolbarEl = null;
+  function ensureToolbar() {
+    if (toolbarEl) return toolbarEl;
+    toolbarEl = document.createElement("div");
+    toolbarEl.className = "host-override-toolbar";
+    toolbarEl.innerHTML = `
+      <div class="host-override-toolbar-label">
+        <strong>✏️ Mode correction</strong> — utile a 3 joueurs face a un saboteur.
+        Active pour corriger un vote d'un autre joueur.
+      </div>
+      <button type="button" class="host-override-toggle">Activer</button>
+    `;
+    const btn = toolbarEl.querySelector(".host-override-toggle");
+    btn.addEventListener("click", () => {
+      overrideMode = !overrideMode;
+      toolbarEl.classList.toggle("is-active", overrideMode);
+      btn.textContent = overrideMode ? "Désactiver" : "Activer";
+      refreshAllCells();
+    });
+    // Insertion juste avant la table
+    tableEl.parentNode.insertBefore(toolbarEl, tableEl);
+    return toolbarEl;
+  }
+
   state.renderVotingStart = function (msg) {
     const result = msg.result;
     definitions = result.definitions ?? {};
@@ -48,6 +83,18 @@ export function initVotingView(state, conn) {
     renderTable();
     renderProgress();
     updateHostActions();
+    // Reset override state pour la nouvelle manche
+    overrideMode = false;
+    overriddenCells.clear();
+    if (state.isHost) {
+      ensureToolbar();
+      toolbarEl.style.display = "";
+      toolbarEl.classList.remove("is-active");
+      const btn = toolbarEl.querySelector(".host-override-toggle");
+      if (btn) btn.textContent = "Activer";
+    } else if (toolbarEl) {
+      toolbarEl.style.display = "none";
+    }
   };
 
   state.applyVoteUpdate = function (newVotes) {
@@ -156,7 +203,7 @@ export function initVotingView(state, conn) {
 
   function renderCell(td, author, voter) {
     td.innerHTML = "";
-    td.classList.remove("diagonal", "editable", "has-vote", "pending");
+    td.classList.remove("diagonal", "editable", "has-vote", "pending", "is-overridden");
     td.style.background = "";
 
     // Diagonale : on ne vote pas pour soi-même
@@ -169,9 +216,20 @@ export function initVotingView(state, conn) {
     const current = votes[voter]?.[author];
     const hasVote = current !== undefined;
 
-    if (voter === state.myPseudo) {
-      // Cellule editable : slider 0..1
+    // L'hote en mode override peut editer toute cellule non diagonale.
+    // Sinon, on n'edite que sa propre ligne (voter === myPseudo).
+    const isMyRow = voter === state.myPseudo;
+    const isHostOverride = state.isHost && overrideMode && !isMyRow;
+    const editable = isMyRow || isHostOverride;
+
+    const cellKey = `${voter}::${author}`;
+    if (overriddenCells.has(cellKey) && hasVote) {
+      td.classList.add("is-overridden");
+    }
+
+    if (editable) {
       td.classList.add("editable");
+      if (isHostOverride) td.classList.add("editable-host");
       if (hasVote) {
         td.classList.add("has-vote");
         td.style.background = voteCellBg(current);
@@ -185,9 +243,12 @@ export function initVotingView(state, conn) {
       slider.value = hasVote ? String(current) : "0.5";
       slider.className = "vote-slider";
       if (!hasVote) slider.classList.add("vote-slider-pristine");
-      slider.setAttribute("aria-label", `Note pour ${author}`);
+      slider.setAttribute("aria-label",
+        isHostOverride
+          ? `Corriger le vote de ${voter} pour ${author}`
+          : `Note pour ${author}`
+      );
 
-      // Feedback visuel en direct pendant le drag (sans envoyer au serveur)
       slider.addEventListener("input", () => {
         const v = Math.max(0, Math.min(1, Number(slider.value)));
         td.classList.add("has-vote");
@@ -195,18 +256,26 @@ export function initVotingView(state, conn) {
         slider.classList.remove("vote-slider-pristine");
         td.style.background = voteCellBg(v);
       });
-      // Envoi au serveur quand l'utilisateur relâche
       slider.addEventListener("change", () => {
         const v = Math.max(0, Math.min(1, Number(slider.value)));
-        // Arrondi a 2 decimales pour eviter les flottants laids
         const rounded = Math.round(v * 100) / 100;
-        conn.send({ type: "set_vote", author, value: rounded });
+        if (isHostOverride) {
+          // L'hote corrige le vote d'un autre votant
+          overriddenCells.add(cellKey);
+          td.classList.add("is-overridden");
+          conn.send({
+            type: "host_override_vote",
+            voter, author, value: rounded,
+          });
+        } else {
+          conn.send({ type: "set_vote", author, value: rounded });
+        }
       });
       td.appendChild(slider);
       return;
     }
 
-    // Cellule lecture seule : la note d'un autre votant -> couleur du fond
+    // Cellule lecture seule
     if (hasVote) {
       td.classList.add("has-vote");
       td.style.background = voteCellBg(current);

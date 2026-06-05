@@ -157,5 +157,34 @@ export function validateGameConfig(
   ) {
     return { ok: false, error: "Méthode d'agrégation invalide." };
   }
+  // Difficulty : entiers 1-5 avec min <= max. Si absent (anciens clients),
+  // on tolere et le serveur defaultera a 1-5 (toute la banque) cote drawWord.
+  if (c.minDifficulty !== undefined) {
+    if (
+      typeof c.minDifficulty !== "number" ||
+      !Number.isInteger(c.minDifficulty) ||
+      c.minDifficulty < 1 ||
+      c.minDifficulty > 5
+    ) {
+      return { ok: false, error: "Difficulté minimale invalide (1-5)." };
+    }
+  }
+  if (c.maxDifficulty !== undefined) {
+    if (
+      typeof c.maxDifficulty !== "number" ||
+      !Number.isInteger(c.maxDifficulty) ||
+      c.maxDifficulty < 1 ||
+      c.maxDifficulty > 5
+    ) {
+      return { ok: false, error: "Difficulté maximale invalide (1-5)." };
+    }
+  }
+  if (
+    c.minDifficulty !== undefined &&
+    c.maxDifficulty !== undefined &&
+    (c.minDifficulty as number) > (c.maxDifficulty as number)
+  ) {
+    return { ok: false, error: "Difficulté minimale supérieure à la maximale." };
+  }
   return { ok: true };
 }

@@ -81,6 +81,13 @@ export interface GameConfig {
   timerSeconds: number;
   /** Methode d'agregation des votes. */
   aggregation: Aggregation;
+  /**
+   * Fourchette de difficulte des mots tires (1-5). Permet a l'hote de calibrer
+   * la partie : 1-2 pour une audience qui debute, 4-5 pour des amateurs eclaires,
+   * 1-5 (defaut) pour un mix de tous les niveaux. minDifficulty <= maxDifficulty.
+   */
+  minDifficulty: 1 | 2 | 3 | 4 | 5;
+  maxDifficulty: 1 | 2 | 3 | 4 | 5;
 }
 
 // ===========================================
@@ -137,6 +144,10 @@ export type ClientMessage =
   | { type: "lock_definition" }
   // Phase voting : je note la proposition d'un auteur (voter = expediteur)
   | { type: "set_vote"; author: string; value: number }
+  // Phase voting : l'hote peut overrider le vote d'un autre joueur (parties a
+  // 3 joueurs face a un saboteur qui ne peut pas etre neutralise par la
+  // methode MAD anti-saboteur qui requiert au moins 4 votes).
+  | { type: "host_override_vote"; voter: string; author: string; value: number }
   | { type: "next_round" } // host : voting->scoring (calcule), puis scoring->suite
   | { type: "end_game" } // host : termine tout de suite
   | { type: "back_to_lobby" };

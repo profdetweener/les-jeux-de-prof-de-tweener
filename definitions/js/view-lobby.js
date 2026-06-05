@@ -144,6 +144,9 @@ export function initLobbyView(state, conn, roomCode) {
     errorBox.textContent = "";
   };
 
+  const diffMinInput = document.getElementById("diff-min-input");
+  const diffMaxInput = document.getElementById("diff-max-input");
+
   // --- Construction de la config depuis les inputs ---
   function buildConfig() {
     const mode = currentMode();
@@ -161,11 +164,20 @@ export function initLobbyView(state, conn, roomCode) {
       ? aggregationInput.value
       : "robust";
 
+    let minDifficulty = parseInt(diffMinInput?.value, 10);
+    let maxDifficulty = parseInt(diffMaxInput?.value, 10);
+    if (!(minDifficulty >= 1 && minDifficulty <= 5)) minDifficulty = 2;
+    if (!(maxDifficulty >= 1 && maxDifficulty <= 5)) maxDifficulty = 4;
+    if (minDifficulty > maxDifficulty) {
+      // On corrige silencieusement plutot que de bloquer
+      [minDifficulty, maxDifficulty] = [maxDifficulty, minDifficulty];
+    }
+
     // En chill, on force l'illimite (le worker fera pareil mais autant ne pas
     // tromper l'invite cote affichage).
     if (mode === "chill") totalRounds = 0;
 
-    return { mode, totalRounds, timerSeconds, aggregation };
+    return { mode, totalRounds, timerSeconds, aggregation, minDifficulty, maxDifficulty };
   }
 
   function updateAggregationHint() {
@@ -206,6 +218,12 @@ export function initLobbyView(state, conn, roomCode) {
     // Compat ascendante : si une vieille config "trimmed" arrive, on bascule sur robust
     const agg = config.aggregation === "trimmed" ? "robust" : config.aggregation;
     aggregationInput.value = agg;
+    if (diffMinInput && config.minDifficulty >= 1 && config.minDifficulty <= 5) {
+      diffMinInput.value = String(config.minDifficulty);
+    }
+    if (diffMaxInput && config.maxDifficulty >= 1 && config.maxDifficulty <= 5) {
+      diffMaxInput.value = String(config.maxDifficulty);
+    }
     updateAggregationHint();
     applyModeVisibility();
   };
@@ -220,6 +238,12 @@ export function initLobbyView(state, conn, roomCode) {
     guestTimer.textContent = isChill ? "Désactivé" : `${config.timerSeconds} sec`;
     const aggKey = config.aggregation === "trimmed" ? "robust" : config.aggregation;
     guestAggregation.textContent = AGGREGATION_LABELS[aggKey] ?? aggKey;
+    const guestDiff = document.getElementById("guest-difficulty");
+    if (guestDiff) {
+      const dmin = config.minDifficulty ?? 1;
+      const dmax = config.maxDifficulty ?? 5;
+      guestDiff.textContent = dmin === dmax ? `${dmin}` : `${dmin} à ${dmax}`;
+    }
     for (const el of guestCompetOnly) {
       el.style.display = isChill ? "none" : "";
     }
@@ -237,6 +261,8 @@ export function initLobbyView(state, conn, roomCode) {
     el.addEventListener("input", scheduleConfigPush);
   }
   aggregationInput.addEventListener("change", scheduleConfigPush);
+  if (diffMinInput) diffMinInput.addEventListener("change", scheduleConfigPush);
+  if (diffMaxInput) diffMaxInput.addEventListener("change", scheduleConfigPush);
 
   updateAggregationHint();
   applyLockedModeIfAny();

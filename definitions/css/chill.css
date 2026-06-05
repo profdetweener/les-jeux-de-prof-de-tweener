@@ -1,91 +1,34 @@
 /* ==========================================================================
    Definitions chill (solo) — styles dedies a chill.html
 
-   Pattern calque sur motus/chill : layout en deux colonnes (sidebar stats /
-   zone principale), avec repli mono-colonne sur mobile. Reprend les tokens
-   CSS de style.css (--beige, --bleu-nuit, etc.), pas de nouvelle palette.
+   Layout simple en colonne : titre/compteur, mot a definir en gros, bloc
+   definition floutee qu'on clique pour reveler, bouton "mot suivant".
+   Reprend les tokens CSS de style.css (--beige, --bleu-nuit, etc.).
    ========================================================================== */
 
-/* --- Layout principal : sidebar + main ------------------------------------- */
-
-.chill-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-@media (min-width: 860px) {
-  .chill-layout { grid-template-columns: 260px 1fr; }
-}
-
-.chill-sidebar { display: flex; flex-direction: column; gap: 20px; }
-.chill-sidebar .sidebar-section h3 {
-  margin: 0 0 10px;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--gris-texte);
-}
-
-/* Stats : grille 2x2 compacte */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.stat-item {
-  background: var(--beige);
-  border-radius: var(--rayon-sm);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-label {
-  font-size: 11px;
-  color: var(--gris-texte);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--bleu-nuit);
-}
-
-/* Liste des mots de la session */
-.chill-word-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 360px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.chill-word-list li {
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: var(--rayon-sm);
-  background: var(--beige);
+/* Selecteur de fourchette de difficulte (deux selects cote a cote). */
+.diff-range {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
-.chill-word-list li.known { background: #d8ecd8; }
-.chill-word-list li.unknown { background: #f4e0c4; }
-.chill-word-list li .word-status { flex: none; }
-.chill-word-list-empty {
+.diff-range select {
+  flex: 1;
+  min-width: 0;
+}
+.diff-range-sep {
   color: var(--gris-texte);
-  font-style: italic;
+  font-weight: 700;
+  flex: none;
 }
 
-/* --- Zone principale : mot + definition ------------------------------------ */
-
+/* --- Zone principale ------------------------------------------------------- */
 .chill-main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
 }
 .chill-status {
   font-size: 13px;
@@ -126,7 +69,7 @@
   border-left: 4px solid var(--vert);
   border-radius: var(--rayon-sm);
   padding: 16px 18px;
-  min-height: 80px;
+  min-height: 100px;
   position: relative;
 }
 .chill-def-label {
@@ -169,35 +112,14 @@
 
 /* --- Actions ---------------------------------------------------------------- */
 
-.chill-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.chill-actions .btn-primary {
-  grid-column: 1 / -1;
-}
+.chill-actions { display: flex; }
 .chill-actions-secondary {
   display: flex;
   justify-content: center;
   margin-top: 4px;
 }
 
-/* Checkbox row pour la config */
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.checkbox-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-/* host-actions reuse pour la vue finished : assure un espacement coherent */
+/* host-actions reuse pour la vue finished */
 #view-finished .host-actions {
   display: flex;
   flex-direction: column;

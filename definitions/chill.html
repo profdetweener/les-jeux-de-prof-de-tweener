@@ -21,9 +21,9 @@
     <div class="card view" id="view-config">
       <h2>Options de la partie</h2>
       <p class="subtitle">
-        Mode chill solo : un mot rare apparaît, sans sa définition. Idéal en stream
-        pour faire participer le chat, ou en solo pour découvrir du vocabulaire.
-        Aucun joueur supplémentaire à attendre.
+        Mode chill solo : un mot ou une expression rare apparaît, sans sa définition.
+        Tu cliques pour révéler quand tu veux. Idéal en stream pour faire participer
+        le chat, ou en solo pour découvrir du vocabulaire.
       </p>
 
       <div class="alert alert-error" id="error-box"></div>
@@ -35,17 +35,28 @@
           <option value="words">Mots uniquement</option>
           <option value="expressions">Expressions uniquement</option>
         </select>
-        <p class="info-line" id="entry-type-hint">—</p>
       </div>
 
       <div class="form-group">
-        <label class="checkbox-row">
-          <input type="checkbox" id="blur-first-input">
-          <span>Brouiller la définition d'abord (clic pour révéler)</span>
-        </label>
-        <p class="info-line">
-          Utile en solo pour réfléchir avant de voir la vraie définition.
-        </p>
+        <label>Difficulté</label>
+        <div class="diff-range">
+          <select id="diff-min-input">
+            <option value="1">1 — très accessible</option>
+            <option value="2" selected>2 — accessible</option>
+            <option value="3">3 — moyen</option>
+            <option value="4">4 — difficile</option>
+            <option value="5">5 — très difficile</option>
+          </select>
+          <span class="diff-range-sep">→</span>
+          <select id="diff-max-input">
+            <option value="1">1 — très accessible</option>
+            <option value="2">2 — accessible</option>
+            <option value="3">3 — moyen</option>
+            <option value="4" selected>4 — difficile</option>
+            <option value="5">5 — très difficile</option>
+          </select>
+        </div>
+        <p class="info-line" id="diff-hint">—</p>
       </div>
 
       <button class="btn btn-primary btn-block" id="start-btn" disabled>
@@ -55,76 +66,34 @@
 
     <!-- VUE 2 : JEU EN COURS -->
     <div class="card view view-wide" id="view-in-game" style="display: none;">
-      <div class="chill-layout">
+      <div class="chill-main">
+        <div class="chill-status">
+          <span id="chill-counter">Mot 1</span>
+        </div>
 
-        <!-- Sidebar : stats + historique de la session -->
-        <aside class="chill-sidebar">
-          <section class="sidebar-section">
-            <h3>Stats de session</h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">Vus</span>
-                <span class="stat-value" id="stat-seen">0</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Connus</span>
-                <span class="stat-value" id="stat-known">0</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">À retenir</span>
-                <span class="stat-value" id="stat-unknown">0</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Restants</span>
-                <span class="stat-value" id="stat-remaining">—</span>
-              </div>
-            </div>
-          </section>
+        <div class="chill-word-banner">
+          <span class="chill-word-label">À définir</span>
+          <span class="chill-word-value" id="chill-word">—</span>
+        </div>
 
-          <section class="sidebar-section">
-            <h3>Mots de la session</h3>
-            <ul class="chill-word-list" id="word-list">
-              <li class="chill-word-list-empty">Aucun mot vu pour l'instant.</li>
-            </ul>
-          </section>
-        </aside>
+        <div class="chill-def-block is-blurred" id="chill-def-block">
+          <span class="chill-def-label">✅ Vraie définition</span>
+          <div class="chill-def-text" id="chill-def-text">—</div>
+          <button type="button" class="chill-def-reveal" id="chill-def-reveal">
+            👁️ Révéler la définition
+          </button>
+        </div>
 
-        <!-- Zone principale : mot, definition, actions -->
-        <div class="chill-main">
-          <div class="chill-status">
-            <span id="chill-counter">Mot 1</span>
-          </div>
+        <div class="chill-actions">
+          <button type="button" class="btn btn-primary btn-block" id="btn-next">
+            Mot suivant →
+          </button>
+        </div>
 
-          <div class="chill-word-banner">
-            <span class="chill-word-label">À définir</span>
-            <span class="chill-word-value" id="chill-word">—</span>
-          </div>
-
-          <div class="chill-def-block" id="chill-def-block">
-            <span class="chill-def-label">✅ Vraie définition</span>
-            <div class="chill-def-text" id="chill-def-text">—</div>
-            <button type="button" class="chill-def-reveal" id="chill-def-reveal" style="display: none;">
-              👁️ Révéler la définition
-            </button>
-          </div>
-
-          <div class="chill-actions">
-            <button type="button" class="btn btn-secondary btn-block" id="btn-mark-unknown">
-              📚 À retenir
-            </button>
-            <button type="button" class="btn btn-secondary btn-block" id="btn-mark-known">
-              ✓ Connu
-            </button>
-            <button type="button" class="btn btn-primary btn-block" id="btn-next">
-              Mot suivant →
-            </button>
-          </div>
-
-          <div class="chill-actions-secondary">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-back-config">
-              ⚙️ Changer les options
-            </button>
-          </div>
+        <div class="chill-actions-secondary">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-back-config">
+            ⚙️ Changer les options
+          </button>
         </div>
       </div>
     </div>
@@ -133,8 +102,8 @@
     <div class="card view" id="view-finished" style="display: none;">
       <h2 style="text-align: center;">🎉 Banque épuisée !</h2>
       <p style="text-align: center;">
-        Tu as vu les <strong id="finished-count">—</strong> entrées de la banque.
-        Bravo pour la persévérance.
+        Tu as vu les <strong id="finished-count">—</strong> entrées correspondant
+        à ton filtre. Bravo pour la persévérance.
       </p>
       <div class="host-actions">
         <button class="btn btn-primary btn-block" id="btn-restart">
@@ -154,6 +123,8 @@
     <a href="regles.html">Règles du jeu</a>
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
     <span class="footer-sep">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>

@@ -149,33 +149,43 @@ body { display: flex; flex-direction: column; }
 
 /* --- Buy Me a Coffee : bouton flottant en bas a droite ---
    Persistant sur toute la page, ne gene pas la lecture, toujours
-   atteignable sans avoir a scroller jusqu'au footer. */
+   atteignable sans avoir a scroller jusqu'au footer.
+
+   Choix de couleur : jaune pastel (et non le jaune-soleil officiel de
+   BMC), pour ne pas crier "donnez-moi des sous !!!" a l'arrivee sur le
+   site. C'est present, mais discret.
+
+   Position : remonte au-dessus du bandeau footer (~60px de hauteur)
+   pour rester visible meme quand on scrolle tout en bas.
+*/
 .coffee-fab {
   position: fixed;
-  bottom: 20px;
+  bottom: 78px; /* au-dessus du bandeau footer */
   right: 20px;
   z-index: 1000;
-  background: #ffdd00; /* couleur officielle BMC */
-  color: #1a1a1a;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 18px;
+  background: #fff4b8; /* jaune pastel discret */
+  color: #4a3a00;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px 16px;
   border-radius: 999px;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid #f0d878;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 .coffee-fab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  background: #ffe57a; /* devient un peu plus jaune au survol = invitation */
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
 }
 @media (max-width: 600px) {
   .coffee-fab {
-    bottom: 14px;
+    bottom: 68px;
     right: 14px;
-    padding: 9px 14px;
-    font-size: 13px;
+    padding: 8px 13px;
+    font-size: 12px;
   }
 }
 

@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <meta name="format-detection" content="telephone=no">
-  <title>Partie — Définitions</title>
+  <title>Partie — Définitions compétitif</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="app-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">←</a>
-    <h1>📖 Définitions</h1>
+    <h1>📖 Définitions compétitif</h1>
     <span class="connection-status" id="connection-status">
       <span class="dot"></span>
       <span class="text">connexion…</span>
@@ -45,7 +45,7 @@
         <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
 
         <!-- Pill visible uniquement si le mode a ete fige par le picker (?mode=) -->
-        <div class="mode-pill" id="host-mode-pill" style="display: none;">
+        <div class="mode-pill" id="host-mode-pill" style="display: none;" hidden>
           <span class="mode-pill-label">Mode :</span>
           <span class="mode-pill-value" id="host-mode-pill-value">—</span>
           <a href="index.html" class="mode-pill-change" title="Changer de mode">changer</a>
@@ -72,9 +72,7 @@
           </div>
         </div>
 
-        <div class="chill-banner" id="chill-mode-banner" style="display: none;">
-          Mode chill : pas de timer (l'hôte clôt la phase quand il veut), manches illimitées. Les scores sont quand même calculés, mais sans classement final compétitif.
-        </div>
+        <div class="chill-banner" id="chill-mode-banner" style="display: none;" hidden></div>
 
         <div class="form-row" data-only-mode="competitive">
           <div class="form-group">
@@ -101,6 +99,30 @@
             <option value="median">Médiane</option>
           </select>
           <p class="info-line" id="aggregation-hint" style="font-size: 12px; margin-top: 4px;"></p>
+        </div>
+
+        <div class="form-group">
+          <label>Difficulté des mots</label>
+          <div class="diff-range">
+            <select id="diff-min-input">
+              <option value="1">1 — très accessible</option>
+              <option value="2" selected>2 — accessible</option>
+              <option value="3">3 — moyen</option>
+              <option value="4">4 — difficile</option>
+              <option value="5">5 — très difficile</option>
+            </select>
+            <span class="diff-range-sep">→</span>
+            <select id="diff-max-input">
+              <option value="1">1 — très accessible</option>
+              <option value="2">2 — accessible</option>
+              <option value="3">3 — moyen</option>
+              <option value="4" selected>4 — difficile</option>
+              <option value="5">5 — très difficile</option>
+            </select>
+          </div>
+          <p class="info-line" style="font-size: 12px; margin-top: 4px;">
+            Borne basse → borne haute. <strong>2 → 4</strong> conseillé pour un mix équilibré.
+          </p>
         </div>
 
         <button class="btn btn-primary btn-block" id="btn-start-game">
@@ -133,6 +155,12 @@
           <div class="form-group">
             <label class="sub-label">Temps d'écriture</label>
             <div class="readonly-value" id="guest-timer">—</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="sub-label">Difficulté des mots</label>
+            <div class="readonly-value" id="guest-difficulty">—</div>
           </div>
         </div>
         <p class="info-line" style="text-align: center; font-style: italic;">
@@ -296,6 +324,8 @@
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
     <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+   <span class="footer-sep">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
