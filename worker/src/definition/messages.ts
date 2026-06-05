@@ -38,27 +38,46 @@ export const DEF_CONFIG = {
    * Avec 10, une moyenne de 0.7 rapporte 7 points.
    */
   POINTS_PER_ROUND: 10,
-  DEFAULT_AGGREGATION: "trimmed" as Aggregation,
+  DEFAULT_AGGREGATION: "robust" as Aggregation,
+  DEFAULT_MODE: "competitive" as GameMode,
 } as const;
 
 /**
+ * Mode de jeu :
+ *   - "competitive" : timer, nombre de manches limite, classement final.
+ *   - "chill"       : pas de timer, manches illimitees, pas d'ecran de gagnant.
+ *                     On affiche quand meme les scores cumules (utile en stream),
+ *                     mais aucune pression compet'.
+ */
+export type GameMode = "competitive" | "chill";
+
+/**
  * Methode d'agregation des votes recus par un auteur :
- *   - "mean"    : moyenne simple de tous les votes recus
- *   - "trimmed" : moyenne tronquee — on retire le vote le plus haut ET le plus
- *                 bas avant de moyenner (des qu'il y a au moins 4 votes ; sinon
- *                 on retombe sur la moyenne simple). Neutralise un saboteur isole.
+ *   - "mean"    : moyenne simple de tous les votes recus.
+ *   - "robust"  : moyenne en excluant uniquement les votes anormalement BAS.
+ *                 On utilise mediane + MAD (median absolute deviation) : un vote
+ *                 est exclu si vote < mediane - 2.5 × MAD. Asymetrique a dessein :
+ *                 un vote haut n'a aucun interet a etre exclu (un saboteur n'a
+ *                 aucune raison de mettre un faux 1 ; et un vrai 1 enthousiaste
+ *                 ne penalise personne). Necessite >= 4 votes pour s'activer,
+ *                 sinon retombe sur "mean".
  *   - "median"  : mediane des votes recus (tres robuste a un vote extreme isole).
  */
-export type Aggregation = "mean" | "trimmed" | "median";
+export type Aggregation = "mean" | "robust" | "median";
 
 // ===========================================
 // Configuration de partie (definie par le host)
 // ===========================================
 
 export interface GameConfig {
-  /** Nombre de manches. 0 = illimite (jusqu'a arret manuel par l'hote). */
+  /**
+   * Mode de jeu : "competitive" applique timer + nombre de manches ; "chill"
+   * ignore le timer et joue sans limite de manches (pas de pression).
+   */
+  mode: GameMode;
+  /** Nombre de manches. 0 = illimite (jusqu'a arret manuel par l'hote). En chill, force a 0. */
   totalRounds: number;
-  /** Duree de la phase d'ecriture (secondes). */
+  /** Duree de la phase d'ecriture (secondes). En chill, ignore (pas de timer). */
   timerSeconds: number;
   /** Methode d'agregation des votes. */
   aggregation: Aggregation;
@@ -162,7 +181,8 @@ export type ServerMessage =
       totalRounds: number;
       word: string; // la vraie definition N'est PAS envoyee ici
       timerSeconds: number;
-      roundEndsAt: number;
+      /** null en mode chill (pas de timer auto) */
+      roundEndsAt: number | null;
     }
   | {
       // Indique qui a verrouille sa definition (sans en reveler le contenu)

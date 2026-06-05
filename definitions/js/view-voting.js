@@ -75,6 +75,14 @@ export function initVotingView(state, conn) {
     updateHostActions();
   };
 
+  function voterOrder() {
+    // MON pseudo en premier (apres la colonne auteur) -> colonne sticky a gauche.
+    // Sinon ordre alphabetique d'authors original.
+    const me = state.myPseudo;
+    const others = authors.filter((a) => a !== me);
+    return authors.includes(me) ? [me, ...others] : authors.slice();
+  }
+
   function renderTable() {
     tableEl.innerHTML = "";
     if (authors.length === 0) {
@@ -89,6 +97,8 @@ export function initVotingView(state, conn) {
       return;
     }
 
+    const voters = voterOrder();
+
     // En-tête : colonne "auteur" + une colonne par votant
     const thead = document.createElement("thead");
     const trHead = document.createElement("tr");
@@ -96,7 +106,7 @@ export function initVotingView(state, conn) {
     thCorner.className = "col-author";
     thCorner.textContent = "Définition de ↓ / Vote de →";
     trHead.appendChild(thCorner);
-    for (const voter of authors) {
+    for (const voter of voters) {
       const th = document.createElement("th");
       th.textContent = voter + (voter === state.myPseudo ? " (toi)" : "");
       if (voter === state.myPseudo) th.classList.add("voter-me");
@@ -130,9 +140,10 @@ export function initVotingView(state, conn) {
       tdAuthor.appendChild(def);
       tr.appendChild(tdAuthor);
 
-      for (const voter of authors) {
+      for (const voter of voters) {
         const td = document.createElement("td");
         td.className = "vote-cell";
+        if (voter === state.myPseudo) td.classList.add("col-me");
         td.dataset.author = author;
         td.dataset.voter = voter;
         renderCell(td, author, voter);

@@ -17,6 +17,7 @@ export function initWritingView(state, conn) {
   const textarea = document.getElementById("def-textarea");
   const charcountEl = document.getElementById("def-charcount");
   const lockBtn = document.getElementById("btn-lock");
+  const forceEndBtn = document.getElementById("btn-force-end-writing");
   const statusEl = document.getElementById("writing-status");
   const writersStatusEl = document.getElementById("writers-status");
 
@@ -50,8 +51,27 @@ export function initWritingView(state, conn) {
     }
 
     textarea.focus();
-    startCountdown(msg.roundEndsAt);
+    if (msg.roundEndsAt) {
+      timerDisplayEl.style.display = "";
+      startCountdown(msg.roundEndsAt);
+    } else {
+      // Mode chill : pas de timer
+      timerDisplayEl.style.display = "none";
+      if (timerIntervalId) {
+        clearInterval(timerIntervalId);
+        timerIntervalId = null;
+      }
+    }
+    refreshHostForceEnd();
   };
+
+  // Bouton "passer aux votes" pour l'hote en mode chill
+  function refreshHostForceEnd() {
+    if (!forceEndBtn) return;
+    const isChill = state.config?.mode === "chill";
+    forceEndBtn.style.display = (state.isHost && isChill) ? "block" : "none";
+  }
+  state.refreshWritingHostState = refreshHostForceEnd;
 
   state.stopWritingCountdown = function () {
     if (timerIntervalId) {
@@ -136,4 +156,11 @@ export function initWritingView(state, conn) {
     statusEl.textContent = "Ta définition a été envoyée. La manche se termine quand tout le monde a validé (ou au timer).";
     showToast("Définition validée.", { type: "success", duration: 1500 });
   });
+
+  if (forceEndBtn) {
+    forceEndBtn.addEventListener("click", () => {
+      if (!confirm("Couper la phase d'écriture maintenant et passer aux votes ?")) return;
+      conn.send({ type: "next_round" });
+    });
+  }
 }

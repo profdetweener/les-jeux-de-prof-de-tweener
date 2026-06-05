@@ -4,14 +4,19 @@
  */
 
 export function initFinishedView(state, conn) {
+  const titleEl = document.querySelector("#view-finished h2");
   const rankingEl = document.getElementById("final-ranking");
   const hostActionsEl = document.getElementById("finished-host-actions");
   const backBtn = document.getElementById("btn-back-lobby");
 
   state.renderFinished = function (ranking) {
     rankingEl.innerHTML = "";
+    const isChill = state.config?.mode === "chill";
+    if (titleEl) {
+      titleEl.textContent = isChill ? "Fin de la session" : "🏆 Fin de la partie !";
+    }
     const sorted = [...(ranking ?? [])].sort((a, b) => b.totalScore - a.totalScore);
-    sorted.forEach((p, idx) => {
+    sorted.forEach((p) => {
       const li = document.createElement("li");
       const name = document.createElement("span");
       name.className = "rank-pseudo";

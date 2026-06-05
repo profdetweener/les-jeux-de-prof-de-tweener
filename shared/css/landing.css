@@ -147,6 +147,37 @@ body { display: flex; flex-direction: column; }
   border-radius: 12px;
 }
 
+/* --- Support / BuyMeACoffee --- */
+.support-section {
+  max-width: 720px;
+  margin: 32px auto 0;
+  padding: 20px 24px;
+  background: var(--blanc);
+  border: 1px dashed var(--beige-fonce);
+  border-radius: var(--rayon);
+  text-align: center;
+}
+.support-section p {
+  margin: 0 0 14px;
+  color: var(--gris-texte);
+  font-size: 14px;
+}
+.support-btn {
+  display: inline-block;
+  background: #ffdd00; /* couleur officielle BMC */
+  color: #1a1a1a;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.support-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+
 /* --- Footer --- */
 .landing-footer {
   background: var(--bleu-nuit); color: var(--beige);

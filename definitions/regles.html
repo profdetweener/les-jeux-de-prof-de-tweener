@@ -16,8 +16,8 @@
     <div class="card rules-card">
       <h2>Le principe</h2>
       <p class="subtitle">
-        Un mot ou une expression difficile s'affiche. Chacun en écrit sa définition.
-        La vraie définition est révélée, puis tout le monde se note. Le plus juste (ou le plus malin) gagne.
+          Un mot ou une expression difficile s'affiche. Chacun en écrit sa définition.
+          La vraie définition est révélée, puis tout le monde se note. Le plus juste gagne.
       </p>
 
       <h3>Déroulé d'une manche</h3>
@@ -52,9 +52,11 @@
         Trois méthodes au choix de l'hôte, pour agréger les votes reçus par une définition :
       </p>
       <ul class="rules-steps">
-        <li><strong>Moyenne tronquée</strong> (recommandée) — on retire la note la plus haute
-          <em>et</em> la plus basse avant de moyenner (dès qu'il y a au moins 4 votes). Un joueur qui
-          mettrait exprès des mauvaises notes à tout le monde est ainsi neutralisé automatiquement.</li>
+        <li><strong>Anti-saboteur</strong> (recommandé) — on calcule la médiane des votes, puis
+          on exclut <em>uniquement</em> les votes anormalement bas (détection par MAD). Un joueur
+          qui mettrait exprès 0 à tout le monde est ainsi neutralisé. Les votes hauts sont toujours
+          comptés : un faux 1 n'a aucun intérêt pour un saboteur, et un vrai 1 enthousiaste ne
+          pénalise personne. S'active dès 4 votes ; en-dessous on tombe sur la moyenne simple.</li>
         <li><strong>Moyenne simple</strong> — la moyenne de tous les votes. Simple, mais sensible aux
           votes extrêmes.</li>
         <li><strong>Médiane</strong> — la valeur centrale des votes. Très robuste à un vote isolé.</li>
@@ -72,6 +74,8 @@
     <a href="../index.html">Accueil</a>
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/maximedeniaux" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 </body>
 </html>

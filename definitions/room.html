@@ -44,7 +44,36 @@
       <div class="host-actions" id="host-actions" style="display: none;">
         <h3 style="margin-top: 24px;">⚙️ Configuration de la partie</h3>
 
-        <div class="form-row">
+        <!-- Pill visible uniquement si le mode a ete fige par le picker (?mode=) -->
+        <div class="mode-pill" id="host-mode-pill" style="display: none;">
+          <span class="mode-pill-label">Mode :</span>
+          <span class="mode-pill-value" id="host-mode-pill-value">—</span>
+          <a href="index.html" class="mode-pill-change" title="Changer de mode">changer</a>
+        </div>
+
+        <label id="mode-locked-label" style="margin-bottom: 6px;">Mode de jeu</label>
+        <div class="mode-toggle">
+          <div class="mode-radio-wrap">
+            <input type="radio" name="mode-input" id="mode-competitive" value="competitive" checked>
+            <label for="mode-competitive" class="mode-radio-label">
+              Compétitif
+              <span class="mode-sub">timer + manches + classement</span>
+            </label>
+          </div>
+          <div class="mode-radio-wrap">
+            <input type="radio" name="mode-input" id="mode-chill" value="chill">
+            <label for="mode-chill" class="mode-radio-label">
+              Chill
+              <span class="mode-sub">pas de timer, manches illimitées</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="chill-banner" id="chill-mode-banner" style="display: none;">
+          Mode chill : pas de timer (l'hôte clôt la phase quand il veut), manches illimitées. Les scores sont quand même calculés, mais sans classement final compétitif.
+        </div>
+
+        <div class="form-row" data-only-mode="competitive">
           <div class="form-group">
             <label for="rounds-input">Nombre de manches</label>
             <div class="rounds-control">
@@ -64,7 +93,7 @@
         <div class="form-group">
           <label for="aggregation-input">Calcul du score (agrégation des votes)</label>
           <select id="aggregation-input">
-            <option value="trimmed" selected>Moyenne tronquée (recommandé)</option>
+            <option value="robust" selected>Anti-saboteur (recommandé)</option>
             <option value="mean">Moyenne simple</option>
             <option value="median">Médiane</option>
           </select>
@@ -85,6 +114,16 @@
         <p class="info-line">L'hôte configure la partie. Les paramètres se mettent à jour en temps réel.</p>
         <div class="form-row">
           <div class="form-group">
+            <label class="sub-label">Mode</label>
+            <div class="readonly-value" id="guest-mode">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Calcul du score</label>
+            <div class="readonly-value" id="guest-aggregation">—</div>
+          </div>
+        </div>
+        <div class="form-row" data-guest-only-mode="competitive">
+          <div class="form-group">
             <label class="sub-label">Nombre de manches</label>
             <div class="readonly-value" id="guest-rounds">—</div>
           </div>
@@ -92,10 +131,6 @@
             <label class="sub-label">Temps d'écriture</label>
             <div class="readonly-value" id="guest-timer">—</div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="sub-label">Calcul du score</label>
-          <div class="readonly-value" id="guest-aggregation">—</div>
         </div>
         <p class="info-line" style="text-align: center; font-style: italic;">
           ⏳ En attente du lancement de la partie par l'hôte…
@@ -141,6 +176,10 @@
         </button>
         <p class="info-line" id="writing-status"></p>
         <div class="writers-status" id="writers-status"></div>
+        <!-- Mode chill uniquement : l'hote peut couper l'ecriture quand il veut -->
+        <button type="button" class="btn btn-secondary btn-block" id="btn-force-end-writing" style="display: none; margin-top: 10px;">
+          ⏭️ Passer aux votes (hôte)
+        </button>
       </div>
     </div>
 
@@ -253,6 +292,8 @@
     <a href="regles.html">Règles du jeu</a>
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/maximedeniaux" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
   <script type="module" src="js/lobby.js"></script>

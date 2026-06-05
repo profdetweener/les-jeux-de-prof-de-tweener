@@ -40,6 +40,10 @@ const storage = (() => {
 
 const roomCode = (params.get("code") || storage.getItem("definitions_room") || "").toUpperCase();
 const pseudo = storage.getItem("definitions_pseudo") || "";
+// Mode passe via ?mode= (uniquement pour l'hote qui CREE la room ; pour un
+// invite, c'est null et le mode sera fixe par l'etat de la room recu en push).
+const urlModeRaw = params.get("mode");
+const urlMode = (urlModeRaw === "chill" || urlModeRaw === "competitive") ? urlModeRaw : null;
 
 if (!roomCode || !pseudo) {
   window.location.href = "index.html";
@@ -59,6 +63,9 @@ const state = {
   config: null,
   currentRound: 0,
   word: null,
+  // Mode demande a la creation (uniquement pour l'hote, via ?mode= dans l'URL).
+  // Pour un invite : null -> on prendra le mode de la room recue.
+  createMode: urlMode,
 };
 
 // ===========================================
@@ -149,7 +156,7 @@ conn.on("joined", (msg) => {
       totalRounds: msg.config.totalRounds,
       word: msg.word,
       timerSeconds: msg.config.timerSeconds,
-      roundEndsAt: msg.roundEndsAt ?? Date.now(),
+      roundEndsAt: msg.roundEndsAt ?? null,
       previousDefinition: msg.myDefinition ?? null,
     });
   } else if (msg.phase === "voting" && msg.currentResult) {

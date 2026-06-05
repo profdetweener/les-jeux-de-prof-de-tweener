@@ -1,6 +1,8 @@
 /**
- * Logique de la page d'accueil de Definitions (creer / rejoindre via hash).
- * Calque sur petitbac/js/home.js, slug "definitions" et cles de storage propres.
+ * Logique de la page d'entree de Definitions (join.html).
+ * Lit le mode dans ?mode= (si la personne arrive depuis le picker) et le
+ * propage vers room.html. Pour un invite (lien #CODE), le mode est ignore
+ * cote URL : il sera fixe par la room a laquelle il rejoint.
  */
 
 import { createRoom, roomExists, pingWorker } from "../../shared/js/api.js";
@@ -14,6 +16,8 @@ const GAME = "definitions";
 const KEY_PSEUDO = "definitions_pseudo";
 const KEY_ROOM = "definitions_room";
 
+const MODE_LABELS = { competitive: "Compétitif ⚔️", chill: "Chill 🛋️" };
+
 const pseudoInput = document.getElementById("pseudo-input");
 const btnAction = document.getElementById("btn-action");
 const errorBox = document.getElementById("error-box");
@@ -26,6 +30,8 @@ const resumeBannerDismiss = document.getElementById("resume-banner-dismiss");
 const subtitleCreate = document.getElementById("subtitle-create");
 const subtitleJoin = document.getElementById("subtitle-join");
 const joinCodeLabel = document.getElementById("join-code-label");
+const modePill = document.getElementById("mode-pill");
+const modePillValue = document.getElementById("mode-pill-value");
 
 const storage = (() => {
   function tryStorage(s) {
@@ -57,8 +63,19 @@ function parseInviteCode() {
   return null;
 }
 
+function parseMode() {
+  try {
+    const m = new URLSearchParams(window.location.search).get("mode") || "";
+    if (m === "chill" || m === "competitive") return m;
+  } catch {}
+  return null;
+}
+
 const inviteCode = parseInviteCode();
 const isJoinMode = inviteCode !== null;
+// Mode choisi via le picker (uniquement quand on CREE une partie ; pour un
+// invite, le mode sera celui de la room cible et n'a pas besoin d'etre dans l'URL).
+const createMode = isJoinMode ? null : (parseMode() ?? "competitive");
 
 const savedPseudo = storage.getItem(KEY_PSEUDO);
 const savedRoom = storage.getItem(KEY_ROOM);
@@ -69,10 +86,16 @@ if (isJoinMode) {
   subtitleJoin.style.display = "block";
   joinCodeLabel.textContent = inviteCode;
   btnAction.textContent = "Rejoindre la partie";
+  // Pas de mode-pill pour les invites : ils heriteront du mode de la room
 } else {
   subtitleCreate.style.display = "block";
   subtitleJoin.style.display = "none";
   btnAction.textContent = "Créer une partie";
+  if (modePill && modePillValue && createMode) {
+    modePill.style.display = "flex";
+    modePillValue.textContent = MODE_LABELS[createMode] ?? createMode;
+    modePill.classList.add(createMode === "chill" ? "mode-chill" : "mode-compet");
+  }
 }
 
 async function maybeShowResumeBanner() {
@@ -174,7 +197,8 @@ async function doAction() {
     const code = await createRoom(GAME);
     storage.setItem(KEY_PSEUDO, pseudoCheck.value);
     storage.setItem(KEY_ROOM, code);
-    window.location.href = `room.html?code=${encodeURIComponent(code)}`;
+    const modeParam = createMode ? `&mode=${encodeURIComponent(createMode)}` : "";
+    window.location.href = `room.html?code=${encodeURIComponent(code)}${modeParam}`;
   } catch (err) {
     console.error(err);
     showError("Impossible de créer la room. Réessaie dans un instant.");

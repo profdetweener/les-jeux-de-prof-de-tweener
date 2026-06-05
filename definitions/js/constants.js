@@ -26,16 +26,21 @@ export const POINTS_PER_ROUND = 10;
 export const VOTE_STEP = 0.05;
 
 export const AGGREGATION_LABELS = {
-  trimmed: "Moyenne tronquée (recommandé)",
+  robust: "Anti-saboteur (recommandé)",
   mean: "Moyenne simple",
   median: "Médiane",
 };
 
 export const AGGREGATION_HINTS = {
-  trimmed:
-    "On retire la note la plus haute et la plus basse avant de moyenner (dès 4 votes). Neutralise un saboteur isolé.",
+  robust:
+    "On retire uniquement les votes anormalement bas (détection par MAD), pour neutraliser un saboteur isolé qui mettrait 0 à tout le monde. Les votes hauts sont toujours pris en compte. S'active dès 4 votes.",
   mean: "Moyenne de tous les votes reçus. Simple, mais sensible aux votes extrêmes.",
   median: "Valeur centrale des votes reçus. Très robuste à un vote extrême isolé.",
+};
+
+export const MODE_LABELS = {
+  competitive: "Compétitif",
+  chill: "Chill",
 };
 
 /**

@@ -3,7 +3,7 @@
  * Liste des joueurs + configuration (hôte) ou visualisation (invité).
  */
 
-import { LIMITS, AGGREGATION_LABELS, AGGREGATION_HINTS } from "./constants.js";
+import { LIMITS, AGGREGATION_LABELS, AGGREGATION_HINTS, MODE_LABELS } from "./constants.js";
 import { showToast } from "../../shared/js/toast.js";
 
 export function initLobbyView(state, conn, roomCode) {
@@ -14,6 +14,13 @@ export function initLobbyView(state, conn, roomCode) {
   const errorBox = document.getElementById("error-box");
 
   // Inputs hôte
+  const modeInputs = Array.from(document.querySelectorAll("input[name='mode-input']"));
+  const modeToggleEl = document.querySelector(".mode-toggle");
+  const modeLabelEl = document.getElementById("mode-locked-label");
+  const modePillEl = document.getElementById("host-mode-pill");
+  const modePillValEl = document.getElementById("host-mode-pill-value");
+  const competOnlyEls = Array.from(document.querySelectorAll("[data-only-mode='competitive']"));
+  const chillBanner = document.getElementById("chill-mode-banner");
   const roundsInput = document.getElementById("rounds-input");
   const roundsUnlimitedInput = document.getElementById("rounds-unlimited-input");
   const timerInput = document.getElementById("timer-input");
@@ -22,11 +29,48 @@ export function initLobbyView(state, conn, roomCode) {
   const startBtn = document.getElementById("btn-start-game");
 
   // Affichage invité
+  const guestMode = document.getElementById("guest-mode");
   const guestRounds = document.getElementById("guest-rounds");
   const guestTimer = document.getElementById("guest-timer");
   const guestAggregation = document.getElementById("guest-aggregation");
+  const guestCompetOnly = Array.from(document.querySelectorAll("[data-guest-only-mode='competitive']"));
 
   let configPushTimer = null;
+
+  function currentMode() {
+    // Si le mode a ete fige a la creation (via ?mode=), il prime sur les radios
+    if (state.createMode === "chill" || state.createMode === "competitive") {
+      return state.createMode;
+    }
+    const el = modeInputs.find((i) => i.checked);
+    return el ? el.value : "competitive";
+  }
+
+  function applyModeVisibility() {
+    const mode = currentMode();
+    const isChill = mode === "chill";
+    for (const el of competOnlyEls) {
+      el.style.display = isChill ? "none" : "";
+    }
+    if (chillBanner) chillBanner.style.display = isChill ? "block" : "none";
+    // Pill mode (affichee a l'hote)
+    if (modePillEl && modePillValEl) {
+      modePillValEl.textContent = isChill ? "Chill 🛋️" : "Compétitif ⚔️";
+      modePillEl.classList.toggle("mode-chill", isChill);
+      modePillEl.classList.toggle("mode-compet", !isChill);
+    }
+  }
+
+  // Verrouille le mode s'il a ete fixe par l'URL (i.e. par le picker).
+  // On masque le toggle radio et on affiche un label/pill en lecture seule.
+  function applyLockedModeIfAny() {
+    const locked = state.createMode === "chill" || state.createMode === "competitive";
+    if (!locked) return;
+    for (const r of modeInputs) r.checked = r.value === state.createMode;
+    if (modeToggleEl) modeToggleEl.style.display = "none";
+    if (modeLabelEl) modeLabelEl.style.display = "none";
+    if (modePillEl) modePillEl.style.display = "inline-flex";
+  }
 
   // --- Rendu de la liste des joueurs ---
   state.renderPlayers = function () {
@@ -102,6 +146,8 @@ export function initLobbyView(state, conn, roomCode) {
 
   // --- Construction de la config depuis les inputs ---
   function buildConfig() {
+    const mode = currentMode();
+
     const unlimited = roundsUnlimitedInput.checked;
     let totalRounds = unlimited ? 0 : parseInt(roundsInput.value, 10);
     if (!Number.isFinite(totalRounds) || totalRounds < 0) totalRounds = 5;
@@ -111,11 +157,15 @@ export function initLobbyView(state, conn, roomCode) {
     if (!Number.isFinite(timerSeconds)) timerSeconds = LIMITS.DEFAULT_TIMER_SEC;
     timerSeconds = Math.max(LIMITS.MIN_TIMER_SEC, Math.min(LIMITS.MAX_TIMER_SEC, timerSeconds));
 
-    const aggregation = ["trimmed", "mean", "median"].includes(aggregationInput.value)
+    const aggregation = ["robust", "mean", "median"].includes(aggregationInput.value)
       ? aggregationInput.value
-      : "trimmed";
+      : "robust";
 
-    return { totalRounds, timerSeconds, aggregation };
+    // En chill, on force l'illimite (le worker fera pareil mais autant ne pas
+    // tromper l'invite cote affichage).
+    if (mode === "chill") totalRounds = 0;
+
+    return { mode, totalRounds, timerSeconds, aggregation };
   }
 
   function updateAggregationHint() {
@@ -134,6 +184,7 @@ export function initLobbyView(state, conn, roomCode) {
   function scheduleConfigPush() {
     if (!state.isHost) return;
     updateAggregationHint();
+    applyModeVisibility();
     if (configPushTimer) clearTimeout(configPushTimer);
     configPushTimer = setTimeout(() => state.pushHostConfigNow(), 300);
   }
@@ -141,6 +192,8 @@ export function initLobbyView(state, conn, roomCode) {
   // --- Applique une config aux inputs hôte (migration d'hôte) ---
   state.applyConfigToHostInputs = function (config) {
     if (!config) return;
+    const mode = config.mode === "chill" ? "chill" : "competitive";
+    for (const r of modeInputs) r.checked = r.value === mode;
     if (config.totalRounds === 0) {
       roundsUnlimitedInput.checked = true;
       roundsInput.disabled = true;
@@ -150,19 +203,32 @@ export function initLobbyView(state, conn, roomCode) {
       roundsInput.value = config.totalRounds;
     }
     timerInput.value = config.timerSeconds;
-    aggregationInput.value = config.aggregation;
+    // Compat ascendante : si une vieille config "trimmed" arrive, on bascule sur robust
+    const agg = config.aggregation === "trimmed" ? "robust" : config.aggregation;
+    aggregationInput.value = agg;
     updateAggregationHint();
+    applyModeVisibility();
   };
 
   // --- Affiche une config en lecture seule (invité) ---
   state.applyGuestConfig = function (config) {
     if (!config) return;
+    const mode = config.mode === "chill" ? "chill" : "competitive";
+    const isChill = mode === "chill";
+    if (guestMode) guestMode.textContent = MODE_LABELS[mode] ?? mode;
     guestRounds.textContent = config.totalRounds === 0 ? "Illimité" : String(config.totalRounds);
-    guestTimer.textContent = `${config.timerSeconds} sec`;
-    guestAggregation.textContent = AGGREGATION_LABELS[config.aggregation] ?? config.aggregation;
+    guestTimer.textContent = isChill ? "Désactivé" : `${config.timerSeconds} sec`;
+    const aggKey = config.aggregation === "trimmed" ? "robust" : config.aggregation;
+    guestAggregation.textContent = AGGREGATION_LABELS[aggKey] ?? aggKey;
+    for (const el of guestCompetOnly) {
+      el.style.display = isChill ? "none" : "";
+    }
   };
 
   // --- Écouteurs sur les inputs hôte ---
+  for (const r of modeInputs) {
+    r.addEventListener("change", scheduleConfigPush);
+  }
   roundsUnlimitedInput.addEventListener("change", () => {
     roundsInput.disabled = roundsUnlimitedInput.checked;
     scheduleConfigPush();
@@ -173,6 +239,8 @@ export function initLobbyView(state, conn, roomCode) {
   aggregationInput.addEventListener("change", scheduleConfigPush);
 
   updateAggregationHint();
+  applyLockedModeIfAny();
+  applyModeVisibility();
 
   // --- Démarrer la partie ---
   startBtn.addEventListener("click", () => {

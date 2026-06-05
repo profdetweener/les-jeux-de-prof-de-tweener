@@ -407,6 +407,10 @@ export class DefinitionRoom {
       );
       return;
     }
+    // En mode chill, on force l'illimite et on ignore le timer (gere ci-dessous)
+    if (config.mode === "chill") {
+      config = { ...config, totalRounds: 0 };
+    }
     this.config = config;
     for (const p of this.players.values()) p.totalScore = 0;
     this.currentRound = 0;
@@ -430,13 +434,22 @@ export class DefinitionRoom {
       this.definitions[p.pseudo] = "";
     }
     this.phase = "writing";
-    const durationMs = this.config.timerSeconds * 1000;
-    this.roundEndsAt = Date.now() + durationMs;
-
-    if (this.roundTimerId) clearTimeout(this.roundTimerId);
-    this.roundTimerId = setTimeout(() => {
-      if (this.phase === "writing") this.endRound("timer");
-    }, durationMs);
+    // En mode chill : pas de timer auto. La phase se termine quand tout le monde
+    // a verrouille (ou si l'hote force). roundEndsAt = null pour l'indiquer au client.
+    if (this.config.mode === "chill") {
+      this.roundEndsAt = null;
+      if (this.roundTimerId) {
+        clearTimeout(this.roundTimerId);
+        this.roundTimerId = null;
+      }
+    } else {
+      const durationMs = this.config.timerSeconds * 1000;
+      this.roundEndsAt = Date.now() + durationMs;
+      if (this.roundTimerId) clearTimeout(this.roundTimerId);
+      this.roundTimerId = setTimeout(() => {
+        if (this.phase === "writing") this.endRound("timer");
+      }, durationMs);
+    }
 
     this.broadcast({
       type: "round_started",
@@ -570,11 +583,19 @@ export class DefinitionRoom {
       this.sendError(ws, "NOT_HOST", "Seul l'hote peut passer a la suite.");
       return;
     }
+    if (!this.config) return;
+
+    // Mode chill : l'hote peut forcer la fin de la phase d'ecriture (il n'y
+    // a pas de timer auto et tous les joueurs n'ont pas necessairement valide).
+    if (this.phase === "writing" && this.config.mode === "chill") {
+      this.endRound("all_locked");
+      return;
+    }
+
     if (this.phase !== "voting" && this.phase !== "scoring") {
       this.sendError(ws, "WRONG_PHASE", "Pas la bonne phase pour cela.");
       return;
     }
-    if (!this.config) return;
 
     if (this.phase === "voting") {
       const authors = Object.keys(this.definitions);

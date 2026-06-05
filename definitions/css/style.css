@@ -1343,17 +1343,24 @@ input.code-input::placeholder {
   border: 1px solid var(--beige-fonce);
 }
 .vote-matrix {
-  border-collapse: collapse;
+  border-collapse: separate; /* requis pour que les bordures soient nettes avec sticky */
+  border-spacing: 0;
   width: 100%;
   font-size: 14px;
+  /* Largeur de la colonne de gauche (definitions). Surchargee en mobile. */
+  --author-col-width: 180px;
 }
 .vote-matrix th, .vote-matrix td {
-  border: 1px solid var(--beige-fonce);
+  border-right: 1px solid var(--beige-fonce);
+  border-bottom: 1px solid var(--beige-fonce);
   padding: 8px 10px;
   vertical-align: top;
 }
-/* En-tete uniforme : pas de distinction visuelle pour MA colonne, le slider
-   en dessous est deja un indicateur suffisant. */
+.vote-matrix thead th { border-top: 1px solid var(--beige-fonce); }
+.vote-matrix tr td:first-child,
+.vote-matrix tr th:first-child { border-left: 1px solid var(--beige-fonce); }
+
+/* En-tete : navy uniforme. Pas de bleu different pour MA colonne (la sticky-ness suffit a la distinguer). */
 .vote-matrix thead th {
   background: var(--bleu-nuit);
   color: var(--beige);
@@ -1363,21 +1370,32 @@ input.code-input::placeholder {
   white-space: nowrap;
   position: sticky;
   top: 0;
+  z-index: 1;
 }
 .vote-matrix thead th.col-author {
   text-align: left;
   position: sticky;
   left: 0;
+  z-index: 3; /* coin sup-gauche au-dessus de tout */
+  width: var(--author-col-width);
+  min-width: var(--author-col-width);
+  max-width: var(--author-col-width);
+}
+.vote-matrix thead th.voter-me {
+  position: sticky;
+  left: var(--author-col-width);
   z-index: 2;
 }
-/* Premiere colonne (pseudo + definition) : largeur dynamique, fond blanc */
+
+/* Corps de la premiere colonne : sticky a gauche, fond solide pour masquer */
 .vote-matrix .author-cell {
   background: var(--blanc);
   position: sticky;
   left: 0;
-  z-index: 1;
-  min-width: 140px;
-  max-width: 280px;
+  z-index: 2;
+  width: var(--author-col-width);
+  min-width: var(--author-col-width);
+  max-width: var(--author-col-width);
 }
 .vote-matrix tr.is-self .author-cell { background: #fff8ec; }
 .vote-matrix .author-name { font-weight: 700; display: flex; align-items: center; gap: 6px; }
@@ -1391,11 +1409,19 @@ input.code-input::placeholder {
 }
 .vote-matrix .author-def.empty { font-style: italic; opacity: 0.6; }
 
-/* Cellule de vote : fond rempli par la couleur du vote (pastel) via JS.
-   Pas de chiffre affiche : la couleur EST l'information. */
+/* Cellule "MON vote" : sticky a gauche aussi, juste apres la colonne auteur.
+   Particulierement utile sur mobile : le slider reste visible quand on scrolle
+   horizontalement pour voir les votes des autres. */
+.vote-matrix .vote-cell.col-me {
+  position: sticky;
+  left: var(--author-col-width);
+  z-index: 1;
+}
+
+/* Cellule de vote : fond rempli par la couleur du vote (pastel) via JS. */
 .vote-cell {
   text-align: center;
-  min-width: 80px;
+  min-width: 90px;
   background: var(--blanc);
   transition: background 0.15s ease;
 }
@@ -1406,9 +1432,7 @@ input.code-input::placeholder {
 .vote-cell.diagonal {
   background: repeating-linear-gradient(45deg, #ececec, #ececec 6px, #f6f6f6 6px, #f6f6f6 12px);
 }
-
-/* Cellule editable : on garde un fond blanc tant que rien n'est vote,
-   puis JS applique la couleur du vote. */
+/* Cellule editable : padding un peu plus genereux pour aerer le slider */
 .vote-cell.editable {
   padding: 10px 8px;
 }
@@ -1420,7 +1444,7 @@ input.code-input::placeholder {
   appearance: none;
   width: 100%;
   min-width: 70px;
-  max-width: 130px;
+  max-width: 140px;
   height: 8px;
   border-radius: 999px;
   background: linear-gradient(to right,
@@ -1430,10 +1454,10 @@ input.code-input::placeholder {
   outline: none;
   cursor: pointer;
   margin: 4px 0;
-  /* Quand l'utilisateur n'a pas encore vote, le slider est legerement attenue */
 }
+/* Avant le premier vote : un peu attenue mais bien lisible */
 .vote-slider.vote-slider-pristine {
-  opacity: 0.55;
+  opacity: 0.85;
 }
 .vote-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -1490,10 +1514,114 @@ input.code-input::placeholder {
   margin-top: 16px;
 }
 
+/* --- Toggle Mode chill / compet dans le lobby --- */
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-toggle label {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  background: var(--blanc);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+  font-weight: 600;
+  color: var(--bleu-nuit);
+}
+.mode-toggle label:hover { border-color: var(--bleu-accent); }
+.mode-toggle input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.mode-toggle input[type="radio"]:checked + .mode-radio-label {
+  border-color: var(--bleu-nuit);
+  background: var(--beige);
+}
+.mode-toggle .mode-radio-wrap {
+  flex: 1;
+  display: flex;
+}
+.mode-radio-label {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  background: var(--blanc);
+  text-align: center;
+  font-weight: 600;
+  color: var(--bleu-nuit);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mode-radio-label:hover { border-color: var(--bleu-accent); }
+.mode-radio-label .mode-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gris-texte);
+  margin-top: 4px;
+}
+.chill-banner {
+  background: #f0f7fa;
+  border-left: 4px solid var(--bleu-accent);
+  padding: 10px 14px;
+  border-radius: var(--rayon-sm);
+  font-size: 13px;
+  color: var(--gris-texte);
+  margin-bottom: 16px;
+}
+
+/* Pill "Mode : Chill / Compétitif" — visible quand le mode est verrouille
+   (i.e. fixe par le picker via ?mode=). Sur la page join.html ET dans le
+   lobby cote hote. */
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--beige);
+  color: var(--bleu-nuit);
+  border: 1px solid var(--beige-fonce);
+  margin: 4px 0 16px;
+}
+.mode-pill.mode-chill {
+  background: #e8f1f7;
+  border-color: #c4dbeb;
+}
+.mode-pill.mode-compet {
+  background: #fff2e8;
+  border-color: #ffd4b8;
+}
+.mode-pill .mode-pill-label {
+  font-weight: 500;
+  opacity: 0.75;
+}
+.mode-pill .mode-pill-value {
+  font-weight: 700;
+}
+.mode-pill .mode-pill-change {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 4px;
+  color: var(--bleu-accent);
+  text-decoration: underline dotted;
+}
+.mode-pill .mode-pill-change:hover { color: var(--bleu-nuit); }
+
 /* --- Responsive : sur petit écran, la matrice scrolle horizontalement --- */
 @media (max-width: 640px) {
   .word-banner .word-value { font-size: 24px; }
-  .vote-matrix { font-size: 13px; min-width: 480px; }
-  .vote-matrix thead th.col-author, .vote-matrix .author-cell { min-width: 110px; }
-  .vote-slider { min-width: 60px; max-width: 100px; }
+  .vote-matrix { font-size: 13px; min-width: 480px; --author-col-width: 120px; }
+  .vote-slider { min-width: 60px; max-width: 110px; }
+  .vote-cell { min-width: 78px; }
+  .mode-toggle { flex-direction: column; }
 }
