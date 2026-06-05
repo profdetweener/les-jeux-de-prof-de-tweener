@@ -4,7 +4,7 @@
  * et les points de la manche. Puis le classement cumulé.
  */
 
-import { formatAggregate, voteColor } from "./constants.js";
+import { formatAggregate, voteColor, renderRealDefs } from "./constants.js";
 
 export function initScoringView(state, conn) {
   const roundNumberEl = document.getElementById("sc-round-number");
@@ -29,7 +29,9 @@ export function initScoringView(state, conn) {
     const total = msg.totalRounds ?? state.config?.totalRounds ?? 0;
     roundTotalEl.textContent = total > 0 ? `/ ${total}` : "";
     wordEl.textContent = result.word ?? "";
-    realDefEl.textContent = result.realDefinition ?? "";
+    const realDefs = result.realDefinitions ??
+      (result.realDefinition ? [result.realDefinition] : []);
+    renderRealDefs(realDefEl, realDefs);
 
     renderRoundTable(result);
     renderRanking();

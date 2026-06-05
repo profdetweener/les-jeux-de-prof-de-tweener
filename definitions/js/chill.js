@@ -198,7 +198,22 @@ function showCurrent() {
   }
   const entry = queue[cursor];
   wordEl.textContent = entry.word;
-  defTextEl.textContent = entry.definition;
+  // Affichage des definitions : si une seule, simple texte ; si plusieurs,
+  // liste ordonnee (1. ... 2. ...) pour distinguer les differents sens.
+  const defs = entry.definitions ?? [entry.definition]; // fallback retro-compat
+  defTextEl.innerHTML = "";
+  if (defs.length === 1) {
+    defTextEl.textContent = defs[0];
+  } else {
+    const ol = document.createElement("ol");
+    ol.className = "def-multi";
+    for (const d of defs) {
+      const li = document.createElement("li");
+      li.textContent = d;
+      ol.appendChild(li);
+    }
+    defTextEl.appendChild(ol);
+  }
   counterEl.textContent = `Mot ${cursor + 1} / ${queue.length}`;
   // Reset au floutage initial pour chaque nouveau mot
   defBlock.classList.add("is-blurred");

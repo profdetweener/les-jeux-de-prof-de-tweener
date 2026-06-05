@@ -13,7 +13,7 @@
  * La vraie définition (révélée) est affichée au-dessus comme référence.
  */
 
-import { VOTE_STEP, voteCellBg } from "./constants.js";
+import { VOTE_STEP, voteCellBg, renderRealDefs } from "./constants.js";
 
 export function initVotingView(state, conn) {
   const roundNumberEl = document.getElementById("vo-round-number");
@@ -78,7 +78,15 @@ export function initVotingView(state, conn) {
     roundTotalEl.textContent = total > 0 ? `/ ${total}` : "";
     reasonEl.textContent = msg.reason === "timer" ? "⏱️ Temps écoulé" : "✅ Tous ont validé";
     wordEl.textContent = result.word ?? msg.word ?? "";
-    realDefEl.textContent = result.realDefinition ?? msg.realDefinition ?? "";
+    // realDefinitions est un tableau (1 a 3 sens). Compat retro : si seul
+    // realDefinition (string) est present, on l'enveloppe.
+    const realDefs =
+      result.realDefinitions ??
+      msg.realDefinitions ??
+      (result.realDefinition ? [result.realDefinition] : []) ??
+      (msg.realDefinition ? [msg.realDefinition] : []) ??
+      [];
+    renderRealDefs(realDefEl, realDefs);
 
     renderTable();
     renderProgress();

@@ -73,3 +73,26 @@ export function formatAggregate(value) {
   if (value === null || value === undefined) return "—";
   return `${Math.round(value * 100)} %`;
 }
+
+/**
+ * Rend la (ou les) vraie(s) definition(s) dans un container DOM.
+ * - Si 1 def : simple textContent (pas de mise en forme).
+ * - Si 2-3 defs : liste ordonnee numerotee dans <ol class="def-multi">.
+ * Mutualise entre view-voting.js, view-scoring.js et lobby.js (state restore).
+ */
+export function renderRealDefs(container, defs) {
+  container.innerHTML = "";
+  if (!Array.isArray(defs) || defs.length === 0) return;
+  if (defs.length === 1) {
+    container.textContent = defs[0];
+    return;
+  }
+  const ol = document.createElement("ol");
+  ol.className = "def-multi";
+  for (const d of defs) {
+    const li = document.createElement("li");
+    li.textContent = d;
+    ol.appendChild(li);
+  }
+  container.appendChild(ol);
+}

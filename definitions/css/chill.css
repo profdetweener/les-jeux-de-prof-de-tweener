@@ -132,3 +132,12 @@
   text-align: center;
   line-height: 1.4;
 }
+
+/* Definitions multiples dans le mode chill (idem competitif). */
+.def-multi {
+  margin: 0;
+  padding-left: 22px;
+  list-style: decimal;
+}
+.def-multi li { margin-bottom: 4px; line-height: 1.5; }
+.def-multi li:last-child { margin-bottom: 0; }

@@ -112,7 +112,7 @@ export interface RoundResult {
   roundNumber: number;
   word: string;
   /** Vraie definition (revelee en phase voting/scoring uniquement). */
-  realDefinition: string;
+  realDefinitions: string[];
   /** definitions[author] = proposition saisie (chaine, "" si rien soumis). */
   definitions: Record<string, string>;
   /** votes[voter][author] = valeur de vote. */
@@ -204,7 +204,7 @@ export type ServerMessage =
       type: "round_ended";
       reason: "timer" | "all_locked";
       word: string;
-      realDefinition: string;
+      realDefinitions: string[];
       totalRounds: number;
       result: RoundResult;
     }

@@ -163,7 +163,7 @@ conn.on("joined", (msg) => {
     state.renderVotingStart({
       reason: "all_locked",
       word: msg.currentResult.word,
-      realDefinition: msg.currentResult.realDefinition,
+      realDefinitions: msg.currentResult.realDefinitions,
       totalRounds: msg.config?.totalRounds ?? 0,
       result: msg.currentResult,
     });

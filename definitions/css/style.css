@@ -1746,3 +1746,17 @@ input.code-input::placeholder {
 .vote-cell {
   position: relative;
 }
+
+/* --- Definitions multiples (mots polysemiques) -------------------------- */
+/* Quand un mot a 2 ou 3 sens distincts, on les affiche en liste ordonnee
+   compacte dans le bloc de revelation. */
+.def-multi {
+  margin: 0;
+  padding-left: 22px;
+  list-style: decimal;
+}
+.def-multi li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+.def-multi li:last-child { margin-bottom: 0; }

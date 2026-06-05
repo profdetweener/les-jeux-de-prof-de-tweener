@@ -50,7 +50,7 @@ export class DefinitionRoom {
   private config: GameConfig | null;
   private currentRound: number;
   private currentWord: string | null;
-  private currentRealDef: string | null;
+  private currentRealDefs: string[] | null;
   private drawnIndices: number[];
   private roundEndsAt: number | null;
   private roundTimerId: ReturnType<typeof setTimeout> | null;
@@ -67,7 +67,7 @@ export class DefinitionRoom {
     this.config = null;
     this.currentRound = 0;
     this.currentWord = null;
-    this.currentRealDef = null;
+    this.currentRealDefs = null;
     this.drawnIndices = [];
     this.roundEndsAt = null;
     this.roundTimerId = null;
@@ -431,7 +431,7 @@ export class DefinitionRoom {
     );
     this.drawnIndices.push(index);
     this.currentWord = entry.word;
-    this.currentRealDef = entry.definition;
+    this.currentRealDefs = entry.definitions.slice();
     this.definitions = {};
     this.votes = {};
     this.currentResult = null;
@@ -514,7 +514,7 @@ export class DefinitionRoom {
   // ==========================================================================
 
   private endRound(reason: "timer" | "all_locked"): void {
-    if (!this.config || this.currentWord === null || this.currentRealDef === null) {
+    if (!this.config || this.currentWord === null || this.currentRealDefs === null) {
       return;
     }
     if (this.roundTimerId) {
@@ -529,7 +529,7 @@ export class DefinitionRoom {
     const result: RoundResult = {
       roundNumber: this.currentRound,
       word: this.currentWord,
-      realDefinition: this.currentRealDef,
+      realDefinitions: this.currentRealDefs,
       definitions: this.definitions,
       votes: {},
       aggregateByAuthor: {},
@@ -544,7 +544,7 @@ export class DefinitionRoom {
       type: "round_ended",
       reason,
       word: this.currentWord,
-      realDefinition: this.currentRealDef,
+      realDefinitions: this.currentRealDefs,
       totalRounds: this.config.totalRounds,
       result,
     });
@@ -698,7 +698,7 @@ export class DefinitionRoom {
   private finishGame(): void {
     this.phase = "finished";
     this.currentWord = null;
-    this.currentRealDef = null;
+    this.currentRealDefs = null;
     this.roundEndsAt = null;
     const ranking = this.snapshotPlayers().sort(
       (a, b) => b.totalScore - a.totalScore
@@ -751,7 +751,7 @@ export class DefinitionRoom {
     this.config = null;
     this.currentRound = 0;
     this.currentWord = null;
-    this.currentRealDef = null;
+    this.currentRealDefs = null;
     this.drawnIndices = [];
     this.roundEndsAt = null;
     this.definitions = {};
