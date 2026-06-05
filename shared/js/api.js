@@ -145,3 +145,23 @@ export async function motusChillReveal(token) {
   }
   return await res.json();
 }
+
+// ===========================================================================
+// Definitions — banque de mots pour le mode chill solo
+// ===========================================================================
+
+/**
+ * Recupere toute la banque de mots/expressions du jeu Definitions.
+ * Utilise par le mode chill solo : on telecharge tout au demarrage de la
+ * session puis on shuffle cote client. Pas d'aller-retour au worker pour
+ * chaque mot. Le payload est leger (~150 KB pour ~1000 entrees).
+ *
+ * @returns {Promise<{words: Array<{word:string, definition:string}>}>}
+ */
+export async function fetchDefinitionWords() {
+  const res = await fetch(`${CONFIG.WORKER_URL}/definitions/words`);
+  if (!res.ok) {
+    throw new Error(`Erreur chargement banque (HTTP ${res.status})`);
+  }
+  return await res.json();
+}

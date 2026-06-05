@@ -51,8 +51,11 @@
           <a href="index.html" class="mode-pill-change" title="Changer de mode">changer</a>
         </div>
 
-        <label id="mode-locked-label" style="margin-bottom: 6px;">Mode de jeu</label>
-        <div class="mode-toggle">
+        <!-- Mode chill = solo (cf. chill.html). Cote multijoueur on n'expose
+             plus que le mode competitif. La radio chill reste presente dans
+             le DOM (cache) pour compat avec la logique existante de lobby.js. -->
+        <label id="mode-locked-label" style="margin-bottom: 6px; display: none;">Mode de jeu</label>
+        <div class="mode-toggle" style="display: none;">
           <div class="mode-radio-wrap">
             <input type="radio" name="mode-input" id="mode-competitive" value="competitive" checked>
             <label for="mode-competitive" class="mode-radio-label">
@@ -293,7 +296,7 @@
     <span class="footer-sep">·</span>
     <a href="../petitbac/mentions.html">Mentions légales</a>
     <span class="footer-sep">·</span>
-    <a href="https://buymeacoffee.com/maximedeniaux" target="_blank" rel="noopener">☕ Soutenir</a>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
   <script type="module" src="js/lobby.js"></script>

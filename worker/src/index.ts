@@ -212,6 +212,16 @@ export default {
       // un bug si le slug frontend differe d'une lettre.
       const prefix = url.pathname.startsWith("/definitions/") ? "/definitions" : "/definition";
       const subPath = url.pathname.slice(prefix.length);
+
+      // Route specifique : GET /definitions/words → renvoie la banque complete
+      // (mots + vraies definitions). Utilise par le mode chill solo qui shuffle
+      // la liste cote client et ne touche plus au worker pour les manches.
+      // Pas d'auth ni de room : les definitions sont publiques par nature.
+      if (subPath === "/words" && request.method === "GET") {
+        const { WORD_BANK } = await import("./definition/words");
+        return jsonResponse({ words: WORD_BANK });
+      }
+
       const res = await handleGameRoutes(request, subPath, env.DEFINITION_ROOMS);
       if (res) return res;
     }

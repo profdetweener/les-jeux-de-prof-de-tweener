@@ -1,0 +1,212 @@
+/* ==========================================================================
+   Definitions chill (solo) — styles dedies a chill.html
+
+   Pattern calque sur motus/chill : layout en deux colonnes (sidebar stats /
+   zone principale), avec repli mono-colonne sur mobile. Reprend les tokens
+   CSS de style.css (--beige, --bleu-nuit, etc.), pas de nouvelle palette.
+   ========================================================================== */
+
+/* --- Layout principal : sidebar + main ------------------------------------- */
+
+.chill-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 860px) {
+  .chill-layout { grid-template-columns: 260px 1fr; }
+}
+
+.chill-sidebar { display: flex; flex-direction: column; gap: 20px; }
+.chill-sidebar .sidebar-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gris-texte);
+}
+
+/* Stats : grille 2x2 compacte */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stat-item {
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--gris-texte);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bleu-nuit);
+}
+
+/* Liste des mots de la session */
+.chill-word-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chill-word-list li {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--rayon-sm);
+  background: var(--beige);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chill-word-list li.known { background: #d8ecd8; }
+.chill-word-list li.unknown { background: #f4e0c4; }
+.chill-word-list li .word-status { flex: none; }
+.chill-word-list-empty {
+  color: var(--gris-texte);
+  font-style: italic;
+}
+
+/* --- Zone principale : mot + definition ------------------------------------ */
+
+.chill-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chill-status {
+  font-size: 13px;
+  color: var(--gris-texte);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chill-word-banner {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  padding: 24px 20px;
+  border-radius: var(--rayon);
+  text-align: center;
+}
+.chill-word-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+.chill-word-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-word;
+}
+@media (min-width: 600px) {
+  .chill-word-value { font-size: 34px; }
+}
+
+/* Bloc de definition : encadre vert pale style "vraie definition" */
+.chill-def-block {
+  background: #eef5ee;
+  border-left: 4px solid var(--vert);
+  border-radius: var(--rayon-sm);
+  padding: 16px 18px;
+  min-height: 80px;
+  position: relative;
+}
+.chill-def-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vert);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.chill-def-text {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--bleu-nuit);
+}
+/* Etat brouille (definition cachee tant qu'on n'a pas clique) */
+.chill-def-block.is-blurred .chill-def-text {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
+}
+.chill-def-reveal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(238, 245, 238, 0.85);
+  border: none;
+  border-radius: var(--rayon-sm);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--bleu-nuit);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chill-def-reveal:hover { background: rgba(238, 245, 238, 0.7); }
+
+/* --- Actions ---------------------------------------------------------------- */
+
+.chill-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.chill-actions .btn-primary {
+  grid-column: 1 / -1;
+}
+.chill-actions-secondary {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Checkbox row pour la config */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* host-actions reuse pour la vue finished : assure un espacement coherent */
+#view-finished .host-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+#view-finished .host-actions .btn-secondary {
+  text-decoration: none;
+  display: block;
+  text-align: center;
+  line-height: 1.4;
+}
