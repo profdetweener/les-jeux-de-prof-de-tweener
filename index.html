@@ -1,766 +1,108 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blind Test Twitch — Prof de Tweener</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#160E1F;
-    --bg2:#1E1229;
-    --surface:#271634;
-    --surface-2:#33203F;
-    --line:#3D2A4C;
-    --text:#F2E9F7;
-    --muted:#9A86AC;
-    --magenta:#FF3D8B;
-    --magenta-dim:#B32C64;
-    --gold:#FFC24B;
-    --green:#5FE0A6;
-    --red:#FF6B6B;
-    --shadow:0 18px 50px -20px rgba(0,0,0,.7);
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:
-      radial-gradient(1200px 700px at 78% -10%, rgba(255,61,139,.14), transparent 60%),
-      radial-gradient(900px 600px at 8% 110%, rgba(255,194,75,.10), transparent 55%),
-      var(--bg);
-    color:var(--text);
-    font-family:"DM Sans",system-ui,sans-serif;
-    min-height:100vh;
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3{font-family:"Bricolage Grotesque","DM Sans",sans-serif;margin:0;letter-spacing:-.01em;}
-  .mono{font-family:"Space Mono",monospace;}
-  .wrap{max-width:1180px;margin:0 auto;padding:26px 22px 60px;}
-
-  /* Header */
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;}
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--magenta),var(--gold));display:grid;place-items:center;font-size:22px;box-shadow:var(--shadow);}
-  .brand h1{font-size:20px;font-weight:800;line-height:1;}
-  .brand .sub{color:var(--muted);font-size:12.5px;margin-top:3px;}
-  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:8px 13px;border-radius:999px;}
-  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 0 rgba(0,0,0,0);}
-  .dot.on{background:var(--green);animation:pulse 2s infinite;}
-  .dot.err{background:var(--red);}
-  .dot.wait{background:var(--gold);}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(95,224,166,.5)}70%{box-shadow:0 0 0 7px rgba(95,224,166,0)}100%{box-shadow:0 0 0 0 rgba(95,224,166,0)}}
-
-  /* Cards / panels */
-  .panel{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);}
-
-  /* Setup */
-  #setup{padding:26px;display:grid;gap:20px;}
-  .field{display:grid;gap:7px;}
-  .field label{font-size:13px;font-weight:700;color:var(--text);}
-  .field .hint{font-size:12px;color:var(--muted);font-weight:400;line-height:1.5;}
-  input[type=text],input[type=number],textarea{
-    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);
-    border-radius:12px;padding:11px 13px;font-family:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s;
-  }
-  textarea{font-family:"Space Mono",monospace;font-size:13px;line-height:1.55;resize:vertical;min-height:150px;}
-  input:focus,textarea:focus{outline:none;border-color:var(--magenta);box-shadow:0 0 0 3px rgba(255,61,139,.18);}
-  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .row-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
-  .pl-report{display:none;margin-top:4px;background:var(--bg);border:1px solid var(--magenta-dim);border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.6;}
-  .pl-report.ok{border-color:var(--line);}
-  .pl-issue{color:var(--red);}
-  .pl-issue.warn{color:var(--gold);}
-  .pl-issue::before{content:"⚠ ";}
-
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:14px;transition:transform .08s ease,filter .15s,background .15s;}
-  button:active{transform:translateY(1px);}
-  button:disabled{opacity:.4;cursor:not-allowed;}
-  .btn-primary{background:linear-gradient(135deg,var(--magenta),#ff6aa6);color:#1a0a12;padding:13px 22px;box-shadow:0 10px 24px -10px var(--magenta);}
-  .btn-primary:hover:not(:disabled){filter:brightness(1.06);}
-  .btn-ghost{background:var(--surface-2);color:var(--text);padding:11px 18px;border:1px solid var(--line);}
-  .btn-ghost:hover:not(:disabled){background:var(--line);}
-  .btn-gold{background:linear-gradient(135deg,var(--gold),#ffd97a);color:#2a1c05;padding:11px 18px;}
-
-  /* Game layout */
-  #game{display:none;grid-template-columns:1fr 320px;gap:20px;align-items:start;}
-  .stage{padding:26px;position:relative;overflow:hidden;}
-  .stage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-  .round-pill{font-size:13px;color:var(--muted);background:var(--bg);border:1px solid var(--line);padding:6px 13px;border-radius:999px;font-weight:700;}
-  .timer{font-size:40px;font-weight:700;line-height:1;letter-spacing:.02em;}
-  .timer.low{color:var(--gold);}
-  .timer.crit{color:var(--red);}
-
-  /* Vinyl */
-  .vinyl-zone{display:grid;place-items:center;padding:12px 0 22px;}
-  .vinyl{width:190px;height:190px;border-radius:50%;position:relative;
-    background:
-      repeating-radial-gradient(circle at 50% 50%, #120a18 0 2px, #1c1122 2px 4px);
-    box-shadow:inset 0 0 0 6px #0c0710, var(--shadow);
-    display:grid;place-items:center;
-  }
-  .vinyl::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(255,61,139,.0) 0deg,rgba(255,61,139,.28) 40deg,transparent 90deg);opacity:.0;transition:opacity .3s;}
-  .vinyl.spinning{animation:spin 3.2s linear infinite;}
-  .vinyl.spinning::after{opacity:1;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .vinyl .label{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--magenta),var(--gold));display:grid;place-items:center;font-size:30px;box-shadow:0 0 0 4px #0c0710;}
-  .vinyl .hole{position:absolute;width:9px;height:9px;border-radius:50%;background:#0c0710;}
-  @media (prefers-reduced-motion:reduce){.vinyl.spinning{animation:none;}}
-  .now{ text-align:center;color:var(--muted);font-size:13.5px;margin-top:4px;min-height:20px;}
-
-  /* Answer cards */
-  .answers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
-  .acard{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:border-color .25s,background .25s;}
-  .acard .kind{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-  .acard .val{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px;margin-top:8px;line-height:1.15;word-break:break-word;}
-  .acard .finder{font-size:12.5px;margin-top:9px;color:var(--muted);min-height:16px;}
-  .acard.found{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,194,75,.10),var(--bg));}
-  .acard.found .val{color:var(--gold);}
-  .acard.found .finder{color:var(--gold);}
-  .acard.miss{border-color:var(--magenta-dim);}
-  .acard.miss .val{color:var(--magenta);}
-  .acard .pts{position:absolute;top:14px;right:16px;font-size:12px;color:var(--muted);font-weight:700;}
-
-  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;}
-
-  /* Player zone (à masquer dans OBS) */
-  .player-zone{margin-top:20px;border:1px dashed var(--magenta-dim);border-radius:14px;padding:10px;background:rgba(0,0,0,.25);}
-  .player-zone .tag{font-size:11px;color:var(--magenta);letter-spacing:.05em;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
-  #ytplayer{width:100%;max-width:280px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;}
-
-  /* Leaderboard */
-  .board{padding:22px;position:sticky;top:22px;}
-  .board h3{font-size:16px;font-weight:800;margin-bottom:4px;}
-  .board .csub{font-size:12px;color:var(--muted);margin-bottom:16px;}
-  .lb-row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;transition:background .2s;}
-  .lb-row+.lb-row{margin-top:2px;}
-  .lb-row .rank{width:22px;text-align:center;font-weight:700;color:var(--muted);font-size:13px;}
-  .lb-row .nm{flex:1;font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .lb-row .sc{font-weight:700;font-size:15px;}
-  .lb-row.p1{background:linear-gradient(90deg,rgba(255,194,75,.16),transparent);}
-  .lb-row.p1 .rank{color:var(--gold);}
-  .lb-row.p1 .sc{color:var(--gold);}
-  .lb-row.p2 .rank,.lb-row.p3 .rank{color:var(--text);}
-  .lb-empty{color:var(--muted);font-size:13px;padding:10px;text-align:center;}
-  .board-actions{margin-top:16px;display:flex;gap:9px;}
-  .board-actions button{flex:1;padding:9px;font-size:13px;}
-
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--line);padding:12px 20px;border-radius:12px;box-shadow:var(--shadow);opacity:0;transition:.3s;font-size:14px;font-weight:600;pointer-events:none;z-index:50;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-  .flash{animation:flash .6s ease;}
-  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(255,194,75,.5)}100%{box-shadow:0 0 0 20px rgba(255,194,75,0)}}
-
-  .backlink{display:inline-block;color:var(--muted);text-decoration:none;font-size:13.5px;margin-bottom:14px;transition:color .15s;}
-  .backlink:hover{color:var(--text);}
-  .bt-footer{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13.5px;}
-  .bt-footer a{color:var(--muted);text-decoration:none;transition:color .15s;}
-  .bt-footer a:hover{color:var(--text);}
-  .bt-footer span{opacity:.4;}
-
-  @media (max-width:900px){
-    #game{grid-template-columns:1fr;}
-    .board{position:static;}
-    .answers{grid-template-columns:1fr;}
-    .grid-3{grid-template-columns:1fr;}
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Les jeux de Prof de Tweener</title>
+  <link rel="stylesheet" href="shared/css/landing.css">
 </head>
 <body>
-<div class="wrap">
+  <header class="landing-header">
+    <h1>🎲 Les jeux de Prof de Tweener</h1>
+    <span class="header-tagline">jeux multijoueurs, sans inscription</span>
+  </header>
 
-  <a href="../index.html" class="backlink">← Les jeux de Prof de Tweener</a>
+  <main class="landing-main">
 
-  <div class="topbar">
-    <div class="brand">
-      <div class="logo">🎧</div>
-      <div>
-        <h1>Blind Test — Twitch Chat</h1>
-        <div class="sub">Le chat répond, le plus rapide marque. Titre et artiste comptés séparément.</div>
-      </div>
-    </div>
-    <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Non connecté</span></div>
-  </div>
+    <section class="landing-intro">
+      <h2>Choisis ton jeu</h2>
+      <p>
+        Tous les jeux sont multijoueurs en ligne, sans inscription, sans pub.
+        Crée une partie, partage le lien d'invitation, joue.
+      </p>
+    </section>
 
-  <!-- ============ SETUP ============ -->
-  <div class="panel" id="setup">
-    <div class="field">
-      <label for="channel">Chaîne Twitch</label>
-      <div class="hint">Le nom de ta chaîne, sans le #. Le jeu lit le chat en anonyme, aucun token requis.</div>
-      <input type="text" id="channel" placeholder="prof_de_tweener" autocomplete="off">
-    </div>
+    <div class="games-grid">
 
-    <div class="field">
-      <label for="playlist">Playlist (format !sr enrichi)</label>
-      <div class="hint">
-        Une ligne par morceau : <code>URL YouTube | titre(s) | artiste(s)</code>.
-        Sépare les variantes acceptées par des virgules. Les lignes vides ou commençant par <code>#</code> sont ignorées.
-        Tu peux aussi déposer un <code>playlist.txt</code> à côté du fichier et cliquer « Charger playlist.txt ».
-      </div>
-      <textarea id="playlist" spellcheck="false"># URL | titres acceptés | artistes acceptés
-# (remplace ces exemples par ta liste !sr)
-https://www.youtube.com/watch?v=fJ9rUzIMcZQ | Bohemian Rhapsody, bohemian, bo rhap | Queen
-https://www.youtube.com/watch?v=djV11Xbc914 | Take On Me | A-ha, aha
-https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
-      <div class="row-actions">
-        <button class="btn-ghost" id="loadFileBtn" type="button">Charger playlist.txt</button>
-        <span class="hint" id="plCount"></span>
-      </div>
-      <div class="pl-report" id="plReport"></div>
-    </div>
-
-    <div class="grid-3">
-      <div class="field">
-        <label for="duration">Durée d'un extrait (s)</label>
-        <div class="hint">Coupure automatique.</div>
-        <input type="number" id="duration" value="35" min="10" max="45" step="1">
-      </div>
-      <div class="field">
-        <label for="ptsTitle">Points titre</label>
-        <div class="hint">Au 1<sup>er</sup> qui trouve.</div>
-        <input type="number" id="ptsTitle" value="2" min="1" max="10" step="1">
-      </div>
-      <div class="field">
-        <label for="ptsArtist">Points artiste</label>
-        <div class="hint">Au 1<sup>er</sup> qui trouve.</div>
-        <input type="number" id="ptsArtist" value="1" min="1" max="10" step="1">
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="field">
-        <label for="tolerance">Tolérance aux fautes</label>
-        <div class="hint">Marge d'orthographe acceptée. 20% conseillé.</div>
-        <input type="number" id="tolerance" value="20" min="0" max="40" step="5">
-      </div>
-      <div class="field">
-        <label>Ordre des morceaux</label>
-        <div class="hint">Mélangé à chaque partie.</div>
-        <input type="text" value="Aléatoire" disabled style="opacity:.6">
-      </div>
-    </div>
-
-    <div class="row-actions">
-      <button class="btn-primary" id="startBtn" type="button">Démarrer la partie</button>
-      <span class="hint" id="setupErr" style="color:var(--red)"></span>
-    </div>
-  </div>
-
-  <!-- ============ GAME ============ -->
-  <div id="game">
-    <div class="panel stage">
-      <div class="stage-top">
-        <span class="round-pill" id="roundPill">Manche 1</span>
-        <span class="timer mono" id="timer">35</span>
-      </div>
-
-      <div class="vinyl-zone">
-        <div class="vinyl" id="vinyl">
-          <div class="label">🎵</div>
-          <div class="hole"></div>
+      <a href="petitbac/index.html" class="game-card">
+        <div class="game-card-emoji">📝</div>
+        <h3 class="game-card-title">Petit Bac</h3>
+        <p class="game-card-tagline">
+          Le classique. Une lettre, des catégories, le premier à remplir crie STOP.
+          Mode multijoueur en temps réel avec validation collaborative.
+        </p>
+        <div class="game-card-meta">
+          <span>2-12 joueurs</span>
         </div>
-      </div>
-      <div class="now" id="nowText">Prépare-toi…</div>
-
-      <div class="answers">
-        <div class="acard" id="cardTitle">
-          <span class="pts" id="ptsTitleLabel">+2</span>
-          <div class="kind">Titre</div>
-          <div class="val" id="titleVal">❓</div>
-          <div class="finder" id="titleFinder"></div>
+        <div class="game-card-cta">
+          Jouer <span class="arrow">→</span>
         </div>
-        <div class="acard" id="cardArtist">
-          <span class="pts" id="ptsArtistLabel">+1</span>
-          <div class="kind">Artiste</div>
-          <div class="val" id="artistVal">❓</div>
-          <div class="finder" id="artistFinder"></div>
+      </a>
+
+      <a href="motus/index.html" class="game-card">
+        <div class="game-card-emoji">🟥</div>
+        <h3 class="game-card-title">Motus</h3>
+        <p class="game-card-tagline">
+          Devine le mot, lettre par lettre. Mode chill pour le stream (en solo)
+          ou mode compétitif multijoueur (chacun sa grille, même mot pour tous).
+        </p>
+        <div class="game-card-meta">
+          <span>1-12 joueurs</span>
         </div>
-      </div>
+        <div class="game-card-cta">
+          Jouer <span class="arrow">→</span>
+        </div>
+      </a>
 
-      <div class="controls">
-        <button class="btn-gold" id="nextBtn" type="button" disabled>Manche suivante</button>
-        <button class="btn-ghost" id="revealBtn" type="button">Révéler</button>
-        <button class="btn-ghost" id="replayBtn" type="button">Rejouer l'extrait</button>
-        <button class="btn-ghost" id="skipBtn" type="button">Passer</button>
-        <button class="btn-ghost" id="quitBtn" type="button">Terminer</button>
-      </div>
+      <a href="definitions/index.html" class="game-card">
+        <div class="game-card-emoji">📖</div>
+        <h3 class="game-card-title">Définitions</h3>
+        <p class="game-card-tagline">
+          Un mot ou une expression rare ; en solo on découvre la définition,
+          en multijoueur chacun écrit la sienne et tout le monde se note. Le
+          plus juste gagne.
+        </p>
+        <div class="game-card-meta">
+          <span>1-12 joueurs</span>
+        </div>
+        <div class="game-card-cta">
+          Jouer <span class="arrow">→</span>
+        </div>
+      </a>
 
-      <div class="player-zone">
-        <div class="tag">◾ Zone lecteur — masque-la dans OBS (ne pas capturer)</div>
-        <div id="ytplayer"></div>
-      </div>
+      <a href="blindtest/index.html" class="game-card">
+        <div class="game-card-emoji">🎧</div>
+        <h3 class="game-card-title">Blind Test</h3>
+        <p class="game-card-tagline">
+          Diffuse un extrait, le chat répond. Le premier sur le titre et le
+          premier sur l'artiste marquent. Piloté depuis le chat Twitch, rien
+          à installer pour les viewers.
+        </p>
+        <div class="game-card-meta">
+          <span>Via le chat Twitch</span>
+        </div>
+        <div class="game-card-cta">
+          Jouer <span class="arrow">→</span>
+        </div>
+      </a>
+
     </div>
 
-    <div class="panel board">
-      <h3>Classement</h3>
-      <div class="csub" id="boardSub">Le chat joue en direct</div>
-      <div id="leaderboard"><div class="lb-empty">Personne n'a encore marqué.</div></div>
-      <div class="board-actions">
-        <button class="btn-ghost" id="resetScoreBtn" type="button">Remettre à zéro</button>
-      </div>
-    </div>
-  </div>
-  <footer class="bt-footer">
-    <a href="../index.html">← Tous les jeux</a>
-    <span>·</span>
+  </main>
+
+  <footer class="landing-footer">
+    <a href="petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep" style="opacity: 0.4;">·</span>
     <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
-    <span>·</span>
+    <span class="footer-sep" style="opacity: 0.4;">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-/* ============================================================
-   BLIND TEST TWITCH — Prof de Tweener
-   Autonome, sans backend. À déposer sur GitHub Pages.
-   ============================================================ */
-
-/* ---------- Utilitaires DOM ---------- */
-const $ = id => document.getElementById(id);
-const toastEl = $('toast');
-let toastTimer = null;
-function toast(msg){
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 2200);
-}
-
-/* ---------- Persistance légère (dégrade si bloquée) ---------- */
-const store = {
-  get(k,d){ try{ const v=localStorage.getItem('bt_'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
-  set(k,v){ try{ localStorage.setItem('bt_'+k, JSON.stringify(v)); }catch(e){} }
-};
-
-/* ---------- Normalisation + distance ---------- */
-function normalize(s){
-  return (s||'')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')      // accents
-    .replace(/&/g,' and ')
-    .replace(/[^a-z0-9\s]/g,' ')                          // ponctuation
-    .replace(/\b(the|le|la|les|un|une|des|du)\b/g,' ')    // articles
-    .replace(/\s+/g,' ')
-    .trim();
-}
-function levenshtein(a,b){
-  const m=a.length, n=b.length;
-  if(!m) return n; if(!n) return m;
-  let prev=new Array(n+1), cur=new Array(n+1);
-  for(let j=0;j<=n;j++) prev[j]=j;
-  for(let i=1;i<=m;i++){
-    cur[0]=i;
-    for(let j=1;j<=n;j++){
-      const cost=a[i-1]===b[j-1]?0:1;
-      cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost);
-    }
-    [prev,cur]=[cur,prev];
-  }
-  return prev[n];
-}
-// La réponse (variantNorm) apparaît-elle dans le message, avec tolérance ?
-function fuzzyContains(msgNorm, variantNorm, tolPct){
-  if(!variantNorm) return false;
-  const L=variantNorm.length;
-  if(L===0) return false;
-  if(msgNorm.includes(variantNorm)) return true;           // exact
-  // réponses très courtes : on exige quasi-exact pour éviter les faux positifs
-  const maxDist = L<=4 ? 0 : Math.max(1, Math.floor(L*(tolPct/100)));
-  if(maxDist===0) return false;
-  // fenêtre glissante de longueur ~L sur le message
-  const M=msgNorm.length;
-  for(let i=0;i<=M;i++){
-    for(let w=Math.max(1,L-maxDist); w<=L+maxDist; w++){
-      if(i+w>M+1) break;
-      const sub=msgNorm.substr(i,w);
-      if(!sub) continue;
-      if(Math.abs(sub.length-L)>maxDist) continue;
-      if(levenshtein(sub,variantNorm)<=maxDist) return true;
-    }
-  }
-  return false;
-}
-
-/* ---------- Parsing playlist (!sr enrichi) ---------- */
-function extractYouTubeId(url){
-  url=url.trim();
-  let m;
-  m=url.match(/(?:youtu\.be\/)([\w-]{11})/);          if(m) return m[1];
-  m=url.match(/[?&]v=([\w-]{11})/);                    if(m) return m[1];
-  m=url.match(/(?:embed\/|shorts\/)([\w-]{11})/);      if(m) return m[1];
-  m=url.match(/^([\w-]{11})$/);                        if(m) return m[1]; // ID brut
-  return null;
-}
-function validatePlaylist(text){
-  const lines=text.split(/\r?\n/);
-  const entries=[], errors=[], seen={};
-  lines.forEach((raw,i)=>{
-    const ln=i+1;
-    const line=raw.trim();
-    if(!line || line.startsWith('#')) return;
-    const parts=line.split('|').map(p=>p.trim());
-    if(parts.length<2){ errors.push({ln, reason:'séparateur « | » manquant (format : URL | titre | artiste)'}); return; }
-    const id=extractYouTubeId(parts[0]||'');
-    if(!id){ errors.push({ln, reason:'URL YouTube non reconnue'}); return; }
-    const titles=(parts[1]||'').split(',').map(s=>s.trim()).filter(Boolean);
-    const artists=(parts[2]||'').split(',').map(s=>s.trim()).filter(Boolean);
-    if(!titles.length && !artists.length){ errors.push({ln, reason:'ni titre ni artiste à deviner'}); return; }
-    if(seen[id]){ errors.push({ln, reason:'doublon (même vidéo que ligne '+seen[id]+')', warn:true}); }
-    else seen[id]=ln;
-    const tN=titles.map(t=>({orig:t,norm:normalize(t)})).filter(t=>t.norm);
-    const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
-    if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
-    entries.push({ id, url:parts[0], titles:tN, artists:aN });
-  });
-  return {entries, errors};
-}
-function parsePlaylist(text){ return validatePlaylist(text).entries; }
-function shuffle(arr){
-  const a=arr.slice();
-  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
-  return a;
-}
-
-/* ---------- État de jeu ---------- */
-const G = {
-  cfg:null, list:[], idx:0,
-  round:null,          // {entry, titleFound, artistFound, active}
-  scores:{}, names:{}, // key = pseudo minuscule
-  timerId:null, endGuard:null, timeLeft:0
-};
-
-/* ---------- YouTube IFrame API ---------- */
-let ytPlayer=null, ytReady=false, roundArmed=false, pendingId=null;
-function loadYT(){
-  if(window.YT && window.YT.Player){ onYTReadyInternal(); return; }
-  const tag=document.createElement('script');
-  tag.src='https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-}
-window.onYouTubeIframeAPIReady=function(){ onYTReadyInternal(); };
-function onYTReadyInternal(){
-  if(ytPlayer) return;
-  ytPlayer=new YT.Player('ytplayer',{
-    height:'158', width:'280',
-    playerVars:{playsinline:1, controls:0, disablekb:1, modestbranding:1, rel:0, iv_load_policy:3},
-    events:{
-      'onReady':()=>{ ytReady=true; if(pendingId){const id=pendingId;pendingId=null;playEntryById(id);} },
-      'onStateChange':onPlayerState,
-      'onError':onPlayerError
-    }
-  });
-}
-function onPlayerError(e){
-  // 2 param invalide, 5 html5, 100 introuvable, 101/150 embed interdit
-  toast('Vidéo indisponible, on passe au morceau suivant.');
-  setTimeout(nextRound, 800);
-}
-function onPlayerState(e){
-  if(e.data===YT.PlayerState.PLAYING && roundArmed){
-    roundArmed=false;
-    const dur=ytPlayer.getDuration()||0;
-    const start=computeStart(dur);
-    if(G.round) G.round.start=start;
-    ytPlayer.seekTo(start,true);
-    // léger délai pour laisser le seek se faire avant de démasquer le son
-    setTimeout(()=>{ try{ ytPlayer.unMute(); ytPlayer.setVolume(70); }catch(e){}; beginTimer(); }, 220);
-  }
-}
-function computeStart(dur){
-  const len=G.cfg.duration;
-  if(!dur || dur<=len+2) return 0;
-  const lower=Math.min(15, dur*0.10);
-  const upper=Math.max(lower, dur-len-2);
-  return Math.floor(lower + Math.random()*(upper-lower));
-}
-function playEntryById(id){
-  roundArmed=true;
-  try{ ytPlayer.mute(); }catch(e){}
-  ytPlayer.loadVideoById(id);
-}
-
-/* ---------- Twitch IRC (lecture anonyme) ---------- */
-let ws=null, wsChannel='';
-function setStatus(state,txt){
-  const dot=$('statusDot');
-  dot.className='dot'+(state==='on'?' on':state==='err'?' err':state==='wait'?' wait':'');
-  $('statusText').textContent=txt;
-}
-function connectTwitch(channel){
-  wsChannel=channel.toLowerCase().replace(/^#/,'').trim();
-  if(!wsChannel){ setStatus('err','Chaîne manquante'); return; }
-  try{ if(ws){ ws.onclose=null; ws.close(); } }catch(e){}
-  setStatus('wait','Connexion…');
-  ws=new WebSocket('wss://irc-ws.chat.twitch.tv:443');
-  ws.onopen=()=>{
-    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-    ws.send('NICK justinfan'+Math.floor(Math.random()*90000+10000));
-    ws.send('JOIN #'+wsChannel);
-  };
-  ws.onmessage=ev=>{
-    ev.data.split('\r\n').forEach(line=>{
-      if(!line) return;
-      if(line.startsWith('PING')){ ws.send('PONG :tmi.twitch.tv'); return; }
-      if(line.includes(' JOIN #'+wsChannel)) setStatus('on','Connecté à #'+wsChannel);
-      if(line.includes(' PRIVMSG #')) handleIRC(line);
-    });
-  };
-  ws.onerror=()=>setStatus('err','Erreur de connexion');
-  ws.onclose=()=>{ setStatus('err','Déconnecté — reconnexion…'); setTimeout(()=>connectTwitch(wsChannel),3000); };
-}
-function handleIRC(line){
-  // tags optionnels: @...;display-name=Xxx;... :nick!... PRIVMSG #chan :message
-  let display=null, text=null, nick=null;
-  let rest=line;
-  if(line[0]==='@'){
-    const sp=line.indexOf(' ');
-    const tags=line.slice(1,sp);
-    rest=line.slice(sp+1);
-    const dm=tags.match(/(?:^|;)display-name=([^;]*)/);
-    if(dm && dm[1]) display=dm[1];
-  }
-  const pm=rest.indexOf(' PRIVMSG #');
-  if(pm<0) return;
-  const prefix=rest.slice(0,pm);
-  const nm=prefix.match(/:?([^!]+)!/);
-  if(nm) nick=nm[1];
-  const after=rest.slice(pm);
-  const msgStart=after.indexOf(' :');
-  if(msgStart<0) return;
-  text=after.slice(msgStart+2);
-  const name=display||nick||'?';
-  if(text) onChatAnswer(name, text);
-}
-
-/* ---------- Traitement d'une réponse du chat ---------- */
-function onChatAnswer(name, text){
-  if(!G.round || !G.round.active) return;
-  if(text.trim().startsWith('!')) return; // commandes (!sr, etc.) ignorées
-  const msg=normalize(text);
-  if(!msg) return;
-  const r=G.round, tol=G.cfg.tolerance;
-
-  if(!r.titleFound){
-    if(r.entry.titles.some(v=>fuzzyContains(msg, v.norm, tol))){
-      r.titleFound=true;
-      award(name, G.cfg.ptsTitle);
-      revealCard('title', r.entry.titles[0].orig, name, true);
-      toast('🎵 '+name+' a le titre !');
-    }
-  }
-  if(!r.artistFound){
-    if(r.entry.artists.some(v=>fuzzyContains(msg, v.norm, tol))){
-      r.artistFound=true;
-      award(name, G.cfg.ptsArtist);
-      revealCard('artist', r.entry.artists[0].orig, name, true);
-      toast('🎤 '+name+' a l\'artiste !');
-    }
-  }
-  const needTitle=r.entry.titles.length>0, needArtist=r.entry.artists.length>0;
-  if((!needTitle||r.titleFound) && (!needArtist||r.artistFound)){
-    endRound(true);
-  }
-}
-function award(name, pts){
-  const key=name.toLowerCase();
-  G.names[key]=name;
-  G.scores[key]=(G.scores[key]||0)+pts;
-  renderBoard();
-}
-
-/* ---------- Cartes réponse ---------- */
-function revealCard(kind, value, finder, found){
-  const card=$(kind==='title'?'cardTitle':'cardArtist');
-  const val=$(kind==='title'?'titleVal':'artistVal');
-  const fin=$(kind==='title'?'titleFinder':'artistFinder');
-  val.textContent=value||'—';
-  card.classList.remove('miss');
-  card.classList.add(found?'found':'miss');
-  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
-  fin.textContent = found ? ('✓ '+finder) : 'Personne n\'a trouvé';
-}
-function resetCards(entry){
-  ['cardTitle','cardArtist'].forEach(id=>$(id).classList.remove('found','miss','flash'));
-  $('titleVal').textContent='❓'; $('artistVal').textContent='❓';
-  $('titleFinder').textContent=''; $('artistFinder').textContent='';
-  // masque les cartes non pertinentes (ex: pas d'artiste renseigné)
-  $('cardTitle').style.display = entry.titles.length? '' : 'none';
-  $('cardArtist').style.display = entry.artists.length? '' : 'none';
-}
-
-/* ---------- Timer / manche ---------- */
-function beginTimer(){
-  clearInterval(G.timerId); clearTimeout(G.endGuard);
-  G.timeLeft=G.cfg.duration;
-  const t=$('timer');
-  const paint=()=>{
-    t.textContent=G.timeLeft;
-    t.classList.toggle('low', G.timeLeft<=10 && G.timeLeft>5);
-    t.classList.toggle('crit', G.timeLeft<=5);
-  };
-  paint();
-  $('vinyl').classList.add('spinning');
-  $('nowText').textContent='🔊 À l\'écoute…';
-  G.round.active=true;
-  G.timerId=setInterval(()=>{
-    G.timeLeft--; paint();
-    if(G.timeLeft<=0){ endRound(false); }
-  },1000);
-  // filet de sécurité : coupe le son même si le timer dérive
-  G.endGuard=setTimeout(()=>{ try{ytPlayer.pauseVideo();}catch(e){} }, (G.cfg.duration+1)*1000);
-}
-function startRound(){
-  const entry=G.list[G.idx];
-  if(!entry){ finishGame(); return; }
-  G.round={entry, titleFound:false, artistFound:false, active:false};
-  $('roundPill').textContent='Manche '+(G.idx+1)+' / '+G.list.length;
-  $('ptsTitleLabel').textContent='+'+G.cfg.ptsTitle;
-  $('ptsArtistLabel').textContent='+'+G.cfg.ptsArtist;
-  $('timer').textContent=G.cfg.duration;
-  $('nextBtn').disabled=true;
-  resetCards(entry);
-  $('nowText').textContent='Chargement…';
-  if(ytReady) playEntryById(entry.id); else { pendingId=entry.id; }
-}
-function endRound(solved){
-  if(!G.round) return;
-  clearInterval(G.timerId); clearTimeout(G.endGuard);
-  G.round.active=false;
-  $('vinyl').classList.remove('spinning');
-  try{ ytPlayer.pauseVideo(); }catch(e){}
-  const r=G.round;
-  // révèle ce qui n'a pas été trouvé
-  if(r.entry.titles.length && !r.titleFound) revealCard('title', r.entry.titles[0].orig, '', false);
-  if(r.entry.artists.length && !r.artistFound) revealCard('artist', r.entry.artists[0].orig, '', false);
-  $('nowText').textContent = solved ? '✅ Manche complétée !' : '⏱️ Temps écoulé';
-  $('nextBtn').disabled=false;
-}
-function nextRound(){
-  if(G.round && G.round.active) return; // évite le double-clic pendant lecture
-  G.idx++;
-  if(G.idx>=G.list.length){ finishGame(); return; }
-  startRound();
-}
-function replaySnippet(){
-  if(!G.round) return;
-  try{
-    const start=(G.round.start!=null)?G.round.start:computeStart(ytPlayer.getDuration()||0);
-    ytPlayer.seekTo(start,true);
-    ytPlayer.playVideo();
-  }catch(e){}
-  if(!G.round.active) beginTimer();
-}
-function finishGame(){
-  clearInterval(G.timerId); clearTimeout(G.endGuard);
-  try{ ytPlayer.pauseVideo(); }catch(e){}
-  $('vinyl').classList.remove('spinning');
-  $('nowText').textContent='🏁 Partie terminée';
-  $('roundPill').textContent='Terminé';
-  $('nextBtn').disabled=true;
-  const top=Object.entries(G.scores).sort((a,b)=>b[1]-a[1])[0];
-  toast(top ? ('🏆 Vainqueur : '+G.names[top[0]]+' ('+top[1]+' pts)') : 'Partie terminée');
-}
-
-/* ---------- Classement ---------- */
-function renderBoard(){
-  const lb=$('leaderboard');
-  const rows=Object.entries(G.scores).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  if(!rows.length){ lb.innerHTML='<div class="lb-empty">Personne n\'a encore marqué.</div>'; return; }
-  lb.innerHTML=rows.map((r,i)=>{
-    const cls=i===0?'p1':i===1?'p2':i===2?'p3':'';
-    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
-    return `<div class="lb-row ${cls}"><span class="rank">${medal}</span><span class="nm">${escapeHtml(G.names[r[0]])}</span><span class="sc mono">${r[1]}</span></div>`;
-  }).join('');
-  store.set('scores',G.scores); store.set('names',G.names);
-}
-function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-/* ---------- Démarrage / config ---------- */
-function readConfig(){
-  return {
-    channel: $('channel').value.trim(),
-    duration: Math.max(10, Math.min(45, parseInt($('duration').value)||35)),
-    ptsTitle: Math.max(1, parseInt($('ptsTitle').value)||2),
-    ptsArtist: Math.max(1, parseInt($('ptsArtist').value)||1),
-    tolerance: Math.max(0, Math.min(40, parseInt($('tolerance').value)||20))
-  };
-}
-function updatePlCount(){
-  const {entries,errors}=validatePlaylist($('playlist').value);
-  $('plCount').textContent = entries.length? (entries.length+' morceau(x) valide(s)') : 'Aucun morceau valide pour l\'instant';
-  const rep=$('plReport');
-  const blocking=errors.filter(e=>!e.warn);
-  if(!errors.length){ rep.style.display='none'; rep.innerHTML=''; return; }
-  rep.style.display='block';
-  rep.classList.toggle('ok', blocking.length===0);
-  rep.innerHTML = errors.slice(0,10).map(e=>
-    `<div class="pl-issue ${e.warn?'warn':''}">Ligne ${e.ln} : ${e.reason}</div>`
-  ).join('') + (errors.length>10? `<div class="pl-issue">… et ${errors.length-10} autre(s).</div>`:'');
-}
-
-$('startBtn').addEventListener('click',()=>{
-  const cfg=readConfig();
-  const {entries:list, errors}=validatePlaylist($('playlist').value);
-  const err=$('setupErr');
-  if(!cfg.channel){ err.textContent='Renseigne ta chaîne Twitch.'; return; }
-  if(!list.length){ err.textContent='Aucun morceau valide (voir les lignes signalées au-dessus).'; updatePlCount(); return; }
-  const blocking=errors.filter(e=>!e.warn).length;
-  if(blocking){
-    err.textContent='';
-    toast(blocking+' ligne(s) ignorée(s), '+list.length+' morceau(x) jouable(s).');
-  } else { err.textContent=''; }
-  // sauvegarde config
-  store.set('channel',cfg.channel); store.set('playlist',$('playlist').value);
-  store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance});
-
-  G.cfg=cfg; G.list=shuffle(list); G.idx=0;
-  if(!Object.keys(G.scores).length){ G.scores={}; G.names={}; }
-  renderBoard();
-
-  $('setup').style.display='none';
-  $('game').style.display='grid';
-
-  loadYT();
-  connectTwitch(cfg.channel);
-  startRound();
-});
-
-$('nextBtn').addEventListener('click', nextRound);
-$('revealBtn').addEventListener('click', ()=>endRound(false));
-$('replayBtn').addEventListener('click', replaySnippet);
-$('skipBtn').addEventListener('click', ()=>{ endRound(false); setTimeout(nextRound,300); });
-$('quitBtn').addEventListener('click', finishGame);
-$('resetScoreBtn').addEventListener('click', ()=>{
-  if(confirm('Remettre tous les scores à zéro ?')){ G.scores={}; G.names={}; renderBoard(); store.set('scores',{}); store.set('names',{}); toast('Scores remis à zéro'); }
-});
-$('playlist').addEventListener('input', updatePlCount);
-
-$('loadFileBtn').addEventListener('click', async ()=>{
-  try{
-    const res=await fetch('playlist.txt',{cache:'no-store'});
-    if(!res.ok) throw new Error('introuvable');
-    $('playlist').value=await res.text();
-    updatePlCount();
-    toast('playlist.txt chargée');
-  }catch(e){
-    toast('playlist.txt introuvable à côté du fichier.');
-  }
-});
-
-/* ---------- Restauration ---------- */
-(function init(){
-  const ch=store.get('channel',''); if(ch) $('channel').value=ch;
-  const pl=store.get('playlist',null); if(pl) $('playlist').value=pl;
-  const c=store.get('cfg',null);
-  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; }
-  G.scores=store.get('scores',{}); G.names=store.get('names',{});
-  updatePlCount();
-})();
-</script>
+  <!-- Bouton flottant Buy Me a Coffee (en bas a droite, toutes resolutions). -->
+  <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener"
+     class="coffee-fab" aria-label="Buy me a coffee">
+    ☕ Buy me a coffee
+  </a>
 </body>
 </html>
