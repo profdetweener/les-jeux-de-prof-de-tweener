@@ -135,7 +135,7 @@
   <header class="landing-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
     <h1>🎧 Blind Test</h1>
-    <span class="header-tagline">le chat répond, le plus rapide marque</span>
+    <span aria-hidden="true" style="width:96px"></span>
   </header>
 
   <main class="bt-main">
@@ -220,13 +220,11 @@
 
         <div class="answers">
           <div class="acard" id="cardTitle">
-            <span class="pts" id="ptsTitleLabel">+2</span>
             <div class="kind">Titre</div>
             <div class="val" id="titleVal">❓</div>
             <div class="finder" id="titleFinder"></div>
           </div>
           <div class="acard" id="cardArtist">
-            <span class="pts" id="ptsArtistLabel">+1</span>
             <div class="kind">Artiste</div>
             <div class="val" id="artistVal">❓</div>
             <div class="finder" id="artistFinder"></div>
@@ -236,7 +234,7 @@
         <div class="controls">
           <button class="btn-primary" id="playBtn" type="button">Lancer la musique</button>
           <button class="btn-ghost" id="skipBtn" type="button">Passer</button>
-          <button class="btn-ghost" id="quitBtn" type="button">Terminer</button>
+          <button class="btn-ghost" id="quitBtn" type="button">Terminer la partie</button>
         </div>
 
         <div class="player-zone" aria-hidden="true">
@@ -365,12 +363,13 @@ function validatePlaylist(text){
     const parts=line.split('|').map(p=>p.trim());
     if(parts.length<2){ errors.push({ln, reason:'séparateur « | » manquant (format : URL | titre | artiste)'}); return; }
     const rawUrl=(parts[0]||'').trim();
+    const dzMatch=rawUrl.match(/^deezer:(\d+)$/i);
     const ytId=extractYouTubeId(rawUrl);
-    let src;
-    if(ytId){ src={type:'yt', id:ytId}; }
-    else if(/^https?:\/\/\S+/i.test(rawUrl)){ src={type:'audio'}; }
-    else { errors.push({ln, reason:'URL non reconnue (lien YouTube ou extrait audio http)'}); return; }
-    const dupKey = ytId || rawUrl;
+    let src, dupKey;
+    if(dzMatch){ src={type:'deezer', trackId:dzMatch[1]}; dupKey='dz:'+dzMatch[1]; }
+    else if(ytId){ src={type:'yt', id:ytId}; dupKey=ytId; }
+    else if(/^https?:\/\/\S+/i.test(rawUrl)){ src={type:'audio'}; dupKey=rawUrl; }
+    else { errors.push({ln, reason:'source non reconnue (deezer:ID, lien YouTube ou audio http)'}); return; }
     const titles=(parts[1]||'').split(',').map(s=>s.trim()).filter(Boolean);
     const artists=(parts[2]||'').split(',').map(s=>s.trim()).filter(Boolean);
     if(!titles.length && !artists.length){ errors.push({ln, reason:'ni titre ni artiste à deviner'}); return; }
@@ -469,11 +468,26 @@ function playAudioUrl(url){
   try{ a.pause(); }catch(e){}
   a.src=url; a.currentTime=0; a.volume=0.75;
   const p=a.play();
-  if(p && p.catch) p.catch(()=>{});
+  if(p && p.then) p.then(()=>{ if(audioArmed){ audioArmed=false; if(G.round) G.round.start=0; beginTimer(); } }).catch(()=>{});
 }
 function stopPlayback(){
   try{ ytPlayer && ytPlayer.pauseVideo(); }catch(e){}
   try{ $('audioEl').pause(); }catch(e){}
+}
+
+/* ---------- Résolution d'extrait Deezer à la volée (JSONP, sans CORS) ---------- */
+function deezerPreview(trackId){
+  return new Promise((resolve,reject)=>{
+    const cb='dzcb_'+Math.random().toString(36).slice(2);
+    const s=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } try{ s.remove(); }catch(e){} };
+    window[cb]=(data)=>{ done=true; cleanup(); (data && data.preview) ? resolve(data.preview) : reject('sans extrait'); };
+    s.onerror=()=>{ if(!done){ cleanup(); reject('script'); } };
+    s.src='https://api.deezer.com/track/'+encodeURIComponent(trackId)+'?output=jsonp&callback='+cb;
+    document.head.appendChild(s);
+    setTimeout(()=>{ if(!done){ cleanup(); reject('timeout'); } }, 8000);
+  });
 }
 
 /* ---------- Twitch IRC (lecture anonyme) ---------- */
@@ -611,17 +625,20 @@ function startRound(){
   if(!entry){ finishGame(); return; }
   G.round={entry, titleFound:false, artistFound:false, active:false, state:'idle'};
   $('roundPill').textContent='Manche '+(G.idx+1)+' / '+G.list.length;
-  $('ptsTitleLabel').textContent='+'+G.cfg.ptsTitle;
-  $('ptsArtistLabel').textContent='+'+G.cfg.ptsArtist;
   $('timer').textContent=G.cfg.duration;
   $('timer').classList.remove('low','crit');
   resetCards(entry);
   $('vinyl').classList.remove('spinning');
-  $('nowText').textContent='Prêt. Clique « Lancer la musique ».';
+  $('nowText').textContent='Prêt ? Clique sur « Lancer la musique ».';
   $('playBtn').textContent='Lancer la musique';
   $('playBtn').disabled=false;
-  // pré-charge l'extrait audio pour un démarrage instantané
-  if(entry.type==='audio'){ try{ const a=$('audioEl'); a.src=entry.url; a.load(); }catch(e){} }
+  // pré-résout / pré-charge l'extrait pour un démarrage instantané
+  if(entry.type==='deezer'){
+    G.round.previewUrl=null;
+    deezerPreview(entry.trackId).then(url=>{ if(G.round && G.round.entry===entry){ G.round.previewUrl=url; try{ const a=$('audioEl'); a.src=url; a.load(); }catch(e){} } }).catch(()=>{});
+  } else if(entry.type==='audio'){
+    try{ const a=$('audioEl'); a.src=entry.url; a.load(); }catch(e){}
+  }
 }
 function launchMusic(){
   if(!G.round || G.round.state!=='idle') return;
@@ -629,7 +646,17 @@ function launchMusic(){
   $('playBtn').disabled=true;
   $('nowText').textContent='Chargement…';
   const entry=G.round.entry;
-  if(entry.type==='audio'){ playAudioUrl(entry.url); }
+  if(entry.type==='deezer'){
+    const play=(url)=>{ if(G.round && G.round.state==='playing') playAudioUrl(url); };
+    if(G.round.previewUrl){ play(G.round.previewUrl); }
+    else {
+      deezerPreview(entry.trackId).then(play).catch(()=>{
+        if(!G.round || G.round.state!=='playing') return;
+        toast('Extrait indisponible, morceau suivant.');
+        setTimeout(nextRound, 600);
+      });
+    }
+  } else if(entry.type==='audio'){ playAudioUrl(entry.url); }
   else { if(ytReady) playEntryById(entry.id); else { pendingId=entry.id; } }
 }
 function onPlayClick(){
@@ -768,7 +795,7 @@ $('startBtn').addEventListener('click',()=>{
   $('setup').style.display='none';
   $('game').style.display='grid';
 
-  loadYT();
+  if(picked.some(e=>e.type==='yt')) loadYT();   // YouTube seulement si nécessaire
   connectTwitch(cfg.channel);
   startRound();
 });
