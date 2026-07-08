@@ -11,6 +11,7 @@
   .mono{font-family:"Menlo","Consolas",monospace;}
   .app-header-home{color:var(--beige);text-decoration:none;font-size:13px;opacity:.8;padding:6px 10px;border-radius:6px;}
   .app-header-home:hover{opacity:1;background:rgba(255,255,255,.08);}
+  .connection-status{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--beige);opacity:.9;}
   .bt-main{flex:1;width:100%;max-width:1120px;margin:0 auto;padding:26px 16px 36px;}
 
   .bt-status{display:flex;justify-content:flex-end;margin-bottom:16px;}
@@ -135,14 +136,10 @@
   <header class="landing-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
     <h1>🎧 Blind Test</h1>
-    <span aria-hidden="true" style="width:96px"></span>
+    <span class="connection-status"><span class="dot" id="statusDot"></span><span id="statusText">Non connecté</span></span>
   </header>
 
   <main class="bt-main">
-
-    <div class="bt-status">
-      <span class="pill"><span class="dot" id="statusDot"></span><span id="statusText">Non connecté</span></span>
-    </div>
 
     <!-- ============ SETUP ============ -->
     <div class="panel" id="setup">
@@ -163,6 +160,12 @@
         <label>Thèmes musicaux</label>
         <div class="hint">Coche les styles à inclure. Par défaut, tous sont sélectionnés.</div>
         <div class="themes" id="themeBoxes"></div>
+      </div>
+
+      <div class="field" id="periodField" style="display:none">
+        <label>Époques</label>
+        <div class="hint">Coche les décennies à inclure. Par défaut, toutes.</div>
+        <div class="themes" id="periodBoxes"></div>
       </div>
 
       <div class="grid-3">
@@ -379,7 +382,8 @@ function validatePlaylist(text){
     const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
     if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
     const genre=(parts[3]||'').trim();
-    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, genre }, src));
+    const year=parseInt((parts[4]||'').trim(),10)||null;
+    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, genre, year }, src));
   });
   return {entries, errors};
 }
@@ -475,18 +479,28 @@ function stopPlayback(){
   try{ $('audioEl').pause(); }catch(e){}
 }
 
-/* ---------- Résolution d'extrait Deezer à la volée (JSONP, sans CORS) ---------- */
-function deezerPreview(trackId){
+/* ---------- Résolution Deezer à la volée (JSONP, sans CORS) ---------- */
+function deezerTrack(trackId){
   return new Promise((resolve,reject)=>{
     const cb='dzcb_'+Math.random().toString(36).slice(2);
     const s=document.createElement('script');
     let done=false;
     const cleanup=()=>{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } try{ s.remove(); }catch(e){} };
-    window[cb]=(data)=>{ done=true; cleanup(); (data && data.preview) ? resolve(data.preview) : reject('sans extrait'); };
+    window[cb]=(data)=>{ done=true; cleanup(); (data && data.preview) ? resolve(data) : reject('sans extrait'); };
     s.onerror=()=>{ if(!done){ cleanup(); reject('script'); } };
     s.src='https://api.deezer.com/track/'+encodeURIComponent(trackId)+'?output=jsonp&callback='+cb;
     document.head.appendChild(s);
     setTimeout(()=>{ if(!done){ cleanup(); reject('timeout'); } }, 8000);
+  });
+}
+// Ajoute tous les contributeurs du morceau comme artistes acceptés
+function enrichArtists(entry, contributors){
+  if(!Array.isArray(contributors)) return;
+  const existing=new Set(entry.artists.map(a=>a.norm));
+  contributors.forEach(c=>{
+    const name = c && c.name; if(!name) return;
+    const norm = normalize(name);
+    if(norm && !existing.has(norm)){ entry.artists.push({orig:name, norm}); existing.add(norm); }
   });
 }
 
@@ -635,7 +649,13 @@ function startRound(){
   // pré-résout / pré-charge l'extrait pour un démarrage instantané
   if(entry.type==='deezer'){
     G.round.previewUrl=null;
-    deezerPreview(entry.trackId).then(url=>{ if(G.round && G.round.entry===entry){ G.round.previewUrl=url; try{ const a=$('audioEl'); a.src=url; a.load(); }catch(e){} } }).catch(()=>{});
+    deezerTrack(entry.trackId).then(data=>{
+      if(G.round && G.round.entry===entry){
+        G.round.previewUrl=data.preview;
+        enrichArtists(entry, data.contributors);
+        try{ const a=$('audioEl'); a.src=data.preview; a.load(); }catch(e){}
+      }
+    }).catch(()=>{});
   } else if(entry.type==='audio'){
     try{ const a=$('audioEl'); a.src=entry.url; a.load(); }catch(e){}
   }
@@ -650,7 +670,7 @@ function launchMusic(){
     const play=(url)=>{ if(G.round && G.round.state==='playing') playAudioUrl(url); };
     if(G.round.previewUrl){ play(G.round.previewUrl); }
     else {
-      deezerPreview(entry.trackId).then(play).catch(()=>{
+      deezerTrack(entry.trackId).then(data=>{ enrichArtists(entry, data.contributors); play(data.preview); }).catch(()=>{
         if(!G.round || G.round.state!=='playing') return;
         toast('Extrait indisponible, morceau suivant.');
         setTimeout(nextRound, 600);
@@ -750,10 +770,22 @@ function renderThemes(entries){
     return `<label class="chip"><input type="checkbox" value="${escapeHtml(g)}" ${checked?'checked':''}><span>${escapeHtml(g)}</span></label>`;
   }).join('');
 }
+function renderPeriods(entries){
+  const box=$('periodBoxes'), field=$('periodField');
+  const decades=[...new Set(entries.map(e=>e.year).filter(Boolean).map(y=>Math.floor(y/10)*10))].sort((a,b)=>a-b);
+  if(decades.length<2){ field.style.display='none'; box.innerHTML=''; return; }
+  const prev={}; box.querySelectorAll('input').forEach(i=>prev[i.value]=i.checked);
+  field.style.display='';
+  box.innerHTML=decades.map(d=>{
+    const checked=(String(d) in prev)?prev[String(d)]:true;
+    return `<label class="chip"><input type="checkbox" value="${d}" ${checked?'checked':''}><span>${d}s</span></label>`;
+  }).join('');
+}
 function updatePlCount(){
   const {entries,errors}=validatePlaylist($('playlist').value);
   $('plCount').textContent = entries.length? (entries.length+' morceau(x) valide(s)') : 'Aucun morceau valide pour l\'instant';
   renderThemes(entries);
+  renderPeriods(entries);
   const rep=$('plReport');
   const blocking=errors.filter(e=>!e.warn);
   if(!errors.length){ rep.style.display='none'; rep.innerHTML=''; return; }
@@ -778,6 +810,14 @@ $('startBtn').addEventListener('click',()=>{
     const filtered=list.filter(e=> !e.genre || selected.has(e.genre));
     if(!filtered.length){ err.textContent='Aucun morceau pour les thèmes choisis.'; return; }
     list=filtered;
+  }
+  // filtrage par époque si le sélecteur est actif
+  if($('periodField').style.display!=='none'){
+    const sel=new Set([...document.querySelectorAll('#periodBoxes input:checked')].map(i=>parseInt(i.value,10)));
+    if(sel.size===0){ err.textContent='Coche au moins une époque.'; return; }
+    const filt=list.filter(e=> !e.year || sel.has(Math.floor(e.year/10)*10));
+    if(!filt.length){ err.textContent='Aucun morceau pour les époques choisies.'; return; }
+    list=filt;
   }
   err.textContent='';
   // sauvegarde config
