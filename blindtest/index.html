@@ -196,13 +196,9 @@
       <input type="text" id="channel" placeholder="prof_de_tweener" autocomplete="off">
     </div>
 
-    <div class="field">
-      <label for="playlist">Playlist (format !sr enrichi)</label>
-      <div class="hint">
-        Playlist par défaut chargée automatiquement (extraits Deezer, sans pub).
-        Format d'une ligne : <code>URL | titre(s) | artiste(s) | genre</code>. Variantes séparées par des virgules.
-      </div>
-      <textarea id="playlist" spellcheck="false"># Playlist chargée depuis playlist.txt</textarea>
+    <div class="field" id="playlistField" style="display:none">
+      <label for="playlist">Playlist</label>
+      <textarea id="playlist" spellcheck="false"></textarea>
       <div class="row-actions">
         <span class="hint" id="plCount"></span>
       </div>
@@ -218,8 +214,8 @@
     <div class="grid-3">
       <div class="field">
         <label for="duration">Durée d'un extrait (s)</label>
-        <div class="hint">Coupure automatique.</div>
-        <input type="number" id="duration" value="30" min="10" max="45" step="1">
+        <div class="hint">Coupe l'extrait. Max 30s (longueur Deezer).</div>
+        <input type="number" id="duration" value="30" min="5" max="30" step="1">
       </div>
       <div class="field">
         <label for="ptsTitle">Points titre</label>
@@ -240,9 +236,9 @@
         <input type="number" id="tolerance" value="20" min="0" max="40" step="5">
       </div>
       <div class="field">
-        <label>Ordre des morceaux</label>
-        <div class="hint">Mélangé à chaque partie.</div>
-        <input type="text" value="Aléatoire" disabled style="opacity:.6">
+        <label for="rounds">Nombre de manches</label>
+        <div class="hint">Morceaux tirés au hasard. Laisse vide pour tout jouer.</div>
+        <input type="number" id="rounds" value="20" min="1" max="500" step="1" placeholder="toutes">
       </div>
     </div>
 
@@ -718,18 +714,19 @@ function renderBoard(){
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
     return `<div class="lb-row ${cls}"><span class="rank">${medal}</span><span class="nm">${escapeHtml(G.names[r[0]])}</span><span class="sc mono">${r[1]}</span></div>`;
   }).join('');
-  store.set('scores',G.scores); store.set('names',G.names);
 }
 function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 /* ---------- Démarrage / config ---------- */
 function readConfig(){
+  const roundsRaw=parseInt($('rounds').value);
   return {
     channel: $('channel').value.trim(),
-    duration: Math.max(10, Math.min(45, parseInt($('duration').value)||35)),
+    duration: Math.max(5, Math.min(30, parseInt($('duration').value)||30)),
     ptsTitle: Math.max(1, parseInt($('ptsTitle').value)||2),
     ptsArtist: Math.max(1, parseInt($('ptsArtist').value)||1),
-    tolerance: Math.max(0, Math.min(40, parseInt($('tolerance').value)||20))
+    tolerance: Math.max(0, Math.min(40, parseInt($('tolerance').value)||20)),
+    rounds: (Number.isFinite(roundsRaw) && roundsRaw>0) ? roundsRaw : 0  // 0 = toutes
   };
 }
 function renderThemes(entries){
@@ -772,17 +769,17 @@ $('startBtn').addEventListener('click',()=>{
     if(!filtered.length){ err.textContent='Aucun morceau pour les thèmes choisis.'; return; }
     list=filtered;
   }
-  const blocking=errors.filter(e=>!e.warn).length;
-  if(blocking){
-    err.textContent='';
-    toast(blocking+' ligne(s) ignorée(s), '+list.length+' morceau(x) jouable(s).');
-  } else { err.textContent=''; }
+  err.textContent='';
   // sauvegarde config
   store.set('channel',cfg.channel);
-  store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance});
+  store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance,rounds:cfg.rounds});
 
-  G.cfg=cfg; G.list=shuffle(list); G.idx=0;
-  if(!Object.keys(G.scores).length){ G.scores={}; G.names={}; }
+  // tirage aléatoire limité au nombre de manches choisi
+  let picked=shuffle(list);
+  if(cfg.rounds>0) picked=picked.slice(0, cfg.rounds);
+
+  G.cfg=cfg; G.list=picked; G.idx=0;
+  G.scores={}; G.names={};          // nouvelle partie = classement remis à zéro
   renderBoard();
 
   $('setup').style.display='none';
@@ -799,7 +796,7 @@ $('replayBtn').addEventListener('click', replaySnippet);
 $('skipBtn').addEventListener('click', ()=>{ endRound(false); setTimeout(nextRound,300); });
 $('quitBtn').addEventListener('click', finishGame);
 $('resetScoreBtn').addEventListener('click', ()=>{
-  if(confirm('Remettre tous les scores à zéro ?')){ G.scores={}; G.names={}; renderBoard(); store.set('scores',{}); store.set('names',{}); toast('Scores remis à zéro'); }
+  if(confirm('Remettre tous les scores à zéro ?')){ G.scores={}; G.names={}; renderBoard(); toast('Scores remis à zéro'); }
 });
 $('playlist').addEventListener('input', updatePlCount);
 
@@ -808,8 +805,8 @@ setupAudio();
 (function init(){
   const ch=store.get('channel',''); if(ch) $('channel').value=ch;
   const c=store.get('cfg',null);
-  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; }
-  G.scores=store.get('scores',{}); G.names=store.get('names',{});
+  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; }
+  G.scores={}; G.names={};
   updatePlCount();
   // La playlist par défaut fait foi : on la (re)charge depuis playlist.txt à chaque ouverture
   fetch('playlist.txt',{cache:'no-store'})
