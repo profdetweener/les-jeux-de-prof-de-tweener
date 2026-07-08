@@ -345,6 +345,15 @@ function fuzzyContains(msgNorm, variantNorm, tolPct){
   }
   return false;
 }
+// Un message valide une réponse s'il contient la réponse entière OU un de ses
+// mots significatifs (nom de famille, mot-clé du titre). Système volontairement souple.
+function matchesAny(msgNorm, variants, tolPct){
+  return variants.some(v=>{
+    if(fuzzyContains(msgNorm, v.norm, tolPct)) return true;
+    const words = v.norm.split(' ').filter(w=>w.length>=4);
+    return words.some(w=>fuzzyContains(msgNorm, w, tolPct));
+  });
+}
 
 /* ---------- Parsing playlist (!sr enrichi) ---------- */
 function extractYouTubeId(url){
@@ -566,7 +575,7 @@ function onChatAnswer(name, text){
   const r=G.round, tol=G.cfg.tolerance;
 
   if(!r.titleFound){
-    if(r.entry.titles.some(v=>fuzzyContains(msg, v.norm, tol))){
+    if(matchesAny(msg, r.entry.titles, tol)){
       r.titleFound=true; r.titleBy=name;
       award(name, G.cfg.ptsTitle);
       revealCard('title', r.entry.titles[0].orig, name, true);
@@ -574,7 +583,7 @@ function onChatAnswer(name, text){
     }
   }
   if(!r.artistFound){
-    if(r.entry.artists.some(v=>fuzzyContains(msg, v.norm, tol))){
+    if(matchesAny(msg, r.entry.artists, tol)){
       r.artistFound=true; r.artistBy=name;
       award(name, G.cfg.ptsArtist);
       revealCard('artist', r.entry.artists[0].orig, name, true);
