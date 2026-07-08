@@ -199,18 +199,11 @@
     <div class="field">
       <label for="playlist">Playlist (format !sr enrichi)</label>
       <div class="hint">
-        Une ligne par morceau : <code>URL YouTube | titre(s) | artiste(s)</code>.
-        Sépare les variantes acceptées par des virgules. Les lignes vides ou commençant par <code>#</code> sont ignorées.
-        Tu peux importer n'importe quel fichier <code>.txt</code> respectant ce format.
+        Playlist par défaut chargée automatiquement (extraits Deezer, sans pub).
+        Format d'une ligne : <code>URL | titre(s) | artiste(s) | genre</code>. Variantes séparées par des virgules.
       </div>
-      <textarea id="playlist" spellcheck="false"># URL | titres acceptés | artistes acceptés
-# (remplace ces exemples par ta liste !sr, ou importe un fichier .txt)
-https://www.youtube.com/watch?v=fJ9rUzIMcZQ | Bohemian Rhapsody, bohemian, bo rhap | Queen
-https://www.youtube.com/watch?v=djV11Xbc914 | Take On Me | A-ha, aha
-https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
+      <textarea id="playlist" spellcheck="false"># Playlist chargée depuis playlist.txt</textarea>
       <div class="row-actions">
-        <input type="file" id="fileInput" accept=".txt,text/plain" style="display:none">
-        <button class="btn-ghost" id="loadFileBtn" type="button">Importer un fichier .txt</button>
         <span class="hint" id="plCount"></span>
       </div>
       <div class="pl-report" id="plReport"></div>
@@ -226,7 +219,7 @@ https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
       <div class="field">
         <label for="duration">Durée d'un extrait (s)</label>
         <div class="hint">Coupure automatique.</div>
-        <input type="number" id="duration" value="35" min="10" max="45" step="1">
+        <input type="number" id="duration" value="30" min="10" max="45" step="1">
       </div>
       <div class="field">
         <label for="ptsTitle">Points titre</label>
@@ -300,6 +293,7 @@ https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
 
       <div class="player-zone" aria-hidden="true">
         <div id="ytplayer"></div>
+        <audio id="audioEl" preload="auto"></audio>
       </div>
     </div>
 
@@ -415,18 +409,23 @@ function validatePlaylist(text){
     if(!line || line.startsWith('#')) return;
     const parts=line.split('|').map(p=>p.trim());
     if(parts.length<2){ errors.push({ln, reason:'séparateur « | » manquant (format : URL | titre | artiste)'}); return; }
-    const id=extractYouTubeId(parts[0]||'');
-    if(!id){ errors.push({ln, reason:'URL YouTube non reconnue'}); return; }
+    const rawUrl=(parts[0]||'').trim();
+    const ytId=extractYouTubeId(rawUrl);
+    let src;
+    if(ytId){ src={type:'yt', id:ytId}; }
+    else if(/^https?:\/\/\S+/i.test(rawUrl)){ src={type:'audio'}; }
+    else { errors.push({ln, reason:'URL non reconnue (lien YouTube ou extrait audio http)'}); return; }
+    const dupKey = ytId || rawUrl;
     const titles=(parts[1]||'').split(',').map(s=>s.trim()).filter(Boolean);
     const artists=(parts[2]||'').split(',').map(s=>s.trim()).filter(Boolean);
     if(!titles.length && !artists.length){ errors.push({ln, reason:'ni titre ni artiste à deviner'}); return; }
-    if(seen[id]){ errors.push({ln, reason:'doublon (même vidéo que ligne '+seen[id]+')', warn:true}); }
-    else seen[id]=ln;
+    if(seen[dupKey]){ errors.push({ln, reason:'doublon (même morceau que ligne '+seen[dupKey]+')', warn:true}); }
+    else seen[dupKey]=ln;
     const tN=titles.map(t=>({orig:t,norm:normalize(t)})).filter(t=>t.norm);
     const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
     if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
     const genre=(parts[3]||'').trim();
-    entries.push({ id, url:parts[0], titles:tN, artists:aN, genre });
+    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, genre }, src));
   });
   return {entries, errors};
 }
@@ -493,6 +492,33 @@ function playEntryById(id){
   roundArmed=true;
   try{ ytPlayer.mute(); }catch(e){}
   ytPlayer.loadVideoById(id);
+}
+
+/* ---------- Lecteur audio (extraits Deezer) ---------- */
+let audioArmed=false;
+function setupAudio(){
+  const a=$('audioEl');
+  a.addEventListener('playing', ()=>{
+    if(audioArmed){ audioArmed=false; if(G.round) G.round.start=0; beginTimer(); }
+  });
+  a.addEventListener('ended', ()=>{ if(G.round && G.round.active) endRound(false); });
+  a.addEventListener('error', ()=>{
+    if(!G.round) return;
+    toast('Extrait indisponible, morceau suivant.');
+    setTimeout(nextRound, 600);
+  });
+}
+function playAudioUrl(url){
+  const a=$('audioEl');
+  audioArmed=true;
+  try{ a.pause(); }catch(e){}
+  a.src=url; a.currentTime=0; a.volume=0.75;
+  const p=a.play();
+  if(p && p.catch) p.catch(()=>{});
+}
+function stopPlayback(){
+  try{ ytPlayer && ytPlayer.pauseVideo(); }catch(e){}
+  try{ $('audioEl').pause(); }catch(e){}
 }
 
 /* ---------- Twitch IRC (lecture anonyme) ---------- */
@@ -623,7 +649,7 @@ function beginTimer(){
     if(G.timeLeft<=0){ endRound(false); }
   },1000);
   // filet de sécurité : coupe le son même si le timer dérive
-  G.endGuard=setTimeout(()=>{ try{ytPlayer.pauseVideo();}catch(e){} }, (G.cfg.duration+1)*1000);
+  G.endGuard=setTimeout(()=>{ stopPlayback(); }, (G.cfg.duration+1)*1000);
 }
 function startRound(){
   const entry=G.list[G.idx];
@@ -636,14 +662,15 @@ function startRound(){
   $('nextBtn').disabled=true;
   resetCards(entry);
   $('nowText').textContent='Chargement…';
-  if(ytReady) playEntryById(entry.id); else { pendingId=entry.id; }
+  if(entry.type==='audio'){ playAudioUrl(entry.url); }
+  else { if(ytReady) playEntryById(entry.id); else { pendingId=entry.id; } }
 }
 function endRound(solved){
   if(!G.round) return;
   clearInterval(G.timerId); clearTimeout(G.endGuard);
   G.round.active=false;
   $('vinyl').classList.remove('spinning');
-  try{ ytPlayer.pauseVideo(); }catch(e){}
+  stopPlayback();
   const r=G.round;
   // révèle ce qui n'a pas été trouvé
   if(r.entry.titles.length && !r.titleFound) revealCard('title', r.entry.titles[0].orig, '', false);
@@ -659,16 +686,20 @@ function nextRound(){
 }
 function replaySnippet(){
   if(!G.round) return;
-  try{
-    const start=(G.round.start!=null)?G.round.start:computeStart(ytPlayer.getDuration()||0);
-    ytPlayer.seekTo(start,true);
-    ytPlayer.playVideo();
-  }catch(e){}
+  if(G.round.entry.type==='audio'){
+    const a=$('audioEl'); try{ a.currentTime=0; a.play(); }catch(e){}
+  } else {
+    try{
+      const start=(G.round.start!=null)?G.round.start:computeStart(ytPlayer.getDuration()||0);
+      ytPlayer.seekTo(start,true);
+      ytPlayer.playVideo();
+    }catch(e){}
+  }
   if(!G.round.active) beginTimer();
 }
 function finishGame(){
   clearInterval(G.timerId); clearTimeout(G.endGuard);
-  try{ ytPlayer.pauseVideo(); }catch(e){}
+  stopPlayback();
   $('vinyl').classList.remove('spinning');
   $('nowText').textContent='🏁 Partie terminée';
   $('roundPill').textContent='Terminé';
@@ -747,7 +778,7 @@ $('startBtn').addEventListener('click',()=>{
     toast(blocking+' ligne(s) ignorée(s), '+list.length+' morceau(x) jouable(s).');
   } else { err.textContent=''; }
   // sauvegarde config
-  store.set('channel',cfg.channel); store.set('playlist',$('playlist').value);
+  store.set('channel',cfg.channel);
   store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance});
 
   G.cfg=cfg; G.list=shuffle(list); G.idx=0;
@@ -772,36 +803,19 @@ $('resetScoreBtn').addEventListener('click', ()=>{
 });
 $('playlist').addEventListener('input', updatePlCount);
 
-$('loadFileBtn').addEventListener('click', ()=> $('fileInput').click());
-$('fileInput').addEventListener('change', (e)=>{
-  const file = e.target.files && e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    $('playlist').value = reader.result || '';
-    updatePlCount();
-    toast('Fichier importé : '+file.name);
-  };
-  reader.onerror = ()=> toast('Lecture du fichier impossible.');
-  reader.readAsText(file, 'UTF-8');
-  e.target.value = ''; // permet de réimporter le même fichier ensuite
-});
-
 /* ---------- Restauration ---------- */
+setupAudio();
 (function init(){
   const ch=store.get('channel',''); if(ch) $('channel').value=ch;
-  const pl=store.get('playlist',null); if(pl) $('playlist').value=pl;
   const c=store.get('cfg',null);
   if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; }
   G.scores=store.get('scores',{}); G.names=store.get('names',{});
   updatePlCount();
-  // Auto-chargement silencieux d'un playlist.txt fourni à côté (si présent et si rien de sauvegardé)
-  if(!pl){
-    fetch('playlist.txt',{cache:'no-store'})
-      .then(r=> r.ok ? r.text() : Promise.reject())
-      .then(txt=>{ if(txt && txt.trim()){ $('playlist').value=txt; updatePlCount(); } })
-      .catch(()=>{});
-  }
+  // La playlist par défaut fait foi : on la (re)charge depuis playlist.txt à chaque ouverture
+  fetch('playlist.txt',{cache:'no-store'})
+    .then(r=> r.ok ? r.text() : Promise.reject())
+    .then(txt=>{ if(txt && txt.trim()){ $('playlist').value=txt; updatePlCount(); } })
+    .catch(()=>{});
 })();
 </script>
 </body>
