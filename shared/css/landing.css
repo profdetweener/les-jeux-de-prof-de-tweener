@@ -50,7 +50,7 @@ body { display: flex; flex-direction: column; }
 .landing-main {
   flex: 1;
   display: flex; flex-direction: column; align-items: center;
-  padding: 48px 16px 96px; /* marge basse : réserve la zone où flotte le bouton coffee */
+  padding: 48px 16px 32px;
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
@@ -174,7 +174,7 @@ body { display: flex; flex-direction: column; }
 */
 .coffee-fab {
   position: fixed;
-  bottom: 78px; /* au-dessus du bandeau footer */
+  bottom: 20px; /* par défaut : coin bas de l'écran */
   right: 20px;
   z-index: 1000;
   background: #fff4b8; /* jaune pastel discret */
@@ -186,7 +186,7 @@ body { display: flex; flex-direction: column; }
   text-decoration: none;
   border: 1px solid #f0d878;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s, bottom 0.2s ease;
   white-space: nowrap;
 }
 .coffee-fab:hover {
@@ -194,12 +194,18 @@ body { display: flex; flex-direction: column; }
   transform: translateY(-1px);
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
 }
+.coffee-fab.above-footer {
+  bottom: 78px; /* remonte au-dessus du bandeau footer quand celui-ci est visible */
+}
 @media (max-width: 600px) {
   .coffee-fab {
-    bottom: 68px;
+    bottom: 14px;
     right: 14px;
     padding: 8px 13px;
     font-size: 12px;
+  }
+  .coffee-fab.above-footer {
+    bottom: 68px;
   }
 }
 

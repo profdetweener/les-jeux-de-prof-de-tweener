@@ -104,5 +104,19 @@
      class="coffee-fab" aria-label="Buy me a coffee">
     ☕ Buy me a coffee
   </a>
+
+  <script>
+    // Le bouton coffee reste en bas de l'écran, et remonte au-dessus du bandeau
+    // footer uniquement quand celui-ci est visible (évite le chevauchement).
+    (function(){
+      var footer = document.querySelector('.landing-footer');
+      var fab = document.querySelector('.coffee-fab');
+      if(!footer || !fab || !('IntersectionObserver' in window)) return;
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ fab.classList.toggle('above-footer', e.isIntersecting); });
+      }, { threshold: 0 });
+      io.observe(footer);
+    })();
+  </script>
 </body>
 </html>
