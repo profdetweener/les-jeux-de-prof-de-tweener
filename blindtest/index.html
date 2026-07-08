@@ -74,6 +74,11 @@
   .pl-issue{color:var(--red);}
   .pl-issue.warn{color:var(--gold);}
   .pl-issue::before{content:"⚠ ";}
+  .themes{display:flex;flex-wrap:wrap;gap:9px;}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer;user-select:none;transition:border-color .15s,background .15s;}
+  .chip:hover{border-color:var(--magenta-dim);}
+  .chip input{accent-color:var(--magenta);cursor:pointer;margin:0;}
+  .chip:has(input:checked){border-color:var(--magenta);background:linear-gradient(180deg,rgba(255,61,139,.12),var(--bg));}
 
   button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-weight:700;font-size:14px;transition:transform .08s ease,filter .15s,background .15s;}
   button:active{transform:translateY(1px);}
@@ -125,10 +130,9 @@
 
   .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;}
 
-  /* Player zone (à masquer dans OBS) */
-  .player-zone{margin-top:20px;border:1px dashed var(--magenta-dim);border-radius:14px;padding:10px;background:rgba(0,0,0,.25);}
-  .player-zone .tag{font-size:11px;color:var(--magenta);letter-spacing:.05em;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
-  #ytplayer{width:100%;max-width:280px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;}
+  /* Lecteur YouTube : rendu hors écran (joue le son sans montrer la vidéo, donc sans spoiler) */
+  .player-zone{position:absolute;left:-99999px;top:0;width:200px;height:200px;overflow:hidden;pointer-events:none;}
+  #ytplayer{width:200px;height:200px;}
 
   /* Leaderboard */
   .board{padding:22px;position:sticky;top:22px;}
@@ -197,18 +201,25 @@
       <div class="hint">
         Une ligne par morceau : <code>URL YouTube | titre(s) | artiste(s)</code>.
         Sépare les variantes acceptées par des virgules. Les lignes vides ou commençant par <code>#</code> sont ignorées.
-        Tu peux aussi déposer un <code>playlist.txt</code> à côté du fichier et cliquer « Charger playlist.txt ».
+        Tu peux importer n'importe quel fichier <code>.txt</code> respectant ce format.
       </div>
       <textarea id="playlist" spellcheck="false"># URL | titres acceptés | artistes acceptés
-# (remplace ces exemples par ta liste !sr)
+# (remplace ces exemples par ta liste !sr, ou importe un fichier .txt)
 https://www.youtube.com/watch?v=fJ9rUzIMcZQ | Bohemian Rhapsody, bohemian, bo rhap | Queen
 https://www.youtube.com/watch?v=djV11Xbc914 | Take On Me | A-ha, aha
 https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
       <div class="row-actions">
-        <button class="btn-ghost" id="loadFileBtn" type="button">Charger playlist.txt</button>
+        <input type="file" id="fileInput" accept=".txt,text/plain" style="display:none">
+        <button class="btn-ghost" id="loadFileBtn" type="button">Importer un fichier .txt</button>
         <span class="hint" id="plCount"></span>
       </div>
       <div class="pl-report" id="plReport"></div>
+    </div>
+
+    <div class="field" id="themeField" style="display:none">
+      <label>Thèmes musicaux</label>
+      <div class="hint">Coche les styles à inclure. Par défaut, tous sont sélectionnés.</div>
+      <div class="themes" id="themeBoxes"></div>
     </div>
 
     <div class="grid-3">
@@ -287,8 +298,7 @@ https://www.youtube.com/watch?v=y6120QOlsfU | Sandstorm | Darude</textarea>
         <button class="btn-ghost" id="quitBtn" type="button">Terminer</button>
       </div>
 
-      <div class="player-zone">
-        <div class="tag">◾ Zone lecteur — masque-la dans OBS (ne pas capturer)</div>
+      <div class="player-zone" aria-hidden="true">
         <div id="ytplayer"></div>
       </div>
     </div>
@@ -415,7 +425,8 @@ function validatePlaylist(text){
     const tN=titles.map(t=>({orig:t,norm:normalize(t)})).filter(t=>t.norm);
     const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
     if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
-    entries.push({ id, url:parts[0], titles:tN, artists:aN });
+    const genre=(parts[3]||'').trim();
+    entries.push({ id, url:parts[0], titles:tN, artists:aN, genre });
   });
   return {entries, errors};
 }
@@ -690,9 +701,21 @@ function readConfig(){
     tolerance: Math.max(0, Math.min(40, parseInt($('tolerance').value)||20))
   };
 }
+function renderThemes(entries){
+  const box=$('themeBoxes'), field=$('themeField');
+  const genres=[...new Set(entries.map(e=>e.genre).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(genres.length<2){ field.style.display='none'; box.innerHTML=''; return; }
+  const prev={}; box.querySelectorAll('input').forEach(i=>prev[i.value]=i.checked);
+  field.style.display='';
+  box.innerHTML=genres.map(g=>{
+    const checked=(g in prev)?prev[g]:true;
+    return `<label class="chip"><input type="checkbox" value="${escapeHtml(g)}" ${checked?'checked':''}><span>${escapeHtml(g)}</span></label>`;
+  }).join('');
+}
 function updatePlCount(){
   const {entries,errors}=validatePlaylist($('playlist').value);
   $('plCount').textContent = entries.length? (entries.length+' morceau(x) valide(s)') : 'Aucun morceau valide pour l\'instant';
+  renderThemes(entries);
   const rep=$('plReport');
   const blocking=errors.filter(e=>!e.warn);
   if(!errors.length){ rep.style.display='none'; rep.innerHTML=''; return; }
@@ -705,10 +728,19 @@ function updatePlCount(){
 
 $('startBtn').addEventListener('click',()=>{
   const cfg=readConfig();
-  const {entries:list, errors}=validatePlaylist($('playlist').value);
+  const {entries, errors}=validatePlaylist($('playlist').value);
+  let list=entries;
   const err=$('setupErr');
   if(!cfg.channel){ err.textContent='Renseigne ta chaîne Twitch.'; return; }
   if(!list.length){ err.textContent='Aucun morceau valide (voir les lignes signalées au-dessus).'; updatePlCount(); return; }
+  // filtrage par thèmes si le sélecteur est actif
+  if($('themeField').style.display!=='none'){
+    const selected=new Set([...document.querySelectorAll('#themeBoxes input:checked')].map(i=>i.value));
+    if(selected.size===0){ err.textContent='Coche au moins un thème musical.'; return; }
+    const filtered=list.filter(e=> !e.genre || selected.has(e.genre));
+    if(!filtered.length){ err.textContent='Aucun morceau pour les thèmes choisis.'; return; }
+    list=filtered;
+  }
   const blocking=errors.filter(e=>!e.warn).length;
   if(blocking){
     err.textContent='';
@@ -740,16 +772,19 @@ $('resetScoreBtn').addEventListener('click', ()=>{
 });
 $('playlist').addEventListener('input', updatePlCount);
 
-$('loadFileBtn').addEventListener('click', async ()=>{
-  try{
-    const res=await fetch('playlist.txt',{cache:'no-store'});
-    if(!res.ok) throw new Error('introuvable');
-    $('playlist').value=await res.text();
+$('loadFileBtn').addEventListener('click', ()=> $('fileInput').click());
+$('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    $('playlist').value = reader.result || '';
     updatePlCount();
-    toast('playlist.txt chargée');
-  }catch(e){
-    toast('playlist.txt introuvable à côté du fichier.');
-  }
+    toast('Fichier importé : '+file.name);
+  };
+  reader.onerror = ()=> toast('Lecture du fichier impossible.');
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = ''; // permet de réimporter le même fichier ensuite
 });
 
 /* ---------- Restauration ---------- */
@@ -760,6 +795,13 @@ $('loadFileBtn').addEventListener('click', async ()=>{
   if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; }
   G.scores=store.get('scores',{}); G.names=store.get('names',{});
   updatePlCount();
+  // Auto-chargement silencieux d'un playlist.txt fourni à côté (si présent et si rien de sauvegardé)
+  if(!pl){
+    fetch('playlist.txt',{cache:'no-store'})
+      .then(r=> r.ok ? r.text() : Promise.reject())
+      .then(txt=>{ if(txt && txt.trim()){ $('playlist').value=txt; updatePlCount(); } })
+      .catch(()=>{});
+  }
 })();
 </script>
 </body>
