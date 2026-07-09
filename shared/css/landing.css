@@ -13,6 +13,7 @@
   --rouge: #c84545;
   --vert: #4a8c5a;
   --jaune: #d4a830;
+  --rose: #de7ae3;
   --gris-texte: #5a5a5a;
   --gris-clair: #d9d9d9;
   --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
@@ -62,10 +63,10 @@ body { display: flex; flex-direction: column; }
 
 .landing-intro {
   text-align: center; max-width: 580px;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 .landing-intro h2 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 28px; font-weight: 700;
 }
 .landing-intro p {
@@ -87,8 +88,8 @@ body { display: flex; flex-direction: column; }
   background: var(--blanc);
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
-  padding: 28px 24px;
-  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px 20px 16px;
+  display: flex; flex-direction: column; gap: 10px;
   text-decoration: none; color: inherit;
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
   position: relative;
@@ -98,62 +99,70 @@ body { display: flex; flex-direction: column; }
   transform: translateY(-3px);
   box-shadow: var(--ombre-forte);
 }
-.game-card.coming-soon {
-  cursor: not-allowed;
-  pointer-events: none;      /* clic impossible */
-  filter: grayscale(0.6);
-}
 
-.game-card.coming-soon::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: rgba(245, 237, 224, 0.55); /* voile beige : effet grisé/désactivé */
-  z-index: 1;
-}
-.game-card.coming-soon::after {
-  content: "En amélioration";
-  position: absolute; top: 12px; right: 12px; z-index: 2;
-  background: var(--bleu-nuit); color: var(--beige);
-  font-size: 11px; font-weight: 600;
-  padding: 4px 9px; border-radius: 999px;
-}
-.game-card.coming-soon:hover {
-  transform: none;
-  box-shadow: var(--ombre);
+/* En-tete compact : emoji + titre + "Jouer" sur une seule ligne */
+.game-card-head {
+  display: flex; align-items: center; gap: 10px;
 }
 .game-card-emoji {
-  font-size: 40px; line-height: 1;
-  margin-bottom: 4px;
+  font-size: 26px; line-height: 1;
+  flex-shrink: 0;
 }
 .game-card-title {
   margin: 0;
-  font-size: 22px; font-weight: 700;
+  font-size: 18px; font-weight: 700;
   color: var(--bleu-nuit);
+  white-space: nowrap;
 }
-.game-card-tagline {
-  margin: 0;
-  font-size: 14px; color: var(--gris-texte);
-  line-height: 1.5;
-  flex: 1;
-}
-.game-card-meta {
-  display: flex; gap: 10px;
-  font-size: 12px; color: var(--gris-texte);
-  font-weight: 500;
-  align-items: center;
-  margin-top: 4px;
-}
-.game-card-meta .dot { opacity: 0.4; }
 .game-card-cta {
-  margin-top: 10px;
-  font-size: 14px; font-weight: 600;
+  margin-left: auto;
+  font-size: 13.5px; font-weight: 600;
   color: var(--rouge);
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
 }
 .game-card-cta .arrow {
   transition: transform 0.15s ease-out;
 }
 .game-card:hover .arrow { transform: translateX(3px); }
+
+.game-card-tagline {
+  margin: 0;
+  font-size: 13.5px; color: var(--gris-texte);
+  line-height: 1.55;
+  flex: 1;
+}
+.game-card-meta {
+  display: flex; gap: 10px;
+  font-size: 12px; color: var(--rose);
+  font-weight: 600;
+  align-items: center;
+}
+.game-card-meta .dot { opacity: 0.4; }
+
+/* Jeux en chantier : badge en bas a droite pour ne pas heurter "Jouer" */
+.game-card.coming-soon {
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.6);
+}
+.game-card.coming-soon::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(245, 237, 224, 0.55);
+  z-index: 1;
+}
+.game-card.coming-soon::after {
+  content: "En amélioration";
+  position: absolute; bottom: 14px; right: 18px; z-index: 2;
+  background: var(--bleu-nuit); color: var(--beige);
+  font-size: 10.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px;
+}
+.game-card.coming-soon:hover {
+  transform: none;
+  box-shadow: var(--ombre);
+}
 
 .game-card-badge {
   position: absolute;
@@ -237,7 +246,10 @@ body { display: flex; flex-direction: column; }
   .landing-intro h2 { font-size: 22px; }
   .landing-intro p { font-size: 14px; }
   .games-grid { gap: 14px; }
-  .game-card { padding: 22px 18px; }
+  .game-card { padding: 16px 16px 14px; }
+  .game-card-title { font-size: 16.5px; }
+  .game-card-emoji { font-size: 23px; }
+  .game-card.coming-soon::after { bottom: 12px; right: 14px; }
 }
 
 /* ============================================================
