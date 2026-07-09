@@ -22,6 +22,12 @@ class_name = "MotusRoom"
 name = "DEFINITION_ROOMS"
 class_name = "DefinitionRoom"
 
+# Singleton d'agregation des votes de difficulte (jeu Definitions).
+# Une seule instance, adressee par idFromName("global").
+[[durable_objects.bindings]]
+name = "DEFINITION_VOTES"
+class_name = "DefinitionVotes"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PetitBacRoom"]
@@ -33,3 +39,7 @@ new_sqlite_classes = ["MotusRoom"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["DefinitionRoom"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["DefinitionVotes"]

@@ -141,3 +141,83 @@
 }
 .def-multi li { margin-bottom: 4px; line-height: 1.5; }
 .def-multi li:last-child { margin-bottom: 0; }
+
+/* --- Vote de difficulte ------------------------------------------------------
+   Apparait uniquement apres revelation de la definition : on ne peut juger la
+   difficulte d'un mot qu'une fois son sens connu. Le curseur accepte les
+   decimales, car l'hesitation entre deux niveaux est une information utile. */
+
+.chill-vote {
+  margin-top: 14px;
+  background: var(--beige);
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  padding: 14px 18px 16px;
+}
+.chill-vote[hidden] { display: none; }
+
+.chill-vote-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.chill-vote-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bleu-nuit);
+}
+.chill-vote-value {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bleu-accent);
+  min-width: 42px;
+  text-align: right;
+}
+
+.chill-vote input[type="range"] {
+  width: 100%;
+  accent-color: var(--bleu-accent);
+  cursor: pointer;
+  height: 4px;
+  margin: 0;
+}
+.chill-vote input[type="range"]:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.chill-vote-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--gris-texte);
+  margin-top: 6px;
+}
+
+.chill-vote-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--gris-clair);
+  border-radius: var(--rayon-sm);
+  background: var(--blanc);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--bleu-nuit);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chill-vote-btn:hover:not(:disabled) {
+  background: #eef5ee;
+  border-color: var(--vert);
+}
+.chill-vote-btn:disabled { opacity: 0.6; cursor: default; }
+
+.chill-vote-note {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--gris-texte);
+}

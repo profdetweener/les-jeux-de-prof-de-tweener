@@ -84,6 +84,27 @@
           </button>
         </div>
 
+        <div class="chill-vote" id="chill-vote" hidden>
+          <div class="chill-vote-head">
+            <span class="chill-vote-title">📊 Ce mot vous a paru… ?</span>
+            <span class="chill-vote-value" id="chill-vote-value">3,0</span>
+          </div>
+          <input type="range" id="chill-vote-slider"
+                 min="1" max="5" step="0.1" value="3"
+                 aria-label="Difficulté ressentie, de 1 à 5">
+          <div class="chill-vote-scale">
+            <span>1 — très facile</span>
+            <span>5 — rarissime</span>
+          </div>
+          <button type="button" class="chill-vote-btn" id="chill-vote-btn">
+            Envoyer mon avis
+          </button>
+          <p class="chill-vote-note" id="chill-vote-note">
+            Votre note aide à mieux classer les mots pour tout le monde.
+            Aucune information personnelle n'est envoyée.
+          </p>
+        </div>
+
         <div class="chill-actions">
           <button type="button" class="btn btn-primary btn-block" id="btn-next">
             Mot suivant →

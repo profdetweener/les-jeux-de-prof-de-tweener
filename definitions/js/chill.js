@@ -18,7 +18,7 @@
  * (ou les viewers proposent dans le chat), puis on revele.
  */
 
-import { fetchDefinitionWords, pingWorker } from "../../shared/js/api.js";
+import { fetchDefinitionWords, pingWorker, sendDifficultyVote } from "../../shared/js/api.js";
 
 // ---------------------------------------------------------------------------
 // DOM
@@ -42,6 +42,12 @@ const defBlock = document.getElementById("chill-def-block");
 const defTextEl = document.getElementById("chill-def-text");
 const defRevealBtn = document.getElementById("chill-def-reveal");
 const counterEl = document.getElementById("chill-counter");
+
+const voteBlock = document.getElementById("chill-vote");
+const voteSlider = document.getElementById("chill-vote-slider");
+const voteValue = document.getElementById("chill-vote-value");
+const voteBtn = document.getElementById("chill-vote-btn");
+const voteNote = document.getElementById("chill-vote-note");
 
 const btnNext = document.getElementById("btn-next");
 const btnBackConfig = document.getElementById("btn-back-config");
@@ -218,11 +224,93 @@ function showCurrent() {
   // Reset au floutage initial pour chaque nouveau mot
   defBlock.classList.add("is-blurred");
   defRevealBtn.style.display = "flex";
+  hideVote();
 }
 
 function revealDef() {
   defBlock.classList.remove("is-blurred");
   defRevealBtn.style.display = "none";
+  showVote();
+}
+
+// ---------------------------------------------------------------------------
+// Vote de difficulte
+// ---------------------------------------------------------------------------
+//
+// Le vote n'apparait qu'APRES la revelation : on ne peut juger la difficulte
+// d'un mot qu'une fois sa definition connue.
+//
+// Anti-abus volontairement leger (usage de bonne foi) : un seul vote par mot
+// et par navigateur, memorise en local. Cote serveur, on n'agrege qu'une somme
+// et un compteur : aucune donnee personnelle n'est stockee.
+
+const VOTED_KEY = "def_voted_words";
+
+function loadVoted() {
+  try {
+    const raw = window.localStorage.getItem(VOTED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+function rememberVoted(word) {
+  try {
+    const set = loadVoted();
+    set.add(word);
+    window.localStorage.setItem(VOTED_KEY, JSON.stringify([...set]));
+  } catch {
+    /* stockage indisponible : on ne bloque pas le jeu */
+  }
+}
+
+function formatVote(v) {
+  return Number(v).toFixed(1).replace(".", ",");
+}
+
+function showVote() {
+  if (cursor >= queue.length) return;
+  const entry = queue[cursor];
+  const already = loadVoted().has(entry.word);
+
+  voteBlock.hidden = false;
+  // On pre-positionne le curseur sur la difficulte actuelle du mot : le joueur
+  // corrige plutot que de partir de zero, ce qui donne un signal plus fiable.
+  const current = entry.difficulty ?? 3;
+  voteSlider.value = String(current);
+  voteValue.textContent = formatVote(current);
+
+  voteSlider.disabled = already;
+  voteBtn.disabled = already;
+  voteBtn.textContent = already ? "Déjà voté ✓" : "Envoyer mon avis";
+  voteNote.textContent = already
+    ? "Vous avez déjà noté ce mot. Merci !"
+    : "Votre note aide à mieux classer les mots pour tout le monde. Aucune information personnelle n'est envoyée.";
+}
+
+function hideVote() {
+  voteBlock.hidden = true;
+}
+
+async function submitVote() {
+  if (cursor >= queue.length) return;
+  const entry = queue[cursor];
+  const score = Number(voteSlider.value);
+
+  voteBtn.disabled = true;
+  voteBtn.textContent = "Envoi…";
+  try {
+    await sendDifficultyVote(entry.word, score);
+    rememberVoted(entry.word);
+    voteSlider.disabled = true;
+    voteBtn.textContent = "Merci ! ✓";
+    voteNote.textContent = "Votre avis a bien été pris en compte.";
+  } catch {
+    // Un vote perdu ne doit jamais gener la partie.
+    voteBtn.disabled = false;
+    voteBtn.textContent = "Réessayer";
+    voteNote.textContent = "Envoi impossible pour le moment. Vous pouvez continuer à jouer.";
+  }
 }
 
 function nextWord() {
@@ -251,6 +339,11 @@ btnNext.addEventListener("click", () => {
 });
 
 defRevealBtn.addEventListener("click", revealDef);
+
+voteSlider.addEventListener("input", () => {
+  voteValue.textContent = formatVote(voteSlider.value);
+});
+voteBtn.addEventListener("click", submitVote);
 
 btnBackConfig.addEventListener("click", () => {
   // Demande confirmation si on a deja parcouru des mots dans la session

@@ -24,14 +24,20 @@ import { handleChillRoute } from "./motus/chill";
 export { PetitBacRoom } from "./petitbac/room";
 export { MotusRoom } from "./motus/room";
 export { DefinitionRoom } from "./definition/room";
+export { DefinitionVotes } from "./definition/votes";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
   MOTUS_ROOMS: DurableObjectNamespace;
   DEFINITION_ROOMS: DurableObjectNamespace;
+  // Singleton d'agregation des votes de difficulte (jeu Definitions).
+  DEFINITION_VOTES: DurableObjectNamespace;
   // Secret HMAC pour le mode chill stateless. Fallback dev "dev-secret-do-not-use-in-prod".
   // En prod, definir via : npx wrangler secret put CHILL_SECRET
   CHILL_SECRET?: string;
+  // Secret protegeant l'export CSV des votes.
+  // En prod : npx wrangler secret put VOTES_SECRET
+  VOTES_SECRET?: string;
 }
 
 const CORS_HEADERS = {
@@ -220,6 +226,40 @@ export default {
       if (subPath === "/words" && request.method === "GET") {
         const { WORD_BANK } = await import("./definition/words");
         return jsonResponse({ words: WORD_BANK });
+      }
+
+      // Vote de difficulte (mode chill). Anonyme : ni pseudo, ni IP, ni horodatage.
+      // Le DO est un singleton, adresse par un nom fixe.
+      if (subPath === "/vote" && request.method === "POST") {
+        const id = env.DEFINITION_VOTES.idFromName("global");
+        const stub = env.DEFINITION_VOTES.get(id);
+        const res = await stub.fetch(
+          new Request("https://do/vote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: await request.text(),
+          })
+        );
+        const body = await res.text();
+        return new Response(body, {
+          status: res.status,
+          headers: { "Content-Type": "application/json; charset=utf-8", ...CORS_HEADERS },
+        });
+      }
+
+      // Export CSV des votes, protege par un secret.
+      // Usage : GET /definitions/votes.csv?secret=XXX
+      if ((subPath === "/votes.csv" || subPath === "/votes") && request.method === "GET") {
+        const expected = env.VOTES_SECRET ?? "";
+        const given = url.searchParams.get("secret") ?? "";
+        if (!expected || given !== expected) {
+          return new Response("Forbidden", { status: 403, headers: CORS_HEADERS });
+        }
+        const id = env.DEFINITION_VOTES.idFromName("global");
+        const stub = env.DEFINITION_VOTES.get(id);
+        const path = subPath === "/votes" ? "/stats" : "/export";
+        const res = await stub.fetch(new Request("https://do" + path));
+        return new Response(res.body, { status: res.status, headers: res.headers });
       }
 
       const res = await handleGameRoutes(request, subPath, env.DEFINITION_ROOMS);

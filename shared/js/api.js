@@ -165,3 +165,29 @@ export async function fetchDefinitionWords() {
   }
   return await res.json();
 }
+
+/**
+ * Envoie un vote de difficulte pour un mot du jeu Definitions.
+ *
+ * Anonyme par construction : on ne transmet que le mot et la note. Aucun
+ * pseudo, aucune identification. Le worker n'agrege qu'une somme et un
+ * compteur par mot.
+ *
+ * L'echec est volontairement silencieux cote appelant : un vote perdu ne doit
+ * jamais interrompre une partie.
+ *
+ * @param {string} word  le mot ou l'expression note
+ * @param {number} score note de 1 a 5 (decimales acceptees, ex. 3.4)
+ * @returns {Promise<{ok:boolean, count?:number, moyenne?:number}>}
+ */
+export async function sendDifficultyVote(word, score) {
+  const res = await fetch(`${CONFIG.WORKER_URL}/definitions/vote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ word, score }),
+  });
+  if (!res.ok) {
+    throw new Error(`Vote refuse (HTTP ${res.status})`);
+  }
+  return await res.json();
+}
