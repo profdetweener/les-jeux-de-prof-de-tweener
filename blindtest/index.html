@@ -63,7 +63,12 @@
   /* ---- Jeu ---- */
   #game{display:none;grid-template-columns:1fr 330px;gap:20px;align-items:start;}
   .stage{padding:24px;position:relative;overflow:hidden;}
-  .stage-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;}
+  /* Grille 3 colonnes symetriques : le texte central est aligne sur le centre
+     de la carte (donc du vinyle), quelle que soit la largeur des deux cotes. */
+  .stage-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;margin-bottom:14px;}
+  .stage-top .round-pill{justify-self:start;}
+  .stage-top .now{justify-self:center;}
+  .stage-top .timer{justify-self:end;}
   .round-pill{font-size:13px;color:var(--gris-texte);background:var(--beige);border:1px solid var(--beige-fonce);padding:6px 13px;border-radius:999px;font-weight:700;white-space:nowrap;}
   .timer{font-size:40px;font-weight:700;line-height:1;color:var(--bleu-nuit);letter-spacing:.02em;}
   .timer.low{color:var(--jaune);}
@@ -78,7 +83,7 @@
   .vinyl .label{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--bleu-nuit),var(--bleu-accent));display:grid;place-items:center;font-size:28px;box-shadow:0 0 0 4px #0d0f12;color:#fff;}
   .vinyl .hole{position:absolute;width:8px;height:8px;border-radius:50%;background:#0d0f12;}
   @media (prefers-reduced-motion:reduce){.vinyl.spinning{animation:none;}}
-  .now{flex:1;min-width:0;text-align:center;color:var(--gris-texte);font-size:13.5px;min-height:20px;
+  .now{min-width:0;text-align:center;color:var(--gris-texte);font-size:13.5px;min-height:20px;
        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .answers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
@@ -352,7 +357,6 @@
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="finalStatsBtn" type="button">📊 Voir les stats détaillées</button>
-        <button class="btn-ghost" id="finalClose" type="button">Fermer</button>
         <button class="btn-primary" id="finalRestart" type="button">Relancer une partie</button>
       </div>
     </div>
@@ -946,7 +950,7 @@ function toggleFinalStats(){
   $('finalStatsBtn').textContent = open ? '📊 Voir les stats détaillées' : '← Masquer les stats';
 }
 $('finalStatsBtn').addEventListener('click', toggleFinalStats);
-$('finalClose').addEventListener('click', ()=> $('finalBack').classList.remove('open'));
+// La modale se ferme par clic exterieur ou touche Echap (plus de bouton "Fermer").
 $('finalBack').addEventListener('click', e=>{ if(e.target===$('finalBack')) $('finalBack').classList.remove('open'); });
 
 /* ---------- Classement ---------- */
