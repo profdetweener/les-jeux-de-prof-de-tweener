@@ -297,9 +297,9 @@ body { display: flex; flex-direction: column; }
 .welcome-btn {
   display: block;
   margin: 30px auto 0;
-  background: var(--jaune);
+  background: #e3f5e2;
   color: var(--bleu-nuit);
-  border: none;
+  border: 1px solid #4a4a4a;
   border-radius: var(--rayon-sm);
   padding: 14px 32px;
   font-family: inherit;
@@ -307,9 +307,9 @@ body { display: flex; flex-direction: column; }
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--ombre);
-  transition: filter 0.15s, transform 0.15s;
+  transition: filter 0.15s, transform 0.15s, background 0.15s;
 }
-.welcome-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.welcome-btn:hover { background: #d3ecd2; transform: translateY(-1px); }
 .welcome-btn:active { transform: translateY(0); }
 .welcome-btn .arrow { transition: transform 0.15s; display: inline-block; }
 .welcome-btn:hover .arrow { transform: translateX(4px); }
