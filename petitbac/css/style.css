@@ -562,15 +562,45 @@ input.code-input::placeholder {
 
 .scores-section { margin-bottom: 24px; }
 .scores-section h3 { margin: 0 0 12px; font-size: 16px; }
+
+/* Le tableau des scores a 1 colonne par categorie (+ Joueur + Total).
+   Au-dela de ~8 categories, ou avec des pseudos longs, il depasse la
+   largeur de la carte. On le rend defilable horizontalement, comme le
+   tableau de validation, et on fige la colonne "Joueur" a gauche pour
+   toujours savoir a qui appartient la ligne. */
+.scores-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+}
 .scores-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .scores-table th, .scores-table td {
   padding: 8px 12px; border-bottom: 1px solid var(--beige-fonce);
   text-align: center;
+  white-space: nowrap;
 }
 .scores-table th { background: var(--bleu-nuit); color: var(--beige); font-size: 13px; font-weight: 600; }
 .scores-table th.col-category, .scores-table td.col-category {
   text-align: left; background: var(--beige); font-weight: 600;
+  position: sticky; left: 0; z-index: 1;
+  max-width: 180px;
 }
+.scores-table th.col-category {
+  background: var(--bleu-nuit); z-index: 2;
+}
+.scores-table td.col-category .pseudo-label {
+  display: inline-block; max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+}
+/* La colonne "Total" est la plus consultee : on la fige a droite pour
+   qu'elle reste visible pendant le defilement horizontal.
+   Elle a deja un fond opaque (--bleu-nuit-clair), donc rien a ajouter. */
+.scores-table thead th:last-child,
+.scores-table td.score-total-cell {
+  position: sticky; right: 0; z-index: 1;
+}
+.scores-table thead th:last-child { z-index: 2; }
 .scores-table tfoot td { background: var(--bleu-nuit-clair); color: var(--beige); font-weight: 700; }
 .scores-table .score-cell.alone { background: #fcf3d4; font-weight: 700; }
 .scores-table .score-cell.unique { background: #e6f4ea; }
@@ -1103,6 +1133,28 @@ input.code-input::placeholder {
   /* ==========================================================================
      VUE SCORING : meme pattern, tableau -> cartes par joueur
      ========================================================================== */
+  /* En cartes, plus besoin du defilement horizontal ni de la colonne figee. */
+  #view-scoring .scores-table-wrap {
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+  }
+  #view-scoring .scores-table th.col-category,
+  #view-scoring .scores-table td.col-category {
+    position: static;
+    max-width: none;
+  }
+  #view-scoring .scores-table thead th:last-child,
+  #view-scoring .scores-table td.score-total-cell {
+    position: static;
+  }
+  #view-scoring .scores-table td.col-category .pseudo-label {
+    max-width: none;
+  }
+  #view-scoring .scores-table th,
+  #view-scoring .scores-table td {
+    white-space: normal;
+  }
   #view-scoring .scores-table,
   #view-scoring .scores-table thead,
   #view-scoring .scores-table tbody,
