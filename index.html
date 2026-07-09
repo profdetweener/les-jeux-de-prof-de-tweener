@@ -15,7 +15,29 @@
 
   <main class="landing-main">
 
-    <section class="landing-intro">
+    <section class="landing-welcome" id="welcome">
+      <h2>Bienvenue</h2>
+      <p>
+        Bienvenue sur la page des jeux de Prof de Tweener. Ici pas de « nouveaux »
+        jeux à proprement parler : j'ai simplement tenté d'en modifier certains
+        déjà existants pour y jouer avec des amis ou la communauté Twitch, car
+        ceux proposés sur le net ne me plaisaient pas assez.
+      </p>
+      <p>
+        La plupart des jeux du site ont un mode chill et un mode compétition,
+        suivant l'humeur. Certains nécessitent l'accès au navigateur, d'autres
+        permettent de jouer directement depuis le tchat Twitch. L'accès aux
+        règles se fait via le bouton dans le bandeau en bas, une fois que vous
+        avez choisi un jeu.
+      </p>
+      <p class="welcome-highlight">Le site est sans pub et sans inscription.</p>
+      <p>Amusez-vous bien !</p>
+      <button type="button" class="welcome-btn" id="enterBtn">
+        Voir les jeux <span class="arrow">→</span>
+      </button>
+    </section>
+
+    <section class="landing-intro" id="gamesIntro" hidden>
       <h2>Choisis ton jeu</h2>
       <p>
         Tous les jeux sont multijoueurs en ligne, sans inscription, sans pub.
@@ -23,7 +45,7 @@
       </p>
     </section>
 
-    <div class="games-grid">
+    <div class="games-grid" id="gamesGrid" hidden>
 
       <a href="petitbac/index.html" class="game-card">
         <div class="game-card-emoji">📝</div>
@@ -106,6 +128,28 @@
   </a>
 
   <script>
+    // Accueil en deux temps : le texte de présentation d'abord,
+    // puis la grille des jeux au clic (avec ancrage #jeux pour l'accès direct).
+    (function(){
+      var welcome = document.getElementById('welcome');
+      var intro   = document.getElementById('gamesIntro');
+      var grid    = document.getElementById('gamesGrid');
+      var btn     = document.getElementById('enterBtn');
+      if(!welcome || !grid || !btn) return;
+
+      function showGames(){
+        welcome.hidden = true;
+        intro.hidden = false;
+        grid.hidden = false;
+        intro.classList.add('fade-in');
+        grid.classList.add('fade-in');
+        if(location.hash !== '#jeux') history.replaceState(null, '', '#jeux');
+      }
+      btn.addEventListener('click', showGames);
+      // Lien direct vers les jeux : .../#jeux saute la présentation
+      if(location.hash === '#jeux') showGames();
+    })();
+
     // Le bouton coffee reste en bas de l'écran, et remonte au-dessus du bandeau
     // footer uniquement quand celui-ci est visible (évite le chevauchement).
     (function(){

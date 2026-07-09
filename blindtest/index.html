@@ -138,6 +138,37 @@
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
   .hp{position:absolute;left:-9999px;}
 
+  /* Écran de fin : podium + stats */
+  .modal.wide{max-width:620px;max-height:88vh;overflow-y:auto;}
+  .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end;margin:18px 0 22px;}
+  .pod{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon-sm);padding:12px 8px;text-align:center;}
+  .pod .medal{font-size:22px;line-height:1;}
+  .pod .who{font-weight:700;font-size:13.5px;color:var(--bleu-nuit);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pod .pts{font-size:12.5px;color:var(--gris-texte);margin-top:2px;}
+  .pod.p1{background:#fbf3dd;border-color:var(--jaune);padding-bottom:28px;}
+  .pod.p2{padding-bottom:18px;}
+  .final-empty{text-align:center;color:var(--gris-texte);font-size:13.5px;padding:20px 0;}
+
+  .sec-h{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gris-texte);margin:20px 0 8px;}
+  .ftable{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .ftable th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--gris-texte);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--beige-fonce);}
+  .ftable td{padding:7px 8px;border-bottom:1px solid var(--beige);color:var(--bleu-nuit);}
+  .ftable td.num{text-align:right;font-family:"Menlo","Consolas",monospace;}
+  .ftable tr:last-child td{border-bottom:none;}
+  .ftable .me{font-weight:700;}
+
+  .totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  .tot{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon-sm);padding:11px;text-align:center;}
+  .tot b{display:block;font-size:19px;color:var(--bleu-nuit);}
+  .tot span{font-size:11.5px;color:var(--gris-texte);}
+
+  .highlights{display:grid;gap:8px;}
+  .hl{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon-sm);padding:10px 12px;font-size:13px;color:var(--bleu-nuit);}
+  .hl b{color:var(--bleu-accent);}
+  .hl .k{display:block;font-size:11.5px;color:var(--gris-texte);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin-bottom:3px;}
+  .missed{font-size:13px;color:var(--gris-texte);line-height:1.7;}
+  .missed span{color:var(--rouge);}
+
   .toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%) translateY(20px);background:var(--bleu-nuit);color:var(--beige);
     padding:12px 20px;border-radius:var(--rayon);box-shadow:var(--ombre-forte);opacity:0;transition:.3s;font-size:14px;font-weight:600;pointer-events:none;z-index:2000;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -289,6 +320,28 @@
     <span class="footer-sep" style="opacity:0.4;">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
+
+  <div class="modal-back" id="finalBack">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
+      <h3 id="finalTitle">🏆 Partie terminée</h3>
+      <div class="msub" id="finalSub"></div>
+      <div id="finalPodium"></div>
+      <div id="finalRanking"></div>
+      <div id="finalStats" style="display:none">
+        <div class="sec-h">Détail par joueur</div>
+        <table class="ftable" id="finalDetail"></table>
+        <div class="totals" id="finalTotals"></div>
+        <div class="sec-h">Moments de la partie</div>
+        <div class="highlights" id="finalHighlights"></div>
+        <div class="sec-h">Morceaux non trouvés</div>
+        <div class="missed" id="finalMissed"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="finalStatsBtn" type="button">📊 Voir les stats détaillées</button>
+        <button class="btn-primary" id="finalClose" type="button">Fermer</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal-back" id="reportBack">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
@@ -442,6 +495,7 @@ const G = {
   cfg:null, list:[], idx:0,
   round:null,          // {entry, titleFound, artistFound, active, state:'idle'|'playing'|'ended'}
   scores:{}, names:{}, history:[],
+  stats:{titles:{}, artists:{}},
   volume:75,
   timerId:null, endGuard:null, timeLeft:0
 };
@@ -608,19 +662,22 @@ function onChatAnswer(name, text){
   const msg=normalize(text);
   if(!msg) return;
   const r=G.round, tol=G.cfg.tolerance;
+  const elapsed=()=> r.startedAt ? Math.round((Date.now()-r.startedAt)/100)/10 : null;
 
   if(!r.titleFound){
     if(matchesAny(msg, r.entry.titles, tol)){
-      r.titleFound=true; r.titleBy=name;
+      r.titleFound=true; r.titleBy=name; r.titleTime=elapsed();
       award(name, G.cfg.ptsTitle);
+      G.stats.titles[name.toLowerCase()]=(G.stats.titles[name.toLowerCase()]||0)+1;
       revealCard('title', r.entry.titles[0].orig, name, true);
       toast('🎵 '+name+' a le titre !');
     }
   }
   if(!r.artistFound){
     if(matchesAny(msg, r.entry.artists, tol)){
-      r.artistFound=true; r.artistBy=name;
+      r.artistFound=true; r.artistBy=name; r.artistTime=elapsed();
       award(name, G.cfg.ptsArtist);
+      G.stats.artists[name.toLowerCase()]=(G.stats.artists[name.toLowerCase()]||0)+1;
       revealCard('artist', r.entry.artists[0].orig, name, true);
       toast('🎤 '+name+' a l\'artiste !');
     }
@@ -671,6 +728,7 @@ function beginTimer(){
   $('vinyl').classList.add('spinning');
   $('nowText').textContent='🔊 À l\'écoute…';
   G.round.active=true;
+  G.round.startedAt=Date.now();
   G.timerId=setInterval(()=>{
     G.timeLeft--; paint();
     if(G.timeLeft<=0){ endRound(false); }
@@ -746,7 +804,12 @@ function endRound(solved){
 function pushHistory(r){
   const title = r.entry.titles.length ? r.entry.titles[0].orig : '—';
   const artist = r.entry.artists.length ? r.entry.artists[0].orig : '—';
-  G.history.unshift({ n:G.idx+1, title, artist, year:r.entry.year||null, tid:r.entry.trackId||'' });
+  G.history.unshift({
+    n:G.idx+1, title, artist, year:r.entry.year||null, tid:r.entry.trackId||'',
+    titleBy:r.titleBy||null, artistBy:r.artistBy||null,
+    titleTime:r.titleTime!=null?r.titleTime:null, artistTime:r.artistTime!=null?r.artistTime:null,
+    solved: !!(r.titleFound || r.artistFound)
+  });
   renderHistory();
 }
 function renderHistory(){
@@ -779,9 +842,102 @@ function finishGame(){
   $('nowText').textContent='🏁 Partie terminée';
   $('roundPill').textContent='Terminé';
   $('playBtn').disabled=true;
-  const top=Object.entries(G.scores).sort((a,b)=>b[1]-a[1])[0];
-  toast(top ? ('🏆 Vainqueur : '+G.names[top[0]]+' ('+top[1]+' pts)') : 'Partie terminée');
+  showFinal();
 }
+
+/* ---------- Écran de fin : podium + stats ---------- */
+function fmtTime(t){ return t==null ? '—' : t.toFixed(1)+'s'; }
+
+function showFinal(){
+  const rows = Object.entries(G.scores).sort((a,b)=>b[1]-a[1]);
+  const played = G.history.length;
+  const solved = G.history.filter(h=>h.solved).length;
+
+  $('finalSub').textContent = played
+    ? `${played} manche${played>1?'s':''} jouée${played>1?'s':''} · ${solved} avec au moins une bonne réponse`
+    : 'Aucune manche jouée.';
+
+  // Podium (top 3), ordre visuel 2 - 1 - 3
+  const pod = $('finalPodium');
+  if(!rows.length){
+    pod.innerHTML = '<div class="final-empty">Personne n\'a marqué cette partie.</div>';
+  } else {
+    const medals = ['🥇','🥈','🥉'];
+    const order = [1,0,2].filter(i=>rows[i]);
+    pod.innerHTML = '<div class="podium">' + order.map(i=>{
+      const cls = i===0?'p1':i===1?'p2':'p3';
+      return `<div class="pod ${cls}"><div class="medal">${medals[i]}</div>`+
+             `<div class="who">${escapeHtml(G.names[rows[i][0]])}</div>`+
+             `<div class="pts">${rows[i][1]} pts</div></div>`;
+    }).join('') + '</div>';
+  }
+
+  // Classement complet
+  $('finalRanking').innerHTML = rows.length
+    ? '<div class="sec-h">Classement</div><table class="ftable">'+
+      '<tr><th>#</th><th>Joueur</th><th style="text-align:right">Points</th></tr>'+
+      rows.map((r,i)=>`<tr><td class="num">${i+1}</td><td class="${i===0?'me':''}">${escapeHtml(G.names[r[0]])}</td><td class="num">${r[1]}</td></tr>`).join('')+
+      '</table>'
+    : '';
+
+  // Détail par joueur
+  $('finalDetail').innerHTML =
+    '<tr><th>Joueur</th><th style="text-align:right">Titres</th><th style="text-align:right">Artistes</th><th style="text-align:right">Points</th></tr>'+
+    (rows.length ? rows.map(r=>{
+      const k=r[0];
+      return `<tr><td>${escapeHtml(G.names[k])}</td>`+
+             `<td class="num">${G.stats.titles[k]||0}</td>`+
+             `<td class="num">${G.stats.artists[k]||0}</td>`+
+             `<td class="num">${r[1]}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--gris-texte)">Aucun joueur</td></tr>');
+
+  const totTitles = G.history.filter(h=>h.titleBy).length;
+  const totArtists = G.history.filter(h=>h.artistBy).length;
+  $('finalTotals').innerHTML =
+    `<div class="tot"><b>${played}</b><span>Manches</span></div>`+
+    `<div class="tot"><b>${totTitles}</b><span>Titres trouvés</span></div>`+
+    `<div class="tot"><b>${totArtists}</b><span>Artistes trouvés</span></div>`;
+
+  // Moments de la partie
+  const hl = [];
+  const timed = G.history.filter(h=>h.titleTime!=null);
+  if(timed.length){
+    const fast = timed.reduce((a,b)=> b.titleTime<a.titleTime ? b : a);
+    hl.push(['⚡ Réponse la plus rapide',
+      `<b>${escapeHtml(fast.titleBy)}</b> en ${fmtTime(fast.titleTime)} sur « ${escapeHtml(fast.title)} »`]);
+    const slow = timed.reduce((a,b)=> b.titleTime>a.titleTime ? b : a);
+    if(slow!==fast) hl.push(['🐢 Réponse la plus tardive',
+      `<b>${escapeHtml(slow.titleBy)}</b> en ${fmtTime(slow.titleTime)} sur « ${escapeHtml(slow.title)} »`]);
+  }
+  const bestT = Object.entries(G.stats.titles).sort((a,b)=>b[1]-a[1])[0];
+  if(bestT) hl.push(['🎵 Roi des titres', `<b>${escapeHtml(G.names[bestT[0]])}</b> — ${bestT[1]} titre(s)`]);
+  const bestA = Object.entries(G.stats.artists).sort((a,b)=>b[1]-a[1])[0];
+  if(bestA) hl.push(['🎤 Roi des artistes', `<b>${escapeHtml(G.names[bestA[0]])}</b> — ${bestA[1]} artiste(s)`]);
+  const doubles = G.history.filter(h=>h.titleBy && h.artistBy && h.titleBy===h.artistBy).length;
+  if(doubles) hl.push(['🎯 Doublés titre + artiste', `${doubles} manche(s) remportée(s) entièrement par la même personne`]);
+
+  $('finalHighlights').innerHTML = hl.length
+    ? hl.map(([k,v])=>`<div class="hl"><span class="k">${k}</span>${v}</div>`).join('')
+    : '<div class="hl">Pas assez de réponses pour dégager des tendances.</div>';
+
+  // Morceaux non trouvés
+  const missed = G.history.filter(h=>!h.solved);
+  $('finalMissed').innerHTML = missed.length
+    ? missed.map(h=>`<div>#${h.n} <span>${escapeHtml(h.title)}</span> — ${escapeHtml(h.artist)}${h.year?' ('+h.year+')':''}</div>`).join('')
+    : '<div>Aucun ! Le chat a trouvé au moins une réponse à chaque manche.</div>';
+
+  $('finalStats').style.display='none';
+  $('finalStatsBtn').textContent='📊 Voir les stats détaillées';
+  $('finalBack').classList.add('open');
+}
+function toggleFinalStats(){
+  const s=$('finalStats'), open = s.style.display!=='none';
+  s.style.display = open ? 'none' : 'block';
+  $('finalStatsBtn').textContent = open ? '📊 Voir les stats détaillées' : '← Masquer les stats';
+}
+$('finalStatsBtn').addEventListener('click', toggleFinalStats);
+$('finalClose').addEventListener('click', ()=> $('finalBack').classList.remove('open'));
+$('finalBack').addEventListener('click', e=>{ if(e.target===$('finalBack')) $('finalBack').classList.remove('open'); });
 
 /* ---------- Classement ---------- */
 function renderBoard(){
@@ -858,7 +1014,7 @@ $('startBtn').addEventListener('click',()=>{
   if(cfg.rounds>0) picked=picked.slice(0, cfg.rounds);
 
   G.cfg=cfg; G.list=picked; G.idx=0;
-  G.scores={}; G.names={}; G.history=[];   // nouvelle partie = classement + historique remis à zéro
+  G.scores={}; G.names={}; G.history=[]; G.stats={titles:{},artists:{}};   // nouvelle partie = tout remis à zéro
   renderBoard(); renderHistory();
 
   $('setup').style.display='none';
@@ -873,7 +1029,11 @@ $('playBtn').addEventListener('click', onPlayClick);
 $('skipBtn').addEventListener('click', skipRound);
 $('quitBtn').addEventListener('click', finishGame);
 $('resetScoreBtn').addEventListener('click', ()=>{
-  if(confirm('Remettre tous les scores à zéro ?')){ G.scores={}; G.names={}; renderBoard(); toast('Scores remis à zéro'); }
+  if(confirm('Remettre à zéro le classement et les morceaux déjà passés ?')){
+    G.scores={}; G.names={}; G.history=[]; G.stats={titles:{},artists:{}};
+    renderBoard(); renderHistory();
+    toast('Classement et historique remis à zéro');
+  }
 });
 $('playlist').addEventListener('input', updatePlCount);
 $('volume').addEventListener('input', (e)=>{
@@ -886,7 +1046,7 @@ $('volume').addEventListener('input', (e)=>{
 /* ---------- Signalement d'erreur (Web3Forms, sans backend) ---------- */
 // Crée une clé gratuite sur https://web3forms.com (elle est publique par
 // conception, elle sert juste d'alias vers ton adresse mail).
-const WEB3FORMS_KEY = 'fd147a66-72eb-46ac-98fd-367765e39cd9';
+const WEB3FORMS_KEY = 'REMPLACE_PAR_TA_CLE';
 
 let reportEntry = null;
 function openReport(h){
@@ -941,7 +1101,9 @@ async function sendReport(){
 $('reportCancel').addEventListener('click', closeReport);
 $('reportSend').addEventListener('click', sendReport);
 $('reportBack').addEventListener('click', e=>{ if(e.target===$('reportBack')) closeReport(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeReport(); });
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ closeReport(); $('finalBack').classList.remove('open'); }
+});
 
 /* ---------- Restauration ---------- */
 setupAudio();

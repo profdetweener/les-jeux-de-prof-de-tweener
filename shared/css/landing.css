@@ -98,8 +98,7 @@ body { display: flex; flex-direction: column; }
   cursor: not-allowed;
   pointer-events: none;      /* clic impossible */
   filter: grayscale(0.6);
-}
-.game-card.coming-soon::before {
+}.game-card.coming-soon::before {
   content: "";
   position: absolute; inset: 0;
   background: rgba(245, 237, 224, 0.55); /* voile beige : effet grisé/désactivé */
@@ -233,4 +232,68 @@ body { display: flex; flex-direction: column; }
   .landing-intro p { font-size: 14px; }
   .games-grid { gap: 14px; }
   .game-card { padding: 22px 18px; }
+}
+
+/* ============================================================
+   Accueil en deux temps : présentation puis grille des jeux
+   ============================================================ */
+.landing-welcome {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 4px 0;
+  text-align: left;
+}
+.landing-welcome h2 {
+  font-size: 26px;
+  color: var(--bleu-nuit);
+  margin: 0 0 18px;
+  text-align: center;
+}
+.landing-welcome p {
+  color: var(--gris-texte);
+  line-height: 1.7;
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+.landing-welcome .welcome-highlight {
+  background: var(--blanc);
+  border: 1px solid var(--beige-fonce);
+  border-left: 4px solid var(--vert);
+  border-radius: var(--rayon-sm);
+  padding: 12px 16px;
+  color: var(--bleu-nuit);
+  font-weight: 600;
+}
+.welcome-btn {
+  display: block;
+  margin: 28px auto 0;
+  background: var(--jaune);
+  color: var(--bleu-nuit);
+  border: none;
+  border-radius: var(--rayon-sm);
+  padding: 14px 30px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--ombre);
+  transition: filter 0.15s, transform 0.15s;
+}
+.welcome-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.welcome-btn:active { transform: translateY(0); }
+.welcome-btn .arrow { transition: transform 0.15s; display: inline-block; }
+.welcome-btn:hover .arrow { transform: translateX(4px); }
+
+.fade-in { animation: fadeIn 0.35s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
+  .welcome-btn:hover { transform: none; }
+}
+@media (max-width: 600px) {
+  .landing-welcome h2 { font-size: 22px; }
+  .landing-welcome p { font-size: 14.5px; }
 }
