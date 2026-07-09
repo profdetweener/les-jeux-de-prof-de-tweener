@@ -29,10 +29,11 @@
   .field{display:grid;gap:7px;}
   .field label{font-size:14px;font-weight:700;color:var(--bleu-nuit);}
   .field .hint{font-size:12.5px;color:var(--gris-texte);font-weight:400;line-height:1.5;}
-  input[type=text],input[type=number],textarea{
+  input[type=text],input[type=number],textarea,select{
     width:100%;background:var(--blanc);border:1px solid var(--gris-clair);color:var(--bleu-nuit);
     border-radius:var(--rayon-sm);padding:11px 13px;font-family:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s;}
-  input:focus,textarea:focus{outline:none;border-color:var(--bleu-accent);box-shadow:0 0 0 3px rgba(74,111,165,.18);}
+  select{cursor:pointer;}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bleu-accent);box-shadow:0 0 0 3px rgba(74,111,165,.18);}
   textarea{font-family:"Menlo","Consolas",monospace;font-size:13px;line-height:1.5;resize:vertical;min-height:120px;}
   .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
@@ -68,7 +69,7 @@
   .timer.low{color:var(--jaune);}
   .timer.crit{color:var(--rouge);}
 
-  .vinyl-zone{display:grid;place-items:center;padding:12px 0 18px;}
+  .vinyl-zone{display:grid;place-items:center;padding:6px 0 20px;}
   .vinyl{width:184px;height:184px;border-radius:50%;position:relative;
     background:repeating-radial-gradient(circle at 50% 50%, #14171c 0 2px, #20242b 2px 4px);
     box-shadow:inset 0 0 0 6px #0d0f12, var(--ombre);display:grid;place-items:center;}
@@ -77,7 +78,7 @@
   .vinyl .label{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--bleu-nuit),var(--bleu-accent));display:grid;place-items:center;font-size:28px;box-shadow:0 0 0 4px #0d0f12;color:#fff;}
   .vinyl .hole{position:absolute;width:8px;height:8px;border-radius:50%;background:#0d0f12;}
   @media (prefers-reduced-motion:reduce){.vinyl.spinning{animation:none;}}
-  .now{text-align:center;color:var(--gris-texte);font-size:13.5px;margin-top:2px;min-height:20px;}
+  .now{text-align:center;color:var(--gris-texte);font-size:13.5px;margin-top:6px;min-height:20px;}
 
   .answers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
   .acard{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon);padding:18px;position:relative;overflow:hidden;transition:border-color .25s,background .25s;}
@@ -111,8 +112,6 @@
   .lb-row.p1{background:#fbf3dd;}
   .lb-row.p1 .rank,.lb-row.p1 .sc{color:#a97b12;}
   .lb-empty,.hist-empty{color:var(--gris-texte);font-size:13px;padding:10px;text-align:center;}
-  .board-actions{margin-top:14px;}
-  .board-actions button{width:100%;padding:9px;font-size:13px;}
 
   .history-panel{max-height:420px;overflow-y:auto;}
   .hist-row{display:flex;align-items:baseline;gap:10px;padding:7px 4px;border-bottom:1px solid var(--beige-fonce);}
@@ -135,7 +134,7 @@
   .modal .track span{color:var(--gris-texte);font-size:12.5px;}
   .modal label{display:block;font-size:13px;font-weight:700;color:var(--bleu-nuit);margin:12px 0 6px;}
   .modal textarea{min-height:70px;}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .modal-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;}
   .hp{position:absolute;left:-9999px;}
 
   /* Écran de fin : podium + stats */
@@ -207,6 +206,21 @@
         <div class="pl-report" id="plReport"></div>
       </div>
 
+      <div class="field" id="popField" style="display:none">
+        <label for="popLevel">Notoriété des morceaux</label>
+        <div class="hint">
+          Filtre les titres selon leur popularité actuelle, comparée aux autres de la
+          même décennie. Un classique très écouté aujourd'hui reste donc « connu »,
+          même s'il date.
+        </div>
+        <select id="popLevel">
+          <option value="0">Tous les morceaux</option>
+          <option value="40">Plutôt connus</option>
+          <option value="70" selected>Très connus</option>
+          <option value="88">Tubes uniquement</option>
+        </select>
+      </div>
+
       <div class="field" id="periodField" style="display:none">
         <label>Époques</label>
         <div class="hint">Coche les décennies à inclure. Par défaut, toutes.</div>
@@ -258,13 +272,14 @@
           <span class="timer mono" id="timer">30</span>
         </div>
 
+        <div class="now" id="nowText">Prêt.</div>
+
         <div class="vinyl-zone">
           <div class="vinyl" id="vinyl">
             <div class="label">🎵</div>
             <div class="hole"></div>
           </div>
         </div>
-        <div class="now" id="nowText">Prêt.</div>
 
         <div class="answers">
           <div class="acard" id="cardTitle">
@@ -282,6 +297,7 @@
         <div class="controls">
           <button class="btn-primary" id="playBtn" type="button">Lancer la musique</button>
           <button class="btn-ghost" id="skipBtn" type="button">Passer</button>
+          <button class="btn-ghost" id="restartBtn" type="button">Relancer une partie</button>
           <button class="btn-ghost" id="quitBtn" type="button">Terminer la partie</button>
           <div class="volume-row">
             <span class="vico" aria-hidden="true">🔊</span>
@@ -300,9 +316,6 @@
           <h3>Classement</h3>
           <div class="csub">Le tchat joue en direct</div>
           <div id="leaderboard"><div class="lb-empty">Personne n'a encore marqué.</div></div>
-          <div class="board-actions">
-            <button class="btn-ghost" id="resetScoreBtn" type="button">Remettre à zéro</button>
-          </div>
         </div>
         <div class="panel history-panel">
           <h3>Déjà passés</h3>
@@ -340,7 +353,8 @@
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="finalStatsBtn" type="button">📊 Voir les stats détaillées</button>
-        <button class="btn-primary" id="finalClose" type="button">Fermer</button>
+        <button class="btn-ghost" id="finalClose" type="button">Fermer</button>
+        <button class="btn-primary" id="finalRestart" type="button">Relancer une partie</button>
       </div>
     </div>
   </div>
@@ -481,7 +495,8 @@ function validatePlaylist(text){
     const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
     if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
     const year=parseInt((parts[3]||'').trim(),10)||null;
-    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, year }, src));
+    const pop=parseInt((parts[4]||'').trim(),10);
+    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, year, pop:isNaN(pop)?null:pop }, src));
   });
   return {entries, errors};
 }
@@ -966,6 +981,11 @@ function readConfig(){
     rounds: (Number.isFinite(roundsRaw) && roundsRaw>0) ? roundsRaw : 0  // 0 = toutes
   };
 }
+function renderPopField(entries){
+  const withPop = entries.filter(e=>e.pop!=null).length;
+  // On n'affiche le filtre que si la playlist porte l'info de notoriete.
+  $('popField').style.display = (withPop > entries.length*0.5) ? '' : 'none';
+}
 function renderPeriods(entries){
   const box=$('periodBoxes'), field=$('periodField');
   const decades=[...new Set(entries.map(e=>e.year).filter(Boolean).map(y=>Math.floor(y/10)*10))].sort((a,b)=>a-b);
@@ -980,6 +1000,7 @@ function renderPeriods(entries){
 function updatePlCount(){
   const {entries,errors}=validatePlaylist($('playlist').value);
   $('plCount').textContent = entries.length? (entries.length+' morceau(x) valide(s)') : 'Aucun morceau valide pour l\'instant';
+  renderPopField(entries);
   renderPeriods(entries);
   const rep=$('plReport');
   const blocking=errors.filter(e=>!e.warn);
@@ -998,6 +1019,15 @@ $('startBtn').addEventListener('click',()=>{
   const err=$('setupErr');
   if(!cfg.channel){ err.textContent='Renseigne ta chaîne Twitch.'; return; }
   if(!list.length){ err.textContent='Aucun morceau valide (voir les lignes signalées au-dessus).'; updatePlCount(); return; }
+  // filtrage par notoriété si le sélecteur est actif
+  if($('popField').style.display!=='none'){
+    const seuil=parseInt($('popLevel').value,10)||0;
+    if(seuil>0){
+      const filt=list.filter(e=> e.pop==null || e.pop>=seuil);
+      if(!filt.length){ err.textContent='Aucun morceau à ce niveau de notoriété.'; return; }
+      list=filt;
+    }
+  }
   // filtrage par époque si le sélecteur est actif
   if($('periodField').style.display!=='none'){
     const sel=new Set([...document.querySelectorAll('#periodBoxes input:checked')].map(i=>parseInt(i.value,10)));
@@ -1009,7 +1039,7 @@ $('startBtn').addEventListener('click',()=>{
   err.textContent='';
   // sauvegarde config
   store.set('channel',cfg.channel);
-  store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance,rounds:cfg.rounds});
+  store.set('cfg',{duration:cfg.duration,ptsTitle:cfg.ptsTitle,ptsArtist:cfg.ptsArtist,tolerance:cfg.tolerance,rounds:cfg.rounds,pop:$('popLevel').value});
 
   // tirage aléatoire limité au nombre de manches choisi
   let picked=shuffle(list);
@@ -1027,16 +1057,28 @@ $('startBtn').addEventListener('click',()=>{
   startRound();
 });
 
+/* Retour à l'écran de réglages, avec remise à zéro complète.
+   Remplace l'ancien bouton "Remettre à zéro" du classement. */
+function restartGame(ask){
+  if(ask && !confirm('Relancer une partie ? Le classement et les morceaux déjà passés seront effacés.')) return;
+  clearInterval(G.timerId); clearTimeout(G.endGuard);
+  stopPlayback();
+  $('vinyl').classList.remove('spinning');
+  $('finalBack').classList.remove('open');
+  G.round=null; G.idx=0; G.list=[];
+  G.scores={}; G.names={}; G.history=[]; G.stats={titles:{},artists:{}};
+  renderBoard(); renderHistory();
+  $('game').style.display='none';
+  $('setup').style.display='';
+  $('setupErr').textContent='';
+  toast('Nouvelle partie : choisis tes réglages');
+}
+
 $('playBtn').addEventListener('click', onPlayClick);
 $('skipBtn').addEventListener('click', skipRound);
+$('restartBtn').addEventListener('click', ()=>restartGame(true));   // en cours de partie : on confirme
+$('finalRestart').addEventListener('click', ()=>restartGame(false)); // partie finie : inutile de confirmer
 $('quitBtn').addEventListener('click', finishGame);
-$('resetScoreBtn').addEventListener('click', ()=>{
-  if(confirm('Remettre à zéro le classement et les morceaux déjà passés ?')){
-    G.scores={}; G.names={}; G.history=[]; G.stats={titles:{},artists:{}};
-    renderBoard(); renderHistory();
-    toast('Classement et historique remis à zéro');
-  }
-});
 $('playlist').addEventListener('input', updatePlCount);
 $('volume').addEventListener('input', (e)=>{
   G.volume=parseInt(e.target.value)||0;
@@ -1112,7 +1154,7 @@ setupAudio();
 (function init(){
   const ch=store.get('channel',''); if(ch) $('channel').value=ch;
   const c=store.get('cfg',null);
-  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; }
+  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; if(c.pop!=null) $('popLevel').value=c.pop; }
   G.scores={}; G.names={};
   G.volume=store.get('volume',75); $('volume').value=G.volume;
   updatePlCount();
