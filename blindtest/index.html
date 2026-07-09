@@ -90,7 +90,11 @@
   .acard.miss .val{color:var(--rouge);}
   .acard .pts{position:absolute;top:14px;right:16px;font-size:12px;color:var(--gris-texte);font-weight:700;}
 
-  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;align-items:center;}
+  .volume-row{display:flex;align-items:center;gap:9px;margin-left:auto;width:170px;}
+  .volume-row .vico{font-size:16px;}
+  .volume-row input[type=range]{flex:1;accent-color:var(--bleu-accent);cursor:pointer;height:4px;}
+  @media (max-width:700px){ .volume-row{margin-left:0;width:100%;} }
 
   .player-zone{position:absolute;left:-99999px;top:0;width:200px;height:200px;overflow:hidden;pointer-events:none;}
   #ytplayer{width:200px;height:200px;}
@@ -117,6 +121,22 @@
   .hist-info{display:flex;flex-direction:column;gap:1px;}
   .hist-info b{font-size:13.5px;color:var(--bleu-nuit);font-weight:700;}
   .hist-info em{font-size:12.5px;color:var(--gris-texte);font-style:normal;}
+  .hist-flag{margin-left:auto;background:none;border:none;color:var(--gris-clair);font-size:14px;padding:2px 5px;line-height:1;cursor:pointer;transition:color .15s;}
+  .hist-flag:hover{color:var(--rouge);}
+
+  /* Fenêtre de signalement */
+  .modal-back{position:fixed;inset:0;background:rgba(26,37,64,.55);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px;}
+  .modal-back.open{display:flex;}
+  .modal{background:var(--blanc);border-radius:var(--rayon);box-shadow:var(--ombre-forte);max-width:440px;width:100%;padding:24px;}
+  .modal h3{font-size:17px;font-weight:700;color:var(--bleu-nuit);margin:0 0 6px;}
+  .modal .msub{font-size:12.5px;color:var(--gris-texte);margin-bottom:16px;line-height:1.5;}
+  .modal .track{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon-sm);padding:11px 13px;margin-bottom:16px;font-size:13.5px;color:var(--bleu-nuit);}
+  .modal .track b{display:block;}
+  .modal .track span{color:var(--gris-texte);font-size:12.5px;}
+  .modal label{display:block;font-size:13px;font-weight:700;color:var(--bleu-nuit);margin:12px 0 6px;}
+  .modal textarea{min-height:70px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+  .hp{position:absolute;left:-9999px;}
 
   .toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%) translateY(20px);background:var(--bleu-nuit);color:var(--beige);
     padding:12px 20px;border-radius:var(--rayon);box-shadow:var(--ombre-forte);opacity:0;transition:.3s;font-size:14px;font-weight:600;pointer-events:none;z-index:2000;}
@@ -154,12 +174,6 @@
         <textarea id="playlist" spellcheck="false"></textarea>
         <div class="row-actions"><span class="hint" id="plCount"></span></div>
         <div class="pl-report" id="plReport"></div>
-      </div>
-
-      <div class="field" id="themeField" style="display:none">
-        <label>Thèmes musicaux</label>
-        <div class="hint">Coche les styles à inclure. Par défaut, tous sont sélectionnés.</div>
-        <div class="themes" id="themeBoxes"></div>
       </div>
 
       <div class="field" id="periodField" style="display:none">
@@ -238,6 +252,10 @@
           <button class="btn-primary" id="playBtn" type="button">Lancer la musique</button>
           <button class="btn-ghost" id="skipBtn" type="button">Passer</button>
           <button class="btn-ghost" id="quitBtn" type="button">Terminer la partie</button>
+          <div class="volume-row">
+            <span class="vico" aria-hidden="true">🔊</span>
+            <input type="range" id="volume" min="0" max="100" value="75" aria-label="Volume">
+          </div>
         </div>
 
         <div class="player-zone" aria-hidden="true">
@@ -271,6 +289,23 @@
     <span class="footer-sep" style="opacity:0.4;">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
+
+  <div class="modal-back" id="reportBack">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+      <h3 id="reportTitle">Signaler une erreur</h3>
+      <div class="msub">Une date fausse, un artiste incomplet ? Dis-le nous. Aucune information personnelle n'est demandée ni transmise.</div>
+      <div class="track" id="reportTrack"></div>
+      <label for="reportYear">Année correcte (facultatif)</label>
+      <input type="number" id="reportYear" min="1900" max="2026" step="1" placeholder="ex. 1967">
+      <label for="reportMsg">Commentaire (facultatif)</label>
+      <textarea id="reportMsg" placeholder="ex. l'artiste devrait aussi accepter « Goldman »"></textarea>
+      <input type="checkbox" class="hp" id="reportHp" tabindex="-1" autocomplete="off">
+      <div class="modal-actions">
+        <button class="btn-ghost" id="reportCancel" type="button">Annuler</button>
+        <button class="btn-primary" id="reportSend" type="button">Envoyer</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 
@@ -390,9 +425,8 @@ function validatePlaylist(text){
     const tN=titles.map(t=>({orig:t,norm:normalize(t)})).filter(t=>t.norm);
     const aN=artists.map(a=>({orig:a,norm:normalize(a)})).filter(a=>a.norm);
     if(!tN.length && !aN.length){ errors.push({ln, reason:'titre/artiste vides après nettoyage'}); return; }
-    const genre=(parts[3]||'').trim();
-    const year=parseInt((parts[4]||'').trim(),10)||null;
-    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, genre, year }, src));
+    const year=parseInt((parts[3]||'').trim(),10)||null;
+    entries.push(Object.assign({ url:rawUrl, titles:tN, artists:aN, year }, src));
   });
   return {entries, errors};
 }
@@ -408,6 +442,7 @@ const G = {
   cfg:null, list:[], idx:0,
   round:null,          // {entry, titleFound, artistFound, active, state:'idle'|'playing'|'ended'}
   scores:{}, names:{}, history:[],
+  volume:75,
   timerId:null, endGuard:null, timeLeft:0
 };
 
@@ -445,7 +480,7 @@ function onPlayerState(e){
     if(G.round) G.round.start=start;
     ytPlayer.seekTo(start,true);
     // léger délai pour laisser le seek se faire avant de démasquer le son
-    setTimeout(()=>{ try{ ytPlayer.unMute(); ytPlayer.setVolume(70); }catch(e){}; beginTimer(); }, 220);
+    setTimeout(()=>{ try{ ytPlayer.unMute(); ytPlayer.setVolume(G.volume||75); }catch(e){}; beginTimer(); }, 220);
   }
 }
 function computeStart(dur){
@@ -479,7 +514,7 @@ function playAudioUrl(url){
   const a=$('audioEl');
   audioArmed=true;
   try{ a.pause(); }catch(e){}
-  a.src=url; a.currentTime=0; a.volume=0.75;
+  a.src=url; a.currentTime=0; a.volume=(G.volume||75)/100;
   const p=a.play();
   if(p && p.then) p.then(()=>{ if(audioArmed){ audioArmed=false; if(G.round) G.round.start=0; beginTimer(); } }).catch(()=>{});
 }
@@ -711,15 +746,20 @@ function endRound(solved){
 function pushHistory(r){
   const title = r.entry.titles.length ? r.entry.titles[0].orig : '—';
   const artist = r.entry.artists.length ? r.entry.artists[0].orig : '—';
-  G.history.unshift({ n:G.idx+1, title, artist });
+  G.history.unshift({ n:G.idx+1, title, artist, year:r.entry.year||null, tid:r.entry.trackId||'' });
   renderHistory();
 }
 function renderHistory(){
   const el=$('history');
   if(!G.history.length){ el.innerHTML='<div class="hist-empty">Les morceaux joués s\'afficheront ici.</div>'; return; }
-  el.innerHTML=G.history.map(h=>
-    `<div class="hist-row"><span class="hist-n">#${h.n}</span><span class="hist-info"><b>${escapeHtml(h.title)}</b><em>${escapeHtml(h.artist)}</em></span></div>`
+  el.innerHTML=G.history.map((h,i)=>
+    `<div class="hist-row"><span class="hist-n">#${h.n}</span>`+
+    `<span class="hist-info"><b>${escapeHtml(h.title)}</b><em>${escapeHtml(h.artist)}${h.year?' · '+h.year:''}</em></span>`+
+    `<button class="hist-flag" data-i="${i}" title="Signaler une erreur" aria-label="Signaler une erreur">⚑</button></div>`
   ).join('');
+  el.querySelectorAll('.hist-flag').forEach(b=>{
+    b.addEventListener('click', ()=> openReport(G.history[parseInt(b.dataset.i,10)]));
+  });
 }
 function nextRound(){
   G.idx++;
@@ -768,17 +808,6 @@ function readConfig(){
     rounds: (Number.isFinite(roundsRaw) && roundsRaw>0) ? roundsRaw : 0  // 0 = toutes
   };
 }
-function renderThemes(entries){
-  const box=$('themeBoxes'), field=$('themeField');
-  const genres=[...new Set(entries.map(e=>e.genre).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  if(genres.length<2){ field.style.display='none'; box.innerHTML=''; return; }
-  const prev={}; box.querySelectorAll('input').forEach(i=>prev[i.value]=i.checked);
-  field.style.display='';
-  box.innerHTML=genres.map(g=>{
-    const checked=(g in prev)?prev[g]:true;
-    return `<label class="chip"><input type="checkbox" value="${escapeHtml(g)}" ${checked?'checked':''}><span>${escapeHtml(g)}</span></label>`;
-  }).join('');
-}
 function renderPeriods(entries){
   const box=$('periodBoxes'), field=$('periodField');
   const decades=[...new Set(entries.map(e=>e.year).filter(Boolean).map(y=>Math.floor(y/10)*10))].sort((a,b)=>a-b);
@@ -793,7 +822,6 @@ function renderPeriods(entries){
 function updatePlCount(){
   const {entries,errors}=validatePlaylist($('playlist').value);
   $('plCount').textContent = entries.length? (entries.length+' morceau(x) valide(s)') : 'Aucun morceau valide pour l\'instant';
-  renderThemes(entries);
   renderPeriods(entries);
   const rep=$('plReport');
   const blocking=errors.filter(e=>!e.warn);
@@ -812,19 +840,11 @@ $('startBtn').addEventListener('click',()=>{
   const err=$('setupErr');
   if(!cfg.channel){ err.textContent='Renseigne ta chaîne Twitch.'; return; }
   if(!list.length){ err.textContent='Aucun morceau valide (voir les lignes signalées au-dessus).'; updatePlCount(); return; }
-  // filtrage par thèmes si le sélecteur est actif
-  if($('themeField').style.display!=='none'){
-    const selected=new Set([...document.querySelectorAll('#themeBoxes input:checked')].map(i=>i.value));
-    if(selected.size===0){ err.textContent='Coche au moins un thème musical.'; return; }
-    const filtered=list.filter(e=> !e.genre || selected.has(e.genre));
-    if(!filtered.length){ err.textContent='Aucun morceau pour les thèmes choisis.'; return; }
-    list=filtered;
-  }
   // filtrage par époque si le sélecteur est actif
   if($('periodField').style.display!=='none'){
     const sel=new Set([...document.querySelectorAll('#periodBoxes input:checked')].map(i=>parseInt(i.value,10)));
     if(sel.size===0){ err.textContent='Coche au moins une époque.'; return; }
-    const filt=list.filter(e=> !e.year || sel.has(Math.floor(e.year/10)*10));
+    const filt=list.filter(e=> e.year && sel.has(Math.floor(e.year/10)*10));
     if(!filt.length){ err.textContent='Aucun morceau pour les époques choisies.'; return; }
     list=filt;
   }
@@ -856,6 +876,72 @@ $('resetScoreBtn').addEventListener('click', ()=>{
   if(confirm('Remettre tous les scores à zéro ?')){ G.scores={}; G.names={}; renderBoard(); toast('Scores remis à zéro'); }
 });
 $('playlist').addEventListener('input', updatePlCount);
+$('volume').addEventListener('input', (e)=>{
+  G.volume=parseInt(e.target.value)||0;
+  try{ $('audioEl').volume=G.volume/100; }catch(err){}
+  try{ if(ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(G.volume); }catch(err){}
+  store.set('volume', G.volume);
+});
+
+/* ---------- Signalement d'erreur (Web3Forms, sans backend) ---------- */
+// Crée une clé gratuite sur https://web3forms.com (elle est publique par
+// conception, elle sert juste d'alias vers ton adresse mail).
+const WEB3FORMS_KEY = 'fd147a66-72eb-46ac-98fd-367765e39cd9';
+
+let reportEntry = null;
+function openReport(h){
+  if(!h) return;
+  reportEntry = h;
+  $('reportTrack').innerHTML =
+    `<b>${escapeHtml(h.title)}</b><span>${escapeHtml(h.artist)}${h.year?' · '+h.year:''}</span>`;
+  $('reportYear').value = '';
+  $('reportMsg').value = '';
+  $('reportBack').classList.add('open');
+}
+function closeReport(){ $('reportBack').classList.remove('open'); reportEntry=null; }
+
+async function sendReport(){
+  if(!reportEntry) return;
+  if($('reportHp').checked) { closeReport(); return; }        // piège à robots
+  const year = $('reportYear').value.trim();
+  const msg  = $('reportMsg').value.trim();
+  if(!year && !msg){ toast('Indique une année ou un commentaire.'); return; }
+  if(!WEB3FORMS_KEY || WEB3FORMS_KEY.startsWith('REMPLACE')){
+    toast('Signalement non configuré (clé manquante).'); return;
+  }
+  const btn = $('reportSend');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  const ligne = reportEntry.tid ? `deezer:${reportEntry.tid};${year||'????'}` : '(id inconnu)';
+  try{
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: `Blind Test — erreur signalée : ${reportEntry.title}`,
+        from_name: 'Blind Test',
+        botcheck: '',
+        titre: reportEntry.title,
+        artiste: reportEntry.artist,
+        annee_affichee: reportEntry.year || '(aucune)',
+        annee_proposee: year || '(non précisée)',
+        commentaire: msg || '(aucun)',
+        ligne_corrections: ligne
+      })
+    });
+    const data = await res.json();
+    if(data && data.success){ closeReport(); toast('Merci, signalement envoyé !'); }
+    else { toast('Envoi impossible, réessaie plus tard.'); }
+  }catch(e){
+    toast('Envoi impossible, réessaie plus tard.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Envoyer';
+  }
+}
+$('reportCancel').addEventListener('click', closeReport);
+$('reportSend').addEventListener('click', sendReport);
+$('reportBack').addEventListener('click', e=>{ if(e.target===$('reportBack')) closeReport(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeReport(); });
 
 /* ---------- Restauration ---------- */
 setupAudio();
@@ -864,6 +950,7 @@ setupAudio();
   const c=store.get('cfg',null);
   if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; }
   G.scores={}; G.names={};
+  G.volume=store.get('volume',75); $('volume').value=G.volume;
   updatePlCount();
   // La playlist par défaut fait foi : on la (re)charge depuis playlist.txt à chaque ouverture
   fetch('playlist.txt',{cache:'no-store'})
