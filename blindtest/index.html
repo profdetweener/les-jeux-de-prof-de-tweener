@@ -63,13 +63,13 @@
   /* ---- Jeu ---- */
   #game{display:none;grid-template-columns:1fr 330px;gap:20px;align-items:start;}
   .stage{padding:24px;position:relative;overflow:hidden;}
-  .stage-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .round-pill{font-size:13px;color:var(--gris-texte);background:var(--beige);border:1px solid var(--beige-fonce);padding:6px 13px;border-radius:999px;font-weight:700;}
+  .stage-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;}
+  .round-pill{font-size:13px;color:var(--gris-texte);background:var(--beige);border:1px solid var(--beige-fonce);padding:6px 13px;border-radius:999px;font-weight:700;white-space:nowrap;}
   .timer{font-size:40px;font-weight:700;line-height:1;color:var(--bleu-nuit);letter-spacing:.02em;}
   .timer.low{color:var(--jaune);}
   .timer.crit{color:var(--rouge);}
 
-  .vinyl-zone{display:grid;place-items:center;padding:6px 0 20px;}
+  .vinyl-zone{display:grid;place-items:center;padding:12px 0 20px;}
   .vinyl{width:184px;height:184px;border-radius:50%;position:relative;
     background:repeating-radial-gradient(circle at 50% 50%, #14171c 0 2px, #20242b 2px 4px);
     box-shadow:inset 0 0 0 6px #0d0f12, var(--ombre);display:grid;place-items:center;}
@@ -78,7 +78,8 @@
   .vinyl .label{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--bleu-nuit),var(--bleu-accent));display:grid;place-items:center;font-size:28px;box-shadow:0 0 0 4px #0d0f12;color:#fff;}
   .vinyl .hole{position:absolute;width:8px;height:8px;border-radius:50%;background:#0d0f12;}
   @media (prefers-reduced-motion:reduce){.vinyl.spinning{animation:none;}}
-  .now{text-align:center;color:var(--gris-texte);font-size:13.5px;margin-top:6px;min-height:20px;}
+  .now{flex:1;min-width:0;text-align:center;color:var(--gris-texte);font-size:13.5px;min-height:20px;
+       overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   .answers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
   .acard{background:var(--beige);border:1px solid var(--beige-fonce);border-radius:var(--rayon);padding:18px;position:relative;overflow:hidden;transition:border-color .25s,background .25s;}
@@ -269,10 +270,9 @@
       <div class="panel stage">
         <div class="stage-top">
           <span class="round-pill" id="roundPill">Manche 1</span>
+          <div class="now" id="nowText">Prêt.</div>
           <span class="timer mono" id="timer">30</span>
         </div>
-
-        <div class="now" id="nowText">Prêt.</div>
 
         <div class="vinyl-zone">
           <div class="vinyl" id="vinyl">
@@ -296,7 +296,6 @@
 
         <div class="controls">
           <button class="btn-primary" id="playBtn" type="button">Lancer la musique</button>
-          <button class="btn-ghost" id="skipBtn" type="button">Passer</button>
           <button class="btn-ghost" id="restartBtn" type="button">Relancer une partie</button>
           <button class="btn-ghost" id="quitBtn" type="button">Terminer la partie</button>
           <div class="volume-row">
@@ -846,12 +845,6 @@ function nextRound(){
   if(G.idx>=G.list.length){ finishGame(); return; }
   startRound();
 }
-function skipRound(){
-  clearInterval(G.timerId); clearTimeout(G.endGuard);
-  stopPlayback();
-  if(G.round) G.round.active=false;
-  nextRound();
-}
 function finishGame(){
   clearInterval(G.timerId); clearTimeout(G.endGuard);
   stopPlayback();
@@ -1075,7 +1068,6 @@ function restartGame(ask){
 }
 
 $('playBtn').addEventListener('click', onPlayClick);
-$('skipBtn').addEventListener('click', skipRound);
 $('restartBtn').addEventListener('click', ()=>restartGame(true));   // en cours de partie : on confirme
 $('finalRestart').addEventListener('click', ()=>restartGame(false)); // partie finie : inutile de confirmer
 $('quitBtn').addEventListener('click', finishGame);
