@@ -1,5 +1,5 @@
 # Playlist Blind Test — IDs Deezer
-# 1134 morceaux, années vérifiées (44 corrigées manuellement)
+# 1369 morceaux, années vérifiées (48 corrigées manuellement)
 # Format : deezer:ID | titre(s) | artiste(s) | annee
 
 deezer:3979633611 | Le Petit Pêcheur | Manon Lisa | 2026
@@ -17,6 +17,7 @@ deezer:7120489 | Quand la musique est bonne | Jean-Jacques Goldman | 1982
 deezer:596537 | Dans les yeux d'Émilie | Joe Dassin | 1977
 deezer:2422118 | Le chasseur (Les oies sauvages) | Michel Delpech | 1974
 deezer:72066529 | Je t'aimais je t'aime je t'aimerai | Francis Cabrel | 1994
+deezer:4105009501 | Les règles | Jeanne | 2026
 deezer:3466520751 | Cow-girl moderne | Eloïz | 2025
 deezer:72064735 | Je l'aime à mourir | Francis Cabrel | 1979
 deezer:2642921822 | Ceux qu'on était | Pierre Garnier | 2024
@@ -37,7 +38,7 @@ deezer:76108761 | Le Graal | Kyo | 2014
 deezer:3921630701 | Je pense à vous | Pierre de Maere | 2026
 deezer:1586442032 | Un jour je marierai un ange | Pierre de Maere | 2021
 deezer:1534970092 | Et Bam | Mentissa | 2021
-deezer:2036448917 | Dépassé | Nuit Incolore | 2023
+deezer:2036448917 | Dépassé | Nuit Incolore | 2022
 deezer:2463390605 | Beau | Joseph Kamel | 2023
 deezer:730166752 | Je te donne | Jean-Jacques Goldman | 1985
 deezer:136216916 | Un homme debout | Claudio Capéo | 2016
@@ -71,13 +72,15 @@ deezer:100936224 | Les corons | Pierre Bachelet | 1982
 deezer:730187022 | Envole-moi | Jean-Jacques Goldman | 1984
 deezer:1940930987 | Mamma Mia | Mentissa | 2022
 deezer:72064755 | L'encre de tes yeux | Francis Cabrel | 1980
+deezer:5104476 | Les rois du monde (Roméo & Juliette Les enfants de Vérone) | Damien Sargue | 2009
+deezer:3558493831 | Ruelle sombre | Lisa Pariente | 2025
 deezer:614689 | Le chemin | Kyo | 2003
 deezer:561685 | Les Champs-Elysées | Joe Dassin | 1969
 deezer:730170052 | A nos actes manqués | Carole Fredericks | 1990
 deezer:2858640952 | Un dimanche avec toi | Vitaa | 2023
 deezer:2463390575 | Celui qui part | Joseph Kamel | 2023
 deezer:3505101981 | Mille fois | M. Pokora | 2025
-deezer:1126402742 | Un homme | Jeremy Frerot | 2021
+deezer:1126402742 | Un homme | Jeremy Frerot | 2020
 deezer:1705864297 | Amour censure | Hoshi | 2019
 deezer:3422637341 | À qui le tour | Jeck | 2025
 deezer:3025678011 | Hymne à l'amour | Céline Dion | 2024
@@ -88,67 +91,116 @@ deezer:1215672012 | Et même après je t'aimerai | Hoshi | 2021
 deezer:4000806301 | Tu restes là | Jeanne | 2026
 deezer:2894151731 | Gamins des sables | Jeremy Frerot | 2024
 deezer:1150373 | Pour un flirt | Michel Delpech | 1971
-deezer:1698086727 | PS : Je t'aime | Christophe Willem | 2023
+deezer:1698086727 | PS : Je t'aime | Christophe Willem | 2022
 deezer:641517922 | Les planètes | M. Pokora | 2019
 deezer:7120484 | Au bout de mes rêves | Jean-Jacques Goldman | 1982
 deezer:132479804 | Coco Câline | Julien Doré | 2016
-deezer:551683 | Double je (Remix) | Christophe Willem | 2023
+deezer:551683 | Double je (Remix) | Christophe Willem | 2007
 deezer:3486129781 | la maison | marguerite | 2025
 deezer:1086722842 | beau-papa | Vianney | 2020
 deezer:7120485 | Comme toi | Jean-Jacques Goldman | 1982
 deezer:64699122 | Experience | Ludovico Einaudi | 2013
 deezer:2969746341 | Poesía | Sofiane Pamart | 2024
+deezer:23712561 | Einaudi: Una Mattina | Ludovico Einaudi | 2007
 deezer:1386411742 | Fly | Ludovico Einaudi | 2006
 deezer:3896706281 | Beauty | Sofiane Pamart | 2026
 deezer:3856158821 | Jay | Ludovico Einaudi | 2025
 deezer:69261831 | Divenire | Ludovico Einaudi | 2006
+deezer:4060881211 | Shine | Jon Batiste | 2026
+deezer:4053522921 | Echoes of His love | Christian Janssen | 2026
+deezer:3977102181 | Alcova | Olivia Belli | 2026
+deezer:4019743311 | Kame | Max Kelm | 2026
+deezer:3990324661 | Palme d'or | Vulax | 2026
 deezer:543154902 | saman | Ólafur Arnalds | 2018
+deezer:4029124351 | Porcelain | Monoraum | 2026
 deezer:1547320802 | LOVE | Sofiane Pamart | 2021
 deezer:1547320772 | DEAR | Sofiane Pamart | 2022
+deezer:3819632441 | pApillons | Vulax | 2026
+deezer:4029124431 | La Chambre Orange | Antonio Ministeri | 2026
 deezer:3751347562 | Memory One | Ludovico Einaudi | 2026
+deezer:3996999231 | Grateful | Alexis Ffrench | 2026
 deezer:69261838 | Primavera | Ludovico Einaudi | 2006
+deezer:77019570 | Richter: Spring 1 (2012) | Max Richter | 2014
+deezer:3974353941 | Valzer d'Estate | Andrea Vanzo | 2026
+deezer:3919125471 | Ashitaka | Vulax | 2026
 deezer:120349902 | Time in a Bottle | Jim Croce | 1972
 deezer:127563043 | Light of the Seven | Ramin Djawadi | 2016
+deezer:3849941971 | In Time (Morning Take) | Annelie | 2026
 deezer:3112517281 | Solas | Jamie Duffy | 2022
+deezer:1844670757 | Il Mio Rifugio (Original Motion Picture Soundtrack from Tandem) | Richard Cocciante | 1987
 deezer:3256923811 | PASSO BEM SOLTO (Ultra Slowed) | ATLXS | 2025
 deezer:72059732 | Circles (based on Ludovico Einaudi "Experience") | Greta Svabo Bech | 2013
+deezer:3966813341 | Kawakami | Akira Kosemura | 2026
+deezer:3097275 | Bach JS: Cello Suite No. 1 in G Major BWV 1007: I. Prelude | Mstislav Rostropovich | 1996
+deezer:3309679701 | VIOLENTO (Slowed) | Kobe Mane | 2025
 deezer:2126036777 | Experience (Solo Piano) | Ludovico Einaudi | 2023
+deezer:4022764911 | Dessner: Goiza Larrunen | Marielle Labèque | 2026
 deezer:780919422 | Medellin | Sofiane Pamart | 2019
 deezer:3656706392 | Voilà | André Rieu | 2023
 deezer:3952989991 | False Memory Waltz | Roger Eno | 2026
 deezer:1181474022 | Paris | Sofiane Pamart | 2019
 deezer:2576777342 | ICARUS | Tony Ann | 2023
+deezer:3944626591 | A gentle prayer | Christian Janssen | 2026
 deezer:780919432 | Planet | Sofiane Pamart | 2019
-deezer:497150662 | Richter: On the Nature of Daylight | Max Richter | 2025
+deezer:497150662 | Richter: On the Nature of Daylight | Max Richter | 2018
 deezer:3880840051 | L'île | Alban Claudin | 2026
 deezer:3259892671 | Luminary | Joel Sunny | 2023
+deezer:68301402 | Eine kleine Nachtmusik K. 525 : Mozart: Eine kleine Nachtmusik K. 525: I. Allegro | Wiener Philharmoniker | 1996
+deezer:3167154551 | Mercédès | Alban Claudin | 2025
+deezer:3956684801 | Blackbird Returning | Alexis Ffrench | 2026
+deezer:65442076 | Symphony No. 5 in C Minor Op. 67 : Beethoven: Symphony No. 5 in C Minor Op. 67: I. Allegro con brio | Berliner Philharmoniker | 1999
+deezer:3608229702 | Floating in Reverie | Moayad Aljabal | 2025
 deezer:3896706271 | Moviestar | Sofiane Pamart | 2026
-deezer:3449991811 | Valzer d'Inverno | Andrea Vanzo | 2024
+deezer:3966813321 | Life Is Friendship | Akira Kosemura | 2026
+deezer:3449991811 | Valzer d'Inverno | Andrea Vanzo | 2023
 deezer:3050851971 | Pathos | Ludovico Einaudi | 2024
 deezer:3256923831 | PASSO BEM SOLTO (Extreme Slowed) | ATLXS | 2025
 deezer:3135907521 | Astre | Jozef De Schutter | 2025
 deezer:3893438311 | Blanc | SYML | 2026
 deezer:128951018 | Greenlight | Pitbull | 2016
+deezer:3884580681 | Tributary (Satie Rework) | Roger Eno | 2026
 deezer:3896706351 | How To Love | Sofiane Pamart | 2026
 deezer:1181473952 | La Havane | Sofiane Pamart | 2019
 deezer:3515218401 | Borealis | Sofiane Pamart | 2021
+deezer:3925157851 | The Butterfly (Slowed + Birds) | Andrea Vanzo | 2026
 deezer:3016483451 | Passenger | Maxence Cyrin | 2024
+deezer:3912850921 | Migration | HanMari | 2026
+deezer:1086622472 | 3 Gymnopédies: No. 1 Lent et douloureux | Khatia Buniatishvili | 2020
 deezer:1181474092 | Nara | Sofiane Pamart | 2020
+deezer:4152845 | Orchestral Suite No. 3 in D Major BWV 1068 : J.S. Bach: Orchestral Suite No. 3 in D Major BWV 1068: II. Air "on the G String" | David Bell | 2008
 deezer:931207382 | Été | Antonio Vivaldi | 2002
-deezer:69089334 | Beethoven: Piano Sonata No. 14 in C-Sharp Minor Op. 27 No. 2 "Moonlight": I. Adagio sostenuto | Daniel Barenboim | 2020
+deezer:3963077251 | Serenity | Martèn LeGrand | 2026
+deezer:69089334 | Beethoven: Piano Sonata No. 14 in C-Sharp Minor Op. 27 No. 2 "Moonlight": I. Adagio sostenuto | Daniel Barenboim | 2013
+deezer:3603985022 | Jóhannsson: Odi et Amo/Krókódíll (Performed on Piano) | Alice Sara Ott | 2025
 deezer:3583832591 | Intrusive Thoughts | Peter Sandberg | 2026
 deezer:3152501561 | Dark Winter | Kevin Olusola | 2025
 deezer:2305654 | We Are The World | Luciano Pavarotti | 1985
+deezer:3711924492 | For Grandpa - Memory 4 | Akira Kosemura | 2025
+deezer:3465585041 | Sideways | Mina Amare | 2026
+deezer:3952477261 | hurt | Ola Gjeilo | 2026
 deezer:548844302 | Gortoz A Ran | Denez Prigent | 2000
 deezer:3896706231 | Watching You | Sofiane Pamart | 2026
 deezer:2432360075 | Pompeii MMXXIII | Bastille | 2023
 deezer:1181474072 | London | Sofiane Pamart | 2020
+deezer:430251032 | Saint-Saëns / Transcr. Vidal: Le carnaval des animaux: XIII. Le cygne | Gautier Capuçon | 2018
+deezer:2764945321 | Mystery of Love | Alban Claudin | 2024
 deezer:1181473962 | Le Caire | Sofiane Pamart | 2019
+deezer:3790185132 | Komorebi | ALVED | 2026
 deezer:2427401395 | Noche | Sofiane Pamart | 2023
+deezer:1854057307 | Vivaldi: The Four Seasons Violin Concerto in G Minor Op. 8 No. 2 RV 315 "Summer": III. Presto | Renaud Capuçon | 2022
 deezer:132937448 | Porz Goret | Yann Tiersen | 2016
+deezer:2751516931 | Ikigai | Anis Bahmed | 2024
+deezer:4017571721 | Lady Be Good - Berceuse in F# | Lucas Debargue | 2026
+deezer:646298592 | The Well-Tempered Clavier I Prelude & Fugue No. 1 in C Major BWV 846 : J.S. Bach: The Well-Tempered Clavier I Prelude & Fugue No. 1 in C Major BWV 846: I. Prelude | Lang Lang | 2019
+deezer:3018519691 | Habibi (Love) | TUNE YOUR MIND | 2024
+deezer:1457007802 | Nocturnes Op. 9 : Chopin: Nocturnes Op. 9: No. 2 in E Flat Major. Andante | Jan Lisiecki | 2021
+deezer:1072116 | Sonata No. 12 in A Major for Piano K. 331/300i/III. (Rondo) Alla Turca. Allegretto | Murray Perahia | 1992
+deezer:3804153512 | Night Music | Bruno Bavota | 2026
 deezer:2792730592 | GEMINI “The Curious” | Tony Ann | 2024
+deezer:4124348 | Puccini: Nessun dorma! | Luciano Pavarotti | 1997
 deezer:609936412 | Adiemus | Karl Jenkins | 1998
 deezer:3821992 | Just the Two of Us | Grover Washington Jr. | 1980
+deezer:1918194557 | KJF 4 | LESTEF KJF BOYZ | 2022
 deezer:602454222 | The Girl From Ipanema | Stan Getz | 1964
 deezer:3783107532 | Aline | Christophe | 1965
 deezer:4016353611 | do i clench my fists? | ridgeclub | 2026
@@ -166,54 +218,75 @@ deezer:1627634952 | What You Won't Do for Love | Bobby Caldwell | 1978
 deezer:849696322 | Minor Swing | Thomas Dutronc | 2020
 deezer:558506202 | Lovely Day | José James | 2018
 deezer:1031007 | Take Five | Dave Brubeck | 1959
+deezer:4028971531 | A Fated Crossing | ALVED | 2026
 deezer:71483071 | Somethin' Stupid | Frank Sinatra | 1967
 deezer:2789439 | My Baby Just Cares for Me | Nina Simone | 1958
 deezer:1204947832 | Mother's Love | The Vernon Spring | 2021
 deezer:3783351052 | Les mots bleus | Christophe | 1974
 deezer:4004100121 | Celebrate Me | ingarose | 2026
 deezer:2420755 | Les moulins de mon coeur | Michel Legrand | 1969
+deezer:3647378282 | Don't Speak | Janaina | 2025
 deezer:1385217922 | Most of the Time | Lisa Ekdahl | 2021
+deezer:1350430012 | Life on Mars? | Paolo Fresu | 2021
 deezer:709830092 | Feeling Good | Nina Simone | 1965
 deezer:521606762 | Ai No Corrida | Quincy Jones | 1981
 deezer:2144435437 | Don't Let Me Be Misunderstood | Nina Simone | 1964
 deezer:71927345 | True Sorry | Ibrahim Maalouf | 2013
+deezer:3601217542 | Get Lucky | Janaina | 2025
 deezer:1543796632 | Oiseau | Laurent Bardainne | 2022
 deezer:73704169 | I Feel Good (I Got You) | James Brown | 1965
+deezer:3665403382 | Duchess | Tolouse | 2025
 deezer:3686588792 | Mi Swing Es Tropical | Quantic | 2004
 deezer:71068125 | The World We Knew (Over And Over) | Frank Sinatra | 1967
 deezer:71483080 | Theme From New York New York | Frank Sinatra | 1980
 deezer:2178419 | Retiens la nuit | Johnny Hallyday | 1962
 deezer:69096097 | Reach Out | George Duke | 1983
+deezer:3356107321 | Seven Nation Army | Laza Bossa | 2025
 deezer:1898921297 | Falling Behind | Laufey | 2022
+deezer:3397793931 | It's Good to Be Back Again | Luc Bleu | 2025
 deezer:1387784162 | Najara | Omer Klein | 2021
+deezer:3137184221 | Riptide | Lully Hill | 2024
+deezer:3674359802 | Quiet Taxi Conversations | Luc Bleu | 2025
 deezer:709830252 | Sinnerman | Nina Simone | 1965
 deezer:3252863341 | Sassy | Kurt Elling | 2021
 deezer:411396572 | Laissez-moi danser | Ibrahim Maalouf | 2017
+deezer:3401324661 | Late Night Loop | Bebop Bureau | 2025
 deezer:71483074 | That's Life | Frank Sinatra | 1966
+deezer:3851149101 | Ordinary | Janaina | 2026
 deezer:3125117231 | God Gave Me Feet For Dancing | Ezra Collective | 2023
 deezer:549279042 | Everybody Loves The Sunshine | Roy Ayers | 1976
-deezer:1379075272 | Summer Rising | Joey Alexander | 2022
+deezer:1379075272 | Summer Rising | Joey Alexander | 2021
 deezer:1509496722 | Sinnerman (Sofi Tukker Remix) | Nina Simone | 2021
+deezer:3948936611 | Make Me Feel | Gadnr | 2026
 deezer:411396552 | Paroles paroles | Ibrahim Maalouf | 2017
 deezer:1123828 | Below The Bassline | Ernest Ranglin | 1996
-deezer:1064016242 | Come Away With Me | Norah Jones | 2001
+deezer:1064016242 | Come Away With Me | Norah Jones | 2002
 deezer:100723036 | The Captain of Her Heart | Double | 1985
-deezer:911085 | In A Sentimental Mood | Duke Ellington | 1953
+deezer:911085 | In A Sentimental Mood | Duke Ellington | 1954
 deezer:4619054 | Baby I'm A Fool | Melody Gardot | 2008
-deezer:3683220282 | Dis quand reviendras-tu ? | Flore Benguigui & The Sensible Notes | 2026
+deezer:3683220282 | Dis quand reviendras-tu ? | Flore Benguigui & The Sensible Notes | 2025
 deezer:649747872 | Rescue Me | Fontella Bass | 1965
 deezer:2276456 | Bim-Bom | Sergio Mendes & Brasil '66 | 1967
 deezer:4097917771 | Step by Step in Time | Benny Rivers | 2026
 deezer:2961024 | California Soul | Marlena Shaw | 1969
 deezer:3145456 | Sous le ciel de Paris | Édith Piaf | 1954
 deezer:1345159182 | Rio | Florian Pellissier Quintet | 2021
+deezer:10091593 | Y'a d'la joie (avec la complicité de Patrick Sébastien) | Le Grand Orchestre Coll | 2011
+deezer:3068326541 | Sugar | Lully Hill | 2024
+deezer:3397793921 | Dale Turns Up the Bass | Luc Bleu | 2025
 deezer:2311074615 | Promise | Laufey | 2023
+deezer:3111077951 | The Rhythm of the Night | Janaina | 2024
 deezer:64699107 | Nuvole bianche | Ludovico Einaudi | 2004
+deezer:3665403392 | Bonfamille | Tolouse | 2025
+deezer:3674359772 | The Long Way Home | Luc Bleu | 2025
 deezer:1064775022 | Rise | Herb Alpert | 1979
 deezer:143246746 | Too Late | Youn Sun Nah | 2017
-deezer:4631883 | Like a Prayer | Mad'House | 2001
+deezer:4061782751 | do i clench my fists? (slowed + reverb) | ridgeclub | 2026
+deezer:4631883 | Like a Prayer | Mad'House | 2002
 deezer:1390752872 | Songe en forme de palmier | Sophie Alour | 2020
+deezer:3948936691 | Floating in Blue | Gadnr | 2026
 deezer:76144446 | You Don't Own Me | Lesley Gore | 1963
+deezer:3665403412 | Briquet | Tolouse | 2025
 deezer:1444366372 | You Must Believe In Spring | Bill Evans | 1977
 deezer:92719900 | Highway to Hell | AC/DC | 1979
 deezer:15523793 | Toxicity | System of a Down | 2001
@@ -241,12 +314,14 @@ deezer:15523772 | Deer Dance | System of a Down | 2001
 deezer:15523788 | Forest | System of a Down | 2001
 deezer:3296401771 | NEVER ENOUGH | Turnstile | 2025
 deezer:15523796 | Psycho | System of a Down | 2001
+deezer:134523750 | Freak On a Leash | KoЯn | 1998
 deezer:1195560 | Psychosocial | Slipknot | 2008
 deezer:15523784 | Bounce | System of a Down | 2001
 deezer:3390202151 | THE DEATH OF PEACE OF MIND | Bad Omens | 2021
 deezer:92720038 | Shoot to Thrill | AC/DC | 1980
 deezer:2350073455 | Zombie | Bad Wolves | 2018
 deezer:1195567 | Snuff | Slipknot | 2008
+deezer:13378870 | Blind | KoЯn | 1994
 deezer:3340663301 | Suite-Pee | System of a Down | 1995
 deezer:575867572 | One | Metallica | 1988
 deezer:136338504 | For Whom The Bell Tolls | Metallica | 1984
@@ -259,7 +334,7 @@ deezer:1133087422 | Protect The Land | System of a Down | 2020
 deezer:4111093381 | Dehumanized | Bring Me the Horizon | 2026
 deezer:15523781 | Chop Suey! | System of a Down | 2001
 deezer:559790 | Revenga | System of a Down | 2005
-deezer:4197811 | Wait and Bleed | Slipknot | 2000
+deezer:4197811 | Wait and Bleed | Slipknot | 1999
 deezer:559788 | Cigaro | System of a Down | 2005
 deezer:83919189 | Crazy Train | Ozzy Osbourne | 1980
 deezer:2702713 | Le fruit défendu | Mystik | 1999
@@ -275,6 +350,7 @@ deezer:92719906 | Touch Too Much | AC/DC | 1979
 deezer:14381636 | Mein Herz brennt | Rammstein | 2001
 deezer:3390202171 | Like A Villain | Bad Omens | 2022
 deezer:2798271222 | RATATATA | BABYMETAL | 2024
+deezer:134523754 | Got the Life | KoЯn | 1998
 deezer:92719998 | It's a Long Way to the Top (If You Wanna Rock 'N' Roll) | AC/DC | 1975
 deezer:559729 | Sad Statue | System of a Down | 2005
 deezer:3789078212 | Afraid Of The Dark | Motionless In White | 2026
@@ -308,12 +384,16 @@ deezer:126338367 | Stranded | Gojira | 2016
 deezer:630595112 | Engel | Rammstein | 1997
 deezer:136332702 | Seek & Destroy | Metallica | 1983
 deezer:682460102 | Diggy Diggy Hole | Wind Rose | 2019
-deezer:1714359387 | We Got the Moves | Electric Callboy | 2023
+deezer:1714359387 | We Got the Moves | Electric Callboy | 2022
 deezer:87544339 | Custer | Slipknot | 2014
 deezer:1133087432 | Genocidal Humanoidz | System of a Down | 2020
 deezer:1487860222 | Hellraiser | Ozzy Osbourne | 1991
+deezer:4087979251 | Champagne | Anyme023 | 2026
 deezer:136341512 | No Lie | Sean Paul | 2016
+deezer:3126148051 | Bouwéy | 1t1 | 2024
 deezer:2542703 | Could You Be Loved | Bob Marley & The Wailers | 1980
+deezer:4052853541 | BOUGE | Shannon | 2026
+deezer:3787570722 | In Di Corner | 1t1 | 2026
 deezer:2293791 | Is This Love | Bob Marley & The Wailers | 1978
 deezer:14490157 | Celui | Colonel Reyel | 2010
 deezer:517799952 | X | Nicky Jam | 2018
@@ -322,12 +402,13 @@ deezer:1344922912 | Go Down Deh | Spice | 2021
 deezer:10100698 | Toutes les nuits | Colonel Reyel | 2010
 deezer:3597522242 | Don't Let Me Down | Nesta | 2025
 deezer:102671422 | Locked Away | R. City | 2015
-deezer:2464861625 | MAYA | P.L.L | 2024
+deezer:2464861625 | MAYA | P.L.L | 2023
 deezer:67910831 | Aurélie | Colonel Reyel | 2011
 deezer:460888692 | Lady Mélody | Tom Frager | 2009
 deezer:1022434742 | Marley | Danakil | 2008
 deezer:2601690812 | Praise Jah In The Moonlight | YG Marley | 2023
 deezer:2542705 | Redemption Song | Bob Marley & The Wailers | 1980
+deezer:4113635591 | Otage | DJ Ken | 2026
 deezer:1324559462 | Iko Iko (My Bestie) | Justin Wellington | 2019
 deezer:1449437552 | Une seule vie | Taïro | 2011
 deezer:2237439 | Buffalo Soldier | Bob Marley & The Wailers | 1983
@@ -340,33 +421,49 @@ deezer:3232341591 | TAGADA | DJ Ken | 2025
 deezer:1399475592 | My Face | Biga*Ranx | 2017
 deezer:86648035 | Natural Mystic | Bob Marley & The Wailers | 1977
 deezer:485011772 | Code | Barth | 2018
+deezer:3487017331 | Nouveau La | BRG Hollywood | 2025
+deezer:3599565402 | G Lésou | Junior | 2024
 deezer:972240512 | Karma | Naâman | 2015
 deezer:1013636962 | I See Red | Everybody Loves an Outlaw | 2018
 deezer:1096574922 | Rouge jaune vert | Yaniss Odua | 2013
-deezer:93916028 | Rude Boy | Dub Inc | 2006
+deezer:93916028 | Rude Boy | Dub Inc | 2003
+deezer:2320846395 | Doliprane | Kalash | 2023
 deezer:1022434642 | Les champs de roses | Danakil | 2008
 deezer:93916046 | Tout ce qu'ils veulent | Dub Inc | 2010
-deezer:2835379712 | ESMERALDA | Says'z | 2025
+deezer:2835379712 | ESMERALDA | Says'z | 2024
 deezer:562886212 | Calma (Remix) | Pedro Capó | 2018
 deezer:1032957942 | Hawái | Maluma | 2020
-deezer:705531 | Turn Me On | Kevin Lyttle | 2001
+deezer:3710910092 | La Manigance | TKS 2G | 2025
+deezer:705531 | Turn Me On | Kevin Lyttle | 2003
 deezer:1757788647 | Montagne | Biga*Ranx | 2022
 deezer:3549793851 | Emoji Pêche | Maureen | 2025
+deezer:3882151341 | Ek c tou | Elji | 2022
 deezer:1101176762 | Chalawa | Yaniss Odua | 2014
 deezer:1575375 | Welcome To Jamrock | Damian Marley | 2005
+deezer:4088410631 | One More Cup | Blaiz Fayah | 2026
 deezer:2432265755 | Jerusalem | Alpha Blondy | 1986
 deezer:1434914752 | Ainsi soit-il | Taïro | 2013
+deezer:3935279021 | Chaud (3X) | DJ Glad | 2026
 deezer:67974644 | Independent gyal | Kalash | 2013
 deezer:80722278 | Elle te rend dingue (Poom Poom Short) | Nuttea | 2000
-deezer:2990269451 | Money Pull Up | Blaiz Fayah | 2025
+deezer:2990269451 | Money Pull Up | Blaiz Fayah | 2024
 deezer:972240522 | Outta Road | Naâman | 2015
 deezer:1757788687 | 7 days | Biga*Ranx | 2022
+deezer:3496828681 | Bad man | Bad Bitch | 2025
+deezer:3623289132 | C'est OK | Shad Hottaboy | 2025
+deezer:4019529591 | Shatta Mad | Limitlezz | 2026
+deezer:2640219572 | SO COMAN | Kalash | 2024
+deezer:3581497781 | Follasse | KENZY DONA | 2025
+deezer:4088579351 | COMME MOI | Shannon | 2026
 deezer:80722294 | Millénaire | One Shot | 2000
 deezer:3210181921 | Danse | Biga*Ranx | 2025
+deezer:810057982 | Vespa | DJ Chinwax | 2019
 deezer:80722286 | Trop peu de temps | Nuttea | 2000
+deezer:4110443171 | Paiement Refusé | Xavier Picardo | 2026
 deezer:3497256241 | Ba Ba Bad | Kybba | 2024
 deezer:1563415072 | Desesperados | Rauw Alejandro | 2021
 deezer:12322524 | San ou | Dezil' | 2005
+deezer:3774652392 | Raggamuffin Boy | Cozik | 2026
 deezer:2295357 | Je sais pas jouer | Pierpoljak | 1996
 deezer:2134411247 | Gyal You a Party Animal | Charly Black | 2015
 deezer:2432860055 | I Wish You Were Here | Alpha Blondy | 2007
@@ -376,35 +473,54 @@ deezer:66315754 | Sun Is Shining | Bob Marley & The Wailers | 1971
 deezer:2773072051 | Wet | P.L.L | 2024
 deezer:2586822012 | Never Take | Biga*Ranx | 2024
 deezer:1575389 | Road To Zion | Damian Marley | 2005
+deezer:1451722742 | 50/50 | Team Bwè Tou Sa | 2021
 deezer:130302638 | Maché bécif | Dub Inc | 2016
 deezer:460566002 | Mad Love | Sean Paul | 2010
+deezer:4088841992 | A Blanc | Le Jèm'ss | 2026
+deezer:995824322 | Jodeci | YG Pablo | 2020
+deezer:852458412 | Shatta | DJ Chinwax | 2020
 deezer:2557399742 | Sweat (A La La La La Long) | Inner Circle | 1992
+deezer:2420673645 | Yozo | Meryl | 2023
 deezer:2806890002 | Push the Limits | Biga*Ranx | 2017
 deezer:2502150 | Zimbabwe | Bob Marley & The Wailers | 1979
-deezer:1242053592 | Corps à corps | Kalipsxau | 2023
+deezer:1544351962 | Mon cœur bat vite (L'évadé du Nevada) | Le Aym | 2018
+deezer:1242053592 | Corps à corps | Kalipsxau | 2021
 deezer:3320764 | Elle te rend dingue | Nuttea | 2000
 deezer:2031418027 | World A Reggae Music | Anthony B | 2005
+deezer:3467266191 | KADDRYO | Kalash | 2025
 deezer:4020979891 | Pilé (Gospel) | Mauvais Djo | 2026
 deezer:15586296 | Don't Stop 'Til You Get Enough | Michael Jackson | 1979
+deezer:3820664511 | Remise En Question | Serge Ibaka | 2026
 deezer:66609426 | Get Lucky | Daft Punk | 2013
+deezer:4098845881 | Maladie (Gospel) | Gospelize | 2026
 deezer:1101732 | Ain't No Mountain High Enough | Marvin Gaye | 1967
 deezer:15586286 | Rock with You | Michael Jackson | 1979
 deezer:532944592 | Parado no Bailão | MC L da Vinte | 2018
+deezer:3679455062 | HEAVENLY JUMPSTYLE (Slowed) | TWXNY | 2025
 deezer:3955654081 | Six Seven | Laurinha Costa | 2026
 deezer:62882810 | Hit the Road Jack | Ray Charles | 1961
 deezer:3407512021 | TU VAS SIN (fav) | Rels B | 2025
+deezer:3722828742 | Ela ké Leitada | Prod.Nifour | 2025
 deezer:1396824642 | No Wahala | 1da Banton | 2021
 deezer:1027417762 | Colors | Black Pumas | 2019
 deezer:103446218 | Freedom | Pharrell Williams | 2015
 deezer:3279575181 | Soweto | Victony | 2022
+deezer:3931761821 | MONTAGEM FEARLESS (Ultra Slowed) | lirvie | 2026
 deezer:1839816757 | Wasn't Looking | Eliza | 2017
 deezer:440572802 | 9th Street | Otis Stacks | 2018
+deezer:4063854441 | PAS UNE AUTRE | Kidd9 | 2026
+deezer:3128382491 | Nous sommes les Patates (Sped Up) | Les Patates | 2024
 deezer:1101731 | I Heard It Through The Grapevine | Marvin Gaye | 1968
 deezer:1579438382 | The Color Violet | Tory Lanez | 2021
 deezer:15586317 | Off the Wall | Michael Jackson | 1979
+deezer:3390765701 | VOCE NA MIRA (Slowed) | hwungii | 2025
+deezer:3128382481 | Nous sommes les Patates | Les Patates | 2024
 deezer:15586310 | Workin' Day and Night | Michael Jackson | 1979
 deezer:62375115 | Georgia On My Mind | Ray Charles | 1960
 deezer:670897 | I've Got a Woman | Ray Charles | 1954
+deezer:3925133971 | Ela Ké Cavucadinha | Gordinho Bolado | 2026
+deezer:4032041561 | Yara Yara Ya Phonk - Sua Amiga Eu Vou Pegar (Slowed) | MC WM | 2026
+deezer:2133754037 | Simplesmente Ela | Mc Gabzin | 2022
 deezer:68686011 | Act Like You Know | Fat Larry's Band | 1982
 deezer:3212533401 | Bing Bong | Yailin la Mas Viral | 2024
 deezer:906616 | Let's Get It On | Marvin Gaye | 1973
@@ -414,32 +530,62 @@ deezer:1651161122 | Moustache Gracias | Deluxe | 2022
 deezer:845468332 | Colors (Acoustic) | Black Pumas | 2020
 deezer:1269287102 | Strangers | Black Pumas | 2021
 deezer:1651161112 | Flowers | Deluxe | 2003
+deezer:4098845801 | Pilé (Gospel) | Gospelize | 2026
 deezer:1133408852 | What's Going On | Marvin Gaye | 1971
+deezer:3161248591 | Airbnb | Mauvais Djo | 2024
 deezer:3611334602 | ACIDO III (Slowed) | UdieNnx | 2025
+deezer:624649312 | Sans elle | SenSey' | 2018
+deezer:349943101 | Sua Amiga Vou Pegar | MC WM | 2017
 deezer:2235608447 | THIS YEAR (Blessings) (French Remix) | Victor Thompson | 2023
 deezer:2127477137 | THIS YEAR (Blessings) | Victor Thompson | 2023
+deezer:3434133501 | Dia De Fiesta (Slowed) | qaraqshy | 2025
 deezer:3679455042 | HEAVENLY JUMPSTYLE | TWXNY | 2025
+deezer:3595159272 | Fendi 2 | Rakhim | 2025
+deezer:3864686591 | LET ME DRIVE FUNK | DJ VRK | 2026
 deezer:3279548911 | Jolene | Victony | 2022
 deezer:3708173892 | JETSKI | PEDRO SAMPAIO | 2025
+deezer:3860537781 | Innocence | Hildir Svensson | 2026
+deezer:3484960841 | EL CONTROL (Slowed) | M4GN | 2025
+deezer:4043050731 | Beni Al (Ta Ki Seni Görene Kadar) (Afro House Remix) | Ankara Echoes | 2026
 deezer:2432831 | Distant Lover | Marvin Gaye | 1973
 deezer:2095610327 | Carry Me | Tayc | 2023
-deezer:2279321587 | Trick Me | Kelis | 2004
+deezer:3747594602 | Charlie delta niska | DJ Drozo | 2023
+deezer:2279321587 | Trick Me | Kelis | 2003
 deezer:15586313 | Get on the Floor | Michael Jackson | 1979
 deezer:611346 | Boogie Wonderland | Earth Wind & Fire | 1979
 deezer:3611334612 | ACIDO III (Super Slowed) | UdieNnx | 2025
 deezer:129341712 | Stand on the Word | The Joubert Singers | 2004
+deezer:3796271972 | Montaguem Miau | Angeelsauro | 2025
+deezer:3724087522 | MONTAGEM TORMENTA (Slowed) | qaraqshy | 2025
+deezer:3407319891 | VEM NO PIQUE | MGD | 2025
+deezer:3640251372 | SENTE O SOM DO TAPA | DJ Martins 011 | 2025
 deezer:3511049601 | SEQUÊNCIA FEITICEIRA | PEDRO SAMPAIO | 2025
+deezer:3390765691 | VOCE NA MIRA | hwungii | 2025
+deezer:3702830802 | HEAVENLY JUMPSTYLE (Super Slowed) | TWXNY | 2025
+deezer:1611207342 | Joga Essa Rabeta | Mc Teuzin PV | 2022
+deezer:3390765711 | VOCE NA MIRA (Super Slowed) | hwungii | 2025
 deezer:1691025107 | Se Voce Nao Quer Passa a Vez | Mc Delux | 2022
+deezer:2307072175 | Forte Forte de Lacoste - Pra Começar o Final de Semana | DJ Jeeh FDC | 2023
+deezer:3727315882 | VOCE NA MIRA JUMPSTYLE (Ultra Slowed) | Sxilwix | 2025
 deezer:1108716672 | Hurt | Arlo Parks | 2020
+deezer:3931761801 | MONTAGEM FEARLESS (Slowed) | lirvie | 2026
 deezer:3865414001 | Posso Até Não Te Dar Flores | DJ Japa NK | 2025
 deezer:3068984461 | Soh-Soh | Odeal | 2024
 deezer:707533842 | Fancy Footwork | Chromeo | 2001
+deezer:3885076851 | Meow Meow (Super Slowed) | heapper | 2026
 deezer:3996794 | Music And Lights | Imagination | 1982
 deezer:3849106581 | habibi | Rakhim | 2026
+deezer:2601439122 | Miel Pops au Brésil | Ozwaa | 2023
+deezer:631679542 | Sua amiga vou sarrar | MC Levin | 2019
 deezer:15586302 | I Can't Help It | Michael Jackson | 1979
+deezer:3702830812 | HEAVENLY JUMPSTYLE (Ultra Slowed) | TWXNY | 2025
 deezer:1101733 | Inner City Blues (Make Me Wanna Holler) | Marvin Gaye | 1971
 deezer:2475297971 | Mimosa 2000 | Furacão 2000 | 2000
+deezer:67815923 | African Party (Lobo) | La Saomera | 2013
+deezer:640571742 | Encore une fois | Mik L | 2019
 deezer:3611334632 | ACIDO III (Over Slowed) | UdieNnx | 2025
+deezer:3785439562 | SEGREDO | qaraqshy | 2026
+deezer:3652133052 | MONTAGEM ECLIPSE (Slowed) | DJ FKU | 2025
 deezer:69008892 | Can't Fake the Feeling | Geraldine Hunt | 1980
 deezer:3171002981 | NUEVAYoL | Bad Bunny | 2025
 deezer:3171003131 | DtMF | Bad Bunny | 2025
@@ -462,6 +608,7 @@ deezer:1741494307 | Me Porto Bonito | Bad Bunny | 2022
 deezer:1411181832 | Pepas | Farruko | 2021
 deezer:2463676415 | Y Que Fue? | Don Miguelo | 2020
 deezer:686020062 | Callaita | Bad Bunny | 2019
+deezer:4030925501 | Limoncello | Lucenzo | 2026
 deezer:64848628 | Obsesion | Aventura | 2002
 deezer:3663852612 | Hips Don't Lie | Shakira | 2005
 deezer:3171003031 | VeLDÁ | Bad Bunny | 2025
@@ -485,6 +632,7 @@ deezer:608410292 | La Romana | Bad Bunny | 2018
 deezer:2309786905 | 4K | El Alfa | 2020
 deezer:3731410 | Hotel Room Service | Pitbull | 2009
 deezer:1155477802 | LA NOCHE DE ANOCHE | Bad Bunny | 2020
+deezer:2843869922 | Alibi (with Pabllo Vittar & Yseult) | Sevdaliza | 2024
 deezer:4022674221 | Aquel diciembre | Young Miko | 2026
 deezer:373362011 | Mi Gente | J Balvin | 2017
 deezer:15211178 | Whenever Wherever | Shakira | 2001
@@ -492,6 +640,7 @@ deezer:796342592 | Tusa | KAROL G | 2019
 deezer:3171003041 | EL CLúB | Bad Bunny | 2024
 deezer:142748736 | SUBEME LA RADIO | Enrique Iglesias | 2017
 deezer:3865096921 | Tonto | J Balvin | 2026
+deezer:3590974062 | La Cheyenne | El De Las R's | 2025
 deezer:619949882 | Con Calma | Daddy Yankee | 2019
 deezer:889550892 | Yo Perreo Sola | Bad Bunny | 2020
 deezer:123103236 | DUELE EL CORAZON | Enrique Iglesias | 2016
@@ -520,6 +669,7 @@ deezer:702421852 | COMO UN BEBÉ | J Balvin | 2019
 deezer:2289342455 | WHERE SHE GOES | Bad Bunny | 2023
 deezer:1741494477 | Me Fui de Vacaciones | Bad Bunny | 2022
 deezer:1065099142 | Del Mar | Ozuna | 2020
+deezer:1811481707 | Quevedo: Bzrp Music Sessions Vol. 52/66 | Bizarrap | 2022
 deezer:2886367152 | Rosa | Ridsa | 2024
 deezer:76036246 | Rechazame | Prince Royce | 2010
 deezer:6048762 | Waka Waka (Esto es Africa) | Shakira | 2010
@@ -546,34 +696,47 @@ deezer:1263614212 | Sea Shanty Medley | Home Free | 2021
 deezer:357458061 | Evergreen | Richy Mitch & The Coal Miners | 2017
 deezer:504882102 | Welcome Home Son | Radical Face | 2006
 deezer:2271566 | Baby Can I Hold You | Tracy Chapman | 1988
+deezer:4066557551 | fijord moonlight | fijorddd | 2026
 deezer:78956229 | My Silver Lining | First Aid Kit | 2014
 deezer:435039922 | Mystery of Love | Sufjan Stevens | 2017
 deezer:639587852 | Heartbeats | José González | 2003
 deezer:2638182692 | It's Ok | Tom Rosenthal | 2013
-deezer:7155162 | Prayer In C | Lilly Wood And The Prick | 2014
+deezer:7155162 | Prayer In C | Lilly Wood And The Prick | 2010
 deezer:13174765 | El Condor Pasa (If I Could) | Simon & Garfunkel | 1970
 deezer:2404645845 | The Wisp Sings | Winter Aid | 2013
 deezer:63103299 | Big Jet Plane | Angus & Julia Stone | 2010
+deezer:3431077931 | ჩუბინა | East Duo | 2021
 deezer:3303954441 | Harpy Hare | Yaelokre | 2023
 deezer:16148946 | Mrs. Robinson | Simon & Garfunkel | 1968
+deezer:1010715162 | Watermelon Sugar (Acoustic) | Jonah Baker | 2020
 deezer:2217147387 | Sweet Heat Lightning | Gregory Alan Isakov | 2023
+deezer:3619309262 | Let Me Go | Diva Faune | 2025
+deezer:4114215261 | Mbappe Dictator | Football Society | 2026
 deezer:1343803132 | Soldier Poet King | The Oh Hellos | 2015
 deezer:111406300 | Telling Stories | Tracy Chapman | 2000
+deezer:3754459232 | Little Flower | Biloba | 2026
 deezer:2496484811 | Comets | Cocoon | 2010
 deezer:87320307 | Relator | Pete Yorn | 2009
 deezer:131766218 | Take My Hand | Matt Berry | 2011
 deezer:2079614677 | Hoist The Colours | The Wellermen | 2023
+deezer:3318365721 | Le berger dAure | Valentin Argent | 2025
 deezer:563899692 | The Pirate's Gospel | Alela Diane | 2004
 deezer:138623795 | Enjoy the Silence | Moriarty | 2007
 deezer:126033195 | Stressed Out | Kina Grannis | 2016
 deezer:611525912 | Just You and I | Tom Walker | 2016
 deezer:2477838 | Give Me One Reason | Tracy Chapman | 1995
+deezer:1829244637 | Running Up That Hill (A Deal With God) (Acoustic) | Jae Hall | 2022
+deezer:1066805012 | Don't Start Now | Penny and Sparrow | 2020
 deezer:2645822752 | 4runner | Brenn! | 2023
 deezer:503665572 | In Hell I'll Be in Good Company | The Dead South | 2014
 deezer:15398875 | The Times They Are A-Changin' | Bob Dylan | 1964
+deezer:2829640012 | Je te le laisse | Edgar André | 2024
+deezer:1726551857 | La Kiffance | Victor Marc | 2022
+deezer:3431063791 | Chubina (Re-recorded) | East Duo | 2025
 deezer:2124212137 | September | Sparky Deathcap | 2009
 deezer:1473095292 | The Water Is Fine | Chloe Ament | 2021
 deezer:4043339261 | Monroe | Angus & Julia Stone | 2026
+deezer:2397740655 | Tafra Dak Rrami | Aber Sabeel | 2024
 deezer:2221806127 | Everybody Needs Someone | Noah Cyrus | 2023
 deezer:63282025 | Halo | Lotte Kestner | 2011
 deezer:446979712 | The Bug Collector | Haley Heynderickx | 2017
@@ -583,61 +746,90 @@ deezer:3726214852 | Colapso | Kevin Kaarl | 2019
 deezer:62817673 | Lost In The Light | Bahamas | 2012
 deezer:111406334 | Stand by Me | Tracy Chapman | 2005
 deezer:2271564 | Across the Lines | Tracy Chapman | 1988
+deezer:951927432 | Kanashimi ga Tomaranai I CAN'T STOP THE LONELINESS | Anri | 2011
 deezer:123174968 | The Days of Pearly Spencer | David Mcwilliams | 1967
 deezer:10509740 | Vous... | Merwan Rim | 2005
+deezer:2069041907 | Love Is So Easy | Joel Leggett | 2023
+deezer:951927482 | Remember Summer Days | Anri | 2011
 deezer:1755452827 | Have A Little Faith In Me | SYML | 2022
 deezer:63103306 | Draw Your Swords | Angus & Julia Stone | 2009
 deezer:2441109795 | i am not who i was | Chance Peña | 2023
 deezer:2545932682 | Sweetest Thing | Allman Brown | 2017
+deezer:7155158 | Hey It's OK | Lilly Wood And The Prick | 2010
 deezer:432805302 | Leave a Light On (Acoustic) | Tom Walker | 2017
 deezer:2534211121 | Olalla | Blanco White | 2016
-deezer:1372486612 | Core timpesta | Eppò | 2025
+deezer:1372486612 | Core timpesta | Eppò | 2021
+deezer:3431063781 | Chubina (Slowed) | East Duo | 2025
+deezer:3369745961 | Franklin House | Brenn! | 2025
 deezer:873296 | Everybody Knows | Leonard Cohen | 1988
 deezer:2185005677 | Eat Your Young | Hozier | 2023
 deezer:3106460911 | Boys Don't Cry | Tall Heights | 2020
+deezer:7155160 | Down The Drain | Lilly Wood And The Prick | 2010
+deezer:4099543851 | Навстречу | KAMILL'FO | 2026
+deezer:1846851687 | Acharuli Gandagana | Georgian Folk | 2022
 deezer:2180668977 | Uummati Attanarsimat (Heart of Glass) | Elisapie | 2023
+deezer:4114215271 | Mbappe Dictator (Slowed) | Football Society | 2026
 deezer:3842203 | Bullets | Tunng | 2007
 deezer:63103298 | For You | Angus & Julia Stone | 2010
 deezer:1713809757 | Serotonin | Tom Walker | 2022
+deezer:3709648682 | Dans Mes Rêves | Lucien Marel | 2025
 deezer:1343802662 | Hello My Old Heart | The Oh Hellos | 2011
 deezer:3025516941 | I Am Going Home | Roseaux | 2019
+deezer:670281552 | Perfect Blue | Elle Valenci | 2019
 deezer:13174764 | Bridge Over Troubled Water | Simon & Garfunkel | 1970
 deezer:314683 | The Wanderer | Jil Is Lucky | 2008
+deezer:3414733251 | Lost in Your Eyes | Lukas Gonzalez | 2025
+deezer:12521557 | Oh pétard | L'art A Tatouille | 2011
 deezer:94539432 | I Follow Rivers | Jason Isbell | 2015
+deezer:3589389921 | Zoo (De "Zootopie 2") | Disney | 2025
 deezer:561856742 | Shallow | Lady Gaga | 2018
 deezer:2338371075 | One Of The Girls | The Weeknd | 2023
+deezer:3289333861 | Ma Meilleure Ennemie (from the series Arcane League of Legends) | Stromae | 2025
 deezer:3148151 | Hier encore | Charles Aznavour | 1964
 deezer:82715364 | Skyfall | Adele | 2012
 deezer:561856792 | Always Remember Us This Way | Lady Gaga | 2018
 deezer:1764283667 | I Ain't Worried | OneRepublic | 2022
+deezer:72427143 | Libérée Délivrée (De "La Reine des Neiges"/Bande Originale Française) | Anaïs Delva | 2014
 deezer:103996098 | How Deep Is Your Love | Calvin Harris | 2015
 deezer:3664988 | L'assasymphonie | Mozart Opera Rock | 2009
+deezer:124237488 | CAN'T STOP THE FEELING! (from DreamWorks Animation's "TROLLS") | Justin Timberlake | 2016
 deezer:136864432 | Le bleu lumière | Cerise Calixte | 2016
 deezer:3148132 | Comme Ils Disent | Charles Aznavour | 1972
-deezer:1412033732 | Comptine d'un autre été l'après-midi | Yann Tiersen | 2019
+deezer:2321977215 | Popular (From The Idol Vol. 1 Music from the HBO Original Series) | The Weeknd | 2023
+deezer:1412033732 | Comptine d'un autre été l'après-midi | Yann Tiersen | 2001
 deezer:586860862 | Try Everything | Shakira | 2016
 deezer:1550795112 | Ne parlons pas de Bruno | Sharon Laloum | 2021
 deezer:576431 | Eye of the Tiger | Survivor | 1982
 deezer:1834537307 | Come Back Home | Sofia Carson | 2022
+deezer:778351 | Je fais de toi mon essentiel | Le Roi Soleil | 2005
 deezer:136864438 | Pour les hommes | Anthony Kavanagh | 2016
 deezer:923233352 | Stand Up (from Harriet) | Cynthia Erivo | 2019
 deezer:14954267 | Young Wild & Free | Snoop Dogg | 2001
 deezer:92826786 | Earned It | The Weeknd | 2014
 deezer:1137370842 | Cornfield Chase | Hans Zimmer | 2014
-deezer:13621853 | La Seine (Extrait de la bande originale un monstre à Paris) | Vanessa Paradis | 2025
+deezer:3289333851 | Ma Meilleure Ennemie ft. Coldplay | Stromae | 2025
+deezer:13621853 | La Seine (Extrait de la bande originale un monstre à Paris) | Vanessa Paradis | 2011
 deezer:430264232 | Un Poco Loco | Andrea Santamaria | 2017
 deezer:13978270 | It Will Rain | Bruno Mars | 2011
 deezer:7675403 | I Will Always Love You | Whitney Houston | 1992
 deezer:3055975 | Now We Are Free | Lisa Gerrard | 2000
+deezer:714372202 | L' air Du Vent (De "Pocahontas Une Légende Indienne"/Bande Originale Française du Film) | Laura Mayne | 2015
+deezer:761653142 | Formula (From "Euphoria: Season 1" Soundtrack) | Labrinth | 2019
+deezer:85268734 | Comme un homme (De "Mulan"/Bande Originale Française du Film) | Patrick Fiori | 2014
 deezer:3089789641 | Alibi (Tiësto Remix) | Sevdaliza | 2024
 deezer:435175512 | This Is Me | Keala Settle | 2017
 deezer:93114370 | Reality | Richard Sanderson | 1980
+deezer:723289462 | All For Us (from the HBO Original Series Euphoria) | Labrinth | 2019
 deezer:435175452 | The Greatest Show | Hugh Jackman | 2017
+deezer:122946174 | Just Like Fire (From the Original Motion Picture "Alice Through The Looking Glass") | P!nk | 2016
+deezer:761653242 | Still Don't Know My Name (From "Euphoria: Season 1" Soundtrack) | Labrinth | 2019
+deezer:3354289351 | Playground Love (with Gordon Tracks) | Air | 2000
 deezer:561856952 | I'll Never Love Again | Lady Gaga | 2018
+deezer:1016156092 | Canción del Mariachi (Ilia Topuria "El Matador" Anthem) | Antonio Banderas | 2018
 deezer:72427142 | L’Amour Est un Cadeau | Guillaume Beaujolais | 2013
 deezer:435175502 | Never Enough | Loren Allred | 2017
 deezer:3315246271 | Lumière | Lorien Testard | 2024
-deezer:6524423 | Time | Hans Zimmer | 2003
+deezer:6524423 | Time | Hans Zimmer | 2010
 deezer:3349000871 | Partir un jour | Juliette Armanet | 2025
 deezer:3148150 | Et Pourtant | Charles Aznavour | 1963
 deezer:3156614 | Non je ne regrette rien | Édith Piaf | 1960
@@ -646,25 +838,38 @@ deezer:5167605 | Le Festin | Camille | 2007
 deezer:435175522 | Rewrite The Stars | Zac Efron | 2017
 deezer:136864434 | L'explorateur | Jean-Michel Vaubien | 2016
 deezer:3102708071 | Aller plus loin | Cerise Calixte | 2024
+deezer:747491452 | Ça marche | Le Roi Soleil | 2005
 deezer:136501636 | Angel By The Wings | Sia | 2016
 deezer:7675404 | I Have Nothing | Whitney Houston | 1993
+deezer:84363853 | Partir là-bas (De "La Petite Sirène"/Bande Originale Française du Film) | Claire Guyot | 2014
+deezer:90379179 | The Hanging Tree (From "The Hunger Games: Mockingjay" Soundtrack) | James Newton Howard | 2014
 deezer:83151634 | Mad World | Michael Andrews | 2001
 deezer:1611381502 | Maniac | Sound Of Legend | 2022
+deezer:136338624 | Never Give Up (From "Lion" Soundtrack) | Sia | 2025
+deezer:3260668671 | My Life Is Going On (Música Original De La Serie De TV La Casa De Papel / Money Heist) | Cecilia Krull | 2017
 deezer:846486012 | All I Want | Olivia Rodrigo | 2019
 deezer:3117931 | He's a Pirate | Klaus Badelt | 2006
+deezer:3220819551 | Bella Ciao (Música Original de la Serie la Casa de Papel/ Money Heist) | Manu Pilas | 2018
+deezer:747491442 | Etre à la hauteur | Le Roi Soleil | 2005
 deezer:72427141 | Le Renouveau (De "La Reine des Neiges"/Bande Originale Française) | Emmylou Homs | 2013
 deezer:137727911 | Another Day Of Sun | La La Land Cast | 2016
 deezer:128948754 | Life is a Highway | Rascal Flatts | 2006
 deezer:136864430 | Notre terre | Jean-Luc Guizonne | 2016
+deezer:1579003 | The Winner Takes It All (From "Mamma Mia!") | Meryl Streep | 2008
+deezer:2840588402 | L'amour du risque (Extrait de la bande originale du film "Taxi") | Fonky Family | 1998
 deezer:435175552 | From Now On | Hugh Jackman | 2017
 deezer:77647351 | Not About Angels | Birdy | 2014
 deezer:136864440 | Bling-bling | Adrien Antoine | 2016
+deezer:3664980 | Tatoue moi | Mozart Opera Rock | 2009
+deezer:137727927 | City Of Stars (From "La La Land" Soundtrack) | Ryan Gosling | 2016
 deezer:1550795102 | Sous les apparences | Ana Ka | 2021
 deezer:804239442 | Satisfaction | Benny Benassi | 2003
-deezer:576423 | Burning Heart (From "Rocky IV" Soundtrack) | Survivor | 2024
+deezer:576423 | Burning Heart (From "Rocky IV" Soundtrack) | Survivor | 2006
 deezer:3315246251 | Alicia | Lorien Testard | 2024
 deezer:7821736 | So Cold (The Good Wife Trailer) | Ben Cocks | 2010
 deezer:1550795082 | La famille Madrigal | Camille Timmerman | 2021
+deezer:761653162 | Forever (From "Euphoria: Season 1" Soundtrack) | Labrinth | 2019
+deezer:412379012 | Miraculous (Générique de la série TV) | Lou | 2017
 deezer:2338371095 | Fill The Void | The Weeknd | 2023
 deezer:3102708001 | Je vais avoir un chee-hoo ? | Anthony Kavanagh | 2024
 deezer:1412033722 | La valse d'Amélie | Yann Tiersen | 2001
@@ -672,6 +877,7 @@ deezer:3102707991 | Invente ta route | Ana Ka | 2024
 deezer:3376073381 | LA NUIT | Pomme | 2025
 deezer:3089031 | The Ecstasy Of Gold | Ennio Morricone | 1966
 deezer:88374253 | You're Never Fully Dressed Without a Smile | Sia | 2014
+deezer:3138121591 | Moi qui rêvais d'avoir un frère | TIMEO | 2024
 deezer:3784724892 | Talk To You | ANOTR | 2026
 deezer:4019797791 | Movin' To The Sun | HUGEL | 2026
 deezer:3346909081 | Vaitimbora | Trinix | 2025
@@ -682,6 +888,7 @@ deezer:71403230 | Timber | Pitbull | 2012
 deezer:3135553 | One More Time | Daft Punk | 2001
 deezer:2992806421 | Nightcall | Kavinsky | 2010
 deezer:54420921 | I Love It | Icona Pop | 2012
+deezer:3537531971 | NO BATIDÃO (Slowed) | ZXKAI | 2025
 deezer:3665304322 | Miles Away | Ofenbach | 2025
 deezer:2472322121 | Overdrive | Ofenbach | 2023
 deezer:644296792 | Lost in the Fire | Gesaffelstein | 2019
@@ -691,11 +898,12 @@ deezer:2823893032 | Move | Adam Port | 2024
 deezer:2634178712 | Rock This Party (Everybody Dance Now) | Bob Sinclar | 2006
 deezer:117708444 | Unstoppable | Sia | 2016
 deezer:3694431182 | TIKI TIKI (Slowed) | QMIIR | 2025
-deezer:90726629 | Firestone | Kygo | 2015
+deezer:90726629 | Firestone | Kygo | 2014
+deezer:2633768592 | World Hold On (Children Of The Sky) (FISHER Rework) | Bob Sinclar | 2022
 deezer:3670988772 | I Run | Haven. | 2025
 deezer:695110942 | Music Sounds Better With You | Stardust | 1998
 deezer:134527024 | Rockabye | Clean Bandit | 2016
-deezer:3765177 | Mini Kawoulé | Jessy Matador | 2009
+deezer:3765177 | Mini Kawoulé | Jessy Matador | 2008
 deezer:129287494 | Stereo Love | Edward Maya | 2009
 deezer:81661460 | Amazing | Inna | 2005
 deezer:2589549242 | It's Not Right But It's Okay | Mr. Belt & Wezol | 2024
@@ -731,6 +939,7 @@ deezer:144393668 | Symphony | Clean Bandit | 2017
 deezer:5119642 | Turn The Lights Off | Kato | 2010
 deezer:140295501 | Faded | Alan Walker | 2015
 deezer:2403785095 | Prada | cassö | 2023
+deezer:825112142 | Que Calor (with J Balvin & El Alfa) | Major Lazer | 2019
 deezer:129313094 | In the Name of Love | Martin Garrix | 2016
 deezer:3803035232 | Hello | Martin Solveig | 2010
 deezer:3719324372 | Makina Time | Dimitri Vegas & Like Mike | 2026
@@ -746,7 +955,7 @@ deezer:102875744 | Jubel | Klingande | 2013
 deezer:57630641 | Baby I'm Yours | Breakbot | 2010
 deezer:542335432 | Promises | Calvin Harris | 2018
 deezer:74196011 | Caliente | Inna | 2012
-deezer:3217582731 | PASSO BEM SOLTO (Slowed) | ATLXS | 2025
+deezer:3217582731 | PASSO BEM SOLTO (Slowed) | ATLXS | 2024
 deezer:3026450 | The Magic Key | One-T | 2002
 deezer:395273652 | Katchi (Ofenbach vs. Nick Waterhouse) | Ofenbach | 2017
 deezer:1242670642 | Rasputin | Majestic | 2021
@@ -756,7 +965,7 @@ deezer:2545396411 | Thank You (Not So Bad) | Dimitri Vegas & Like Mike | 2023
 deezer:142328215 | It Ain't Me | Kygo | 2017
 deezer:3808859012 | Intoxicated | Martin Solveig | 2015
 deezer:943376 | Paper Planes | M.I.A. | 2007
-deezer:62419007 | Flashdance...What a Feeling | Irene Cara | 1997
+deezer:62419007 | Flashdance...What a Feeling | Irene Cara | 1983
 deezer:72363411 | You & Me (Flume Remix) | Disclosure | 2012
 deezer:1136200 | C'est beau la bourgeoisie | Discobitch | 2008
 deezer:3496798801 | Ce matin va être une pure soirée | Fatal Bazooka | 2010
@@ -767,14 +976,19 @@ deezer:3156247951 | La Verdolaga | HUGEL | 2024
 deezer:4045099331 | Maladie | Mauvais Djo | 2026
 deezer:3995047821 | Sexy Nana | Aya Nakamura | 2026
 deezer:4072209741 | Pilé | Mauvais Djo | 2025
+deezer:3940103361 | Pineapple | Leto | 2026
 deezer:3862146511 | Pocahontas | PLK | 2026
 deezer:3935276381 | Soleil | GIMS | 2026
+deezer:3921078891 | RENÉ CAOVILLA | Gambi | 2026
 deezer:4034363911 | Séminaire | Bello&Dallas | 2026
 deezer:410780162 | Parfum quartier | Jul | 2017
+deezer:3809346722 | B.M.S (by my side) | Rambo Goyard | 2026
 deezer:3884482901 | Picasso | Bigflo & Oli | 2026
 deezer:3758716202 | SPA | GIMS | 2026
+deezer:4075293631 | Réanymé | Tayc | 2026
 deezer:3401257811 | RUINART | R2 | 2025
-deezer:3579710801 | LOVE YOU | Nono La Grinta | 2026
+deezer:4059400101 | Mélo Décalé | Tiakola | 2026
+deezer:3579710801 | LOVE YOU | Nono La Grinta | 2025
 deezer:3380338381 | ZOU BISOU | Theodora | 2025
 deezer:3884172321 | Miss Kitoko | Theodora | 2026
 deezer:3484365861 | PARISIENNE | GIMS | 2025
@@ -786,21 +1000,27 @@ deezer:3442901201 | Adriano | Niska | 2025
 deezer:4013762661 | Le monde est à moi | Jul | 2026
 deezer:3923462561 | Full | Bilouki | 2026
 deezer:3842413311 | Sex Model | PLK | 2026
+deezer:3591983602 | Génération impolie | Franglish | 2025
 deezer:3396278771 | Catalina | Cheu-B | 2025
 deezer:701987352 | Sous la lune | Jul | 2019
 deezer:3757199932 | LES DIAMANTS DE BOKASSA | Ninho | 2026
 deezer:3230221521 | Pélican | L2B | 2025
 deezer:3938003381 | GIRLFRIEND | Tayc | 2025
+deezer:4047900401 | NETFLIX CHILL | Zola | 2026
 deezer:3977967151 | 18 Carats | Alonzo | 2026
 deezer:600108042 | Asalto | Jul | 2018
+deezer:3461991861 | Congolaise | Gradur | 2025
 deezer:3301821051 | Melrose Place | KeBlack | 2025
+deezer:4104346381 | À tes côtés | Djadja & Dinaz | 2026
 deezer:3330178491 | KYKY2BONDY | Hamza | 2025
+deezer:4070114711 | Chérie coco | Leto | 2026
 deezer:3313220951 | Jalouse | Werenoi | 2024
 deezer:3974298731 | Emprise | GIMS | 2026
-deezer:3038510331 | Movie | L2B | 2025
+deezer:3038510331 | Movie | L2B | 2024
 deezer:4007826141 | Huracan | Kaaris | 2026
 deezer:3045169941 | CIEL | GIMS | 2024
 deezer:3460711121 | VIANO | RK | 2025
+deezer:3837291721 | Argent Sale - A COLORS SHOW | La Rvfleuze | 2026
 deezer:3629572332 | BLOQUÉ | GIMS | 2025
 deezer:2635800852 | Faut pas | PLK | 2024
 deezer:1049999812 | Bande organisée | Kofs | 2020
@@ -808,6 +1028,7 @@ deezer:3674551372 | OG | Genezio | 2025
 deezer:3314018771 | Phénoménal | Jul | 2025
 deezer:3689236742 | Je suis love | Jul | 2025
 deezer:4020219591 | ATL | La Mano 1.9 | 2026
+deezer:3684409902 | FOCUS | Ashvma | 2025
 deezer:3977967201 | En Goumin | Alonzo | 2026
 deezer:75867418 | J'oublie tout | Jul | 2014
 deezer:3060824431 | FASHION DESIGNA | Theodora | 2024
@@ -817,16 +1038,20 @@ deezer:652380172 | La vie qu'on mène | Ninho | 2019
 deezer:600108222 | Pour un violet | Jul | 2018
 deezer:3862146611 | Tu dors ? | PLK | 2026
 deezer:479801712 | Un Poco | Ninho | 2018
-deezer:3559587531 | JAMAIS TOI | R2 | 2026
+deezer:3559587531 | JAMAIS TOI | R2 | 2025
 deezer:2872998762 | Monaco | Guy2bezbar | 2024
 deezer:3538842341 | Un monde à l'autre | GP Explorer | 2025
 deezer:3678134142 | Coco Chanel | Meryl | 2025
 deezer:3911003931 | PARLU | La Rvfleuze | 2026
 deezer:3250035161 | Mood | KeBlack | 2025
+deezer:3821043271 | Na Za Désolé | Black Cat | 2026
+deezer:3977159061 | Pangor (Swalalala) | Djaksparo | 2026
 deezer:994675552 | Italia | Jul | 2020
+deezer:4122431801 | L'humain | Bouss | 2026
 deezer:3015707071 | CARTIER SANTOS | SDM | 2024
 deezer:3535808921 | Flying Blue | La Fouine | 2025
 deezer:2654111972 | Dolce Camara | Booba | 2024
+deezer:4064189131 | Sicario | Timal | 2026
 deezer:1109731 | Lose Yourself | Eminem | 2002
 deezer:2325523305 | Mia | Seysey | 2023
 deezer:2527530731 | Petit génie | Jungeli | 2023
@@ -842,14 +1067,17 @@ deezer:3059764391 | No lo sé | Lacrim | 2024
 deezer:3381260831 | Pa Pa Paw | Damso | 2025
 deezer:1759430967 | Meuda | Tiakola | 2022
 deezer:767071002 | La bandite | Jul | 2019
+deezer:4116034381 | GROSEILLE | Timar | 2026
 deezer:3569313901 | Je pense à toi | Guy2bezbar | 2025
 deezer:3988327671 | Arena de Cuba | Bello&Dallas | 2026
 deezer:3731779982 | Serrure #5 | La Rvfleuze | 2025
 deezer:3200156051 | Sexy Woman | La Mano 1.9 | 2025
 deezer:3381260801 | Impardonnable | Damso | 2025
 deezer:3835893541 | ELLE VOULAIT | RnBoi | 2026
+deezer:3675222292 | méli-mélo | kulturr | 2025
 deezer:3602108062 | MON BÉBÉ | RnBoi | 2025
 deezer:3732618262 | AVEC MOI | RnBoi | 2026
+deezer:3386786741 | Busy | kulturr | 2025
 deezer:908604612 | Blinding Lights | The Weeknd | 2019
 deezer:3867905101 | I Just Might | Bruno Mars | 2026
 deezer:2755315691 | Love Me Not | Ravyn Lenae | 2024
@@ -887,6 +1115,7 @@ deezer:908604652 | After Hours | The Weeknd | 2020
 deezer:72544835 | Game Over | Vitaa | 2013
 deezer:2610444912 | Avec classe | Corneille | 2002
 deezer:1137703342 | Jolie nana | Aya Nakamura | 2020
+deezer:3675218192 | jaloux fâché | kulturr | 2025
 deezer:3210598431 | Baptized In Fear | The Weeknd | 2025
 deezer:3835893581 | BESTIE | RnBoi | 2026
 deezer:2651394872 | Position | Franglish | 2024
@@ -902,13 +1131,15 @@ deezer:487484142 | September | Earth Wind & Fire | 1995
 deezer:1278960402 | House Of Balloons / Glass Table Girls | The Weeknd | 2011
 deezer:3210598381 | Wake Me Up | The Weeknd | 2025
 deezer:1075781 | No Scrubs | TLC | 1999
-deezer:1161679 | Family Affair | Mary J. Blige | 2001
+deezer:1161679 | Family Affair | Mary J. Blige | 2000
 deezer:1855507607 | American Boy | Estelle | 2007
 deezer:429975012 | Bob Marley | Dadju | 2017
+deezer:2979378471 | Foutaise | Gaëlle | 2024
 deezer:1860754817 | Dark Red | Steve Lacy | 2017
 deezer:908859832 | Heartless | The Weeknd | 2019
 deezer:3867905091 | Cha Cha Cha | Bruno Mars | 2026
 deezer:346967941 | I'm So Excited | The Pointer Sisters | 1982
+deezer:2779554271 | Lalla | Kore | 2025
 deezer:1614228192 | Sacrifice | The Weeknd | 2022
 deezer:106506510 | Often | The Weeknd | 2014
 deezer:1706737417 | Foufoune Palace | Luidji | 2017
@@ -916,9 +1147,10 @@ deezer:1390738122 | Mon soleil | Dadju | 2021
 deezer:781478122 | 40% | Aya Nakamura | 2018
 deezer:397141362 | Brisé | Aya Nakamura | 2017
 deezer:1694479637 | Laptop | Kalash | 2022
-deezer:1118206 | A fleur de toi | Vitaa | 2007
+deezer:1118206 | A fleur de toi | Vitaa | 2006
 deezer:78869181 | Lonely | Akon | 2003
 deezer:675343172 | I Was Never There | The Weeknd | 2018
+deezer:1706519567 | Pour deux âmes solitaires (Part.1) | Luidji | 2017
 deezer:694359102 | Oh la folle | Marwa Loud | 2019
 deezer:2485118 | Single Ladies (Put a Ring on It) | Beyoncé | 2008
 deezer:3835893571 | OUI | RnBoi | 2026
@@ -936,14 +1168,14 @@ deezer:15597245 | DJ Got Us Fallin' In Love | USHER | 2010
 deezer:1084245712 | Amour toxic | Dadju | 2020
 deezer:403074632 | Dusk Till Dawn | ZAYN | 2017
 deezer:2988053201 | Dancing In The Flames | The Weeknd | 2024
-deezer:4603408 | Billie Jean | Michael Jackson | 1983
+deezer:4603408 | Billie Jean | Michael Jackson | 1982
 deezer:4763165 | Beat It | Michael Jackson | 1982
 deezer:1899060227 | End of Beginning | Djo | 2022
 deezer:65723649 | Another Love | Tom Odell | 2012
 deezer:983238 | J't'emmène au vent | Louise Attaque | 1997
 deezer:4603400 | Smooth Criminal | Michael Jackson | 1987
 deezer:13791930 | Smells Like Teen Spirit | Nirvana | 1991
-deezer:985745702 | Wonderwall | Oasis | 1996
+deezer:985745702 | Wonderwall | Oasis | 1995
 deezer:59509611 | Dirty Diana | Michael Jackson | 1987
 deezer:546578 | Lonely Day | System of a Down | 2005
 deezer:3157972 | Viva La Vida | Coldplay | 2008
@@ -954,8 +1186,8 @@ deezer:59509531 | Bad | Michael Jackson | 1987
 deezer:66506871 | Sweater Weather | The Neighbourhood | 2012
 deezer:18190280 | Summertime Sadness | Lana Del Rey | 2012
 deezer:1153182282 | Seven Nation Army | The White Stripes | 2003
-deezer:80274512 | Bring Me To Life | Evanescence | 2003
-deezer:540175 | ...Baby One More Time | Britney Spears | 1998
+deezer:80274512 | Bring Me To Life | Evanescence | 2002
+deezer:540175 | ...Baby One More Time | Britney Spears | 1999
 deezer:912486 | With Or Without You | U2 | 1987
 deezer:870090 | J'ai demandé à la lune | Indochine | 2002
 deezer:2263033 | Sultans Of Swing | Dire Straits | 1978
@@ -963,7 +1195,7 @@ deezer:13791932 | Come As You Are | Nirvana | 1991
 deezer:4033381501 | j'me demande | Ambre | 2026
 deezer:79587580 | Chandelier | Sia | 2014
 deezer:1951821737 | THE LONELIEST | Måneskin | 2022
-deezer:1483825282 | Nothing Else Matters | Metallica | 1995
+deezer:1483825282 | Nothing Else Matters | Metallica | 1991
 deezer:353398321 | Eyes Without A Face | Billy Idol | 1984
 deezer:9997018 | Bohemian Rhapsody | Queen | 1975
 deezer:714554 | Dis-moi | BB Brunes | 2007
@@ -971,19 +1203,19 @@ deezer:985722002 | Don't Look Back In Anger | Oasis | 1995
 deezer:14299463 | Still Loving You | Scorpions | 1984
 deezer:137233986 | The Kids Aren't Alright | The Offspring | 1998
 deezer:134036248 | Another Day in Paradise | Phil Collins | 1989
-deezer:3098840 | The Scientist | Coldplay | 2003
+deezer:3098840 | The Scientist | Coldplay | 2002
 deezer:2431707315 | Dream On | Aerosmith | 1973
 deezer:14299589 | Paradise | Coldplay | 2011
 deezer:3155135 | House of the Rising Sun | The Animals | 1964
 deezer:69962764 | Should I Stay or Should I Go | The Clash | 1982
 deezer:3135726 | Un autre monde | Telephone | 1984
 deezer:88003859 | Stairway to Heaven | Led Zeppelin | 1971
-deezer:7674865 | How to Save a Life | The Fray | 2006
-deezer:116914094 | Another Brick in the Wall Pt. 2 | Pink Floyd | 1999
+deezer:7674865 | How to Save a Life | The Fray | 2005
+deezer:116914094 | Another Brick in the Wall Pt. 2 | Pink Floyd | 1979
 deezer:60200391 | Just Give Me a Reason | P!nk | 2012
 deezer:12209331 | Don't Stop Me Now | Queen | 1978
 deezer:3254673641 | Next Summer | Damiano David | 2025
-deezer:3128096 | Yellow | Coldplay | 2001
+deezer:3128096 | Yellow | Coldplay | 2000
 deezer:1522223672 | Easy On Me | Adele | 2021
 deezer:505510232 | Knockin' On Heaven's Door | Guns N' Roses | 1991
 deezer:398570642 | Bitter Sweet Symphony | The Verve | 1997
@@ -991,8 +1223,8 @@ deezer:63480992 | The Chain | Fleetwood Mac | 1977
 deezer:15589893 | Gimme More | Britney Spears | 2007
 deezer:3098100 | Can't Get You out of My Head | Kylie Minogue | 2001
 deezer:3102130 | Song 2 | Blur | 1997
-deezer:3135725 | Ça c'est vraiment toi | Telephone | 2004
-deezer:2267042 | I Was Made For Lovin' You | KISS | 1995
+deezer:3135725 | Ça c'est vraiment toi | Telephone | 2000
+deezer:2267042 | I Was Made For Lovin' You | KISS | 1979
 deezer:3256397 | Cendrillon | Telephone | 1982
 deezer:71828723 | How You Remind Me | Nickelback | 2000
 deezer:92198180 | Midnight City | M83 | 2010
@@ -1000,15 +1232,15 @@ deezer:2514681 | Money For Nothing | Dire Straits | 1985
 deezer:1030221 | Down Under | Men at Work | 1981
 deezer:3256016 | New York avec toi | Telephone | 1984
 deezer:12206946 | Another One Bites The Dust | Queen | 1980
-deezer:18190270 | Born To Die | Lana Del Rey | 2012
+deezer:18190270 | Born To Die | Lana Del Rey | 2011
 deezer:12274786 | Under Pressure | Queen | 1981
-deezer:3098841 | Clocks | Coldplay | 2003
+deezer:3098841 | Clocks | Coldplay | 2002
 deezer:109176426 | Makeba | Jain | 2015
 deezer:538660022 | Livin' On A Prayer | Bon Jovi | 1986
 deezer:715954 | Holiday | Green Day | 2004
 deezer:518458172 | Sweet Child O' Mine | Guns N' Roses | 1987
 deezer:59509561 | Liberian Girl | Michael Jackson | 1987
-deezer:927900 | Wind Of Change | Scorpions | 1991
+deezer:927900 | Wind Of Change | Scorpions | 1990
 deezer:4603411 | Man in the Mirror | Michael Jackson | 1987
 deezer:1184425 | Chasing Cars | Snow Patrol | 2005
 deezer:983242 | Ton invitation | Louise Attaque | 1997
@@ -1033,6 +1265,7 @@ deezer:4019250501 | Sur la piste | Eva | 2026
 deezer:3579685431 | The Fate of Ophelia | Taylor Swift | 2025
 deezer:144389048 | Lush Life | Zara Larsson | 2015
 deezer:2743578151 | Espresso | Sabrina Carpenter | 2024
+deezer:4762941 | J'irai où tu iras (with Jean-Jacques Goldman) | Céline Dion | 2009
 deezer:3412611901 | Gabriela | KATSEYE | 2025
 deezer:3794985752 | Homewrecker | sombr | 2026
 deezer:3210709941 | Ordinary | Alex Warren | 2024
@@ -1065,6 +1298,7 @@ deezer:3580188661 | Gone Gone Gone | David Guetta | 2025
 deezer:3930376831 | Awake Tonight | AFROJACK | 2026
 deezer:4088876841 | Dis-le | Angèle | 2026
 deezer:3513841141 | Tant pis pour elle | Charlotte Cardin | 2025
+deezer:4032295241 | des fleurs x stromae | Tove Lo | 2026
 deezer:3098100311 | Mauvais Garçon | Helena | 2024
 deezer:14525574 | We Found Love | Rihanna | 2011
 deezer:4076148901 | DNA (More Than A Game) | Andrea Bocelli | 2026
@@ -1075,6 +1309,7 @@ deezer:3982812651 | Just The Way You Are (David Guetta Remix) | Milky | 2026
 deezer:831196 | Human Nature | Michael Jackson | 1982
 deezer:4078104981 | the cure | Olivia Rodrigo | 2026
 deezer:3602074142 | Choosin' Texas | Ella Langley | 2025
+deezer:4005753051 | ONE TRACK MIND (PART II) | Naïka | 2026
 deezer:2105158337 | Flowers | Miley Cyrus | 2023
 deezer:7043918 | J'ai laissé | Christophe Maé | 2010
 deezer:81263834 | Le chant des sirènes | Fréro Delavega | 2014

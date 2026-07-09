@@ -129,7 +129,7 @@
 
   <script>
     // Accueil en deux temps : le texte de présentation d'abord,
-    // puis la grille des jeux au clic (avec ancrage #jeux pour l'accès direct).
+    // puis la grille des jeux au clic sur le bouton.
     (function(){
       var welcome = document.getElementById('welcome');
       var intro   = document.getElementById('gamesIntro');
@@ -137,17 +137,13 @@
       var btn     = document.getElementById('enterBtn');
       if(!welcome || !grid || !btn) return;
 
-      function showGames(){
+      btn.addEventListener('click', function(){
         welcome.hidden = true;
         intro.hidden = false;
         grid.hidden = false;
         intro.classList.add('fade-in');
         grid.classList.add('fade-in');
-        if(location.hash !== '#jeux') history.replaceState(null, '', '#jeux');
-      }
-      btn.addEventListener('click', showGames);
-      // Lien direct vers les jeux : .../#jeux saute la présentation
-      if(location.hash === '#jeux') showGames();
+      });
     })();
 
     // Le bouton coffee reste en bas de l'écran, et remonte au-dessus du bandeau
