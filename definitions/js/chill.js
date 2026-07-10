@@ -282,10 +282,10 @@ function showVote() {
 
   voteSlider.disabled = already;
   voteBtn.disabled = already;
-  voteBtn.textContent = already ? "Déjà voté ✓" : "Envoyer mon avis";
+  voteBtn.textContent = already ? "Voté ✓" : "Envoyer";
   voteNote.textContent = already
     ? "Vous avez déjà noté ce mot. Merci !"
-    : "Votre note aide à mieux classer les mots pour tout le monde. Aucune information personnelle n'est envoyée.";
+    : "Aide à mieux classer les mots. Rien de personnel n'est envoyé.";
 }
 
 function hideVote() {
@@ -309,7 +309,7 @@ async function submitVote() {
     // Un vote perdu ne doit jamais gener la partie.
     voteBtn.disabled = false;
     voteBtn.textContent = "Réessayer";
-    voteNote.textContent = "Envoi impossible pour le moment. Vous pouvez continuer à jouer.";
+    voteNote.textContent = "Envoi impossible. Vous pouvez continuer à jouer.";
   }
 }
 

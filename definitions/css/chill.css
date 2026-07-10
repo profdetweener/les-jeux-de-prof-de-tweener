@@ -145,14 +145,15 @@
 /* --- Vote de difficulte ------------------------------------------------------
    Apparait uniquement apres revelation de la definition : on ne peut juger la
    difficulte d'un mot qu'une fois son sens connu. Le curseur accepte les
-   decimales, car l'hesitation entre deux niveaux est une information utile. */
+   decimales, car l'hesitation entre deux niveaux est une information utile.
+   Bloc volontairement discret : il ne doit pas concurrencer la definition. */
 
 .chill-vote {
-  margin-top: 14px;
+  margin-top: 12px;
   background: var(--beige);
   border: 1px solid var(--beige-fonce);
   border-radius: var(--rayon-sm);
-  padding: 14px 18px 16px;
+  padding: 10px 14px 11px;
 }
 .chill-vote[hidden] { display: none; }
 
@@ -160,20 +161,20 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 .chill-vote-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--bleu-nuit);
 }
 .chill-vote-value {
   font-family: "Menlo", "Consolas", monospace;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--bleu-accent);
-  min-width: 42px;
+  min-width: 34px;
   text-align: right;
 }
 
@@ -181,7 +182,7 @@
   width: 100%;
   accent-color: var(--bleu-accent);
   cursor: pointer;
-  height: 4px;
+  height: 3px;
   margin: 0;
 }
 .chill-vote input[type="range"]:disabled { cursor: not-allowed; opacity: 0.55; }
@@ -189,25 +190,39 @@
 .chill-vote-scale {
   display: flex;
   justify-content: space-between;
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--gris-texte);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
+/* Note et bouton cote a cote : le bloc reste sur une hauteur minimale. */
+.chill-vote-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 9px;
+}
+.chill-vote-note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--gris-texte);
+  flex: 1;
+}
 .chill-vote-btn {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  padding: 10px 16px;
+  flex-shrink: 0;
+  padding: 6px 15px;
   border: 1px solid var(--gris-clair);
   border-radius: var(--rayon-sm);
   background: var(--blanc);
   font: inherit;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12.5px;
   color: var(--bleu-nuit);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
 .chill-vote-btn:hover:not(:disabled) {
   background: #eef5ee;
@@ -215,9 +230,7 @@
 }
 .chill-vote-btn:disabled { opacity: 0.6; cursor: default; }
 
-.chill-vote-note {
-  margin: 10px 0 0;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--gris-texte);
+@media (max-width: 520px) {
+  .chill-vote-foot { flex-direction: column; align-items: stretch; gap: 8px; }
+  .chill-vote-btn { width: 100%; }
 }
