@@ -1305,15 +1305,27 @@ export const WORD_BANK: WordEntry[] = [
  * @param maxDiff difficulte maximale acceptee (1-5, defaut 5)
  * @returns l'index tire et l'entree correspondante
  */
+/** Une expression = une entree contenant au moins un espace. */
+function isExpression(entry: WordEntry): boolean {
+  return /\s/.test(entry.word);
+}
+
 export function drawWord(
   alreadyDrawn: number[],
   minDiff: number = 1,
-  maxDiff: number = 5
+  maxDiff: number = 5,
+  entryType: "words" | "expressions" | "all" = "all"
 ): { index: number; entry: WordEntry } {
   const rand = (n: number): number => {
     const buf = new Uint16Array(1);
     crypto.getRandomValues(buf);
     return buf[0] % n;
+  };
+
+  const typeOk = (e: WordEntry): boolean => {
+    if (entryType === "words") return !isExpression(e);
+    if (entryType === "expressions") return isExpression(e);
+    return true;
   };
 
   // Tirage STRATIFIE : on choisit d'abord un niveau de difficulte au hasard
@@ -1324,10 +1336,11 @@ export function drawWord(
   const drawn = new Set(alreadyDrawn);
   const byLevel = new Map<number, number[]>();
   for (let i = 0; i < WORD_BANK.length; i++) {
-    const d = WORD_BANK[i].difficulty;
-    if (d < minDiff || d > maxDiff) continue;
-    if (!byLevel.has(d)) byLevel.set(d, []);
-    byLevel.get(d)!.push(i);
+    const e = WORD_BANK[i];
+    if (e.difficulty < minDiff || e.difficulty > maxDiff) continue;
+    if (!typeOk(e)) continue;
+    if (!byLevel.has(e.difficulty)) byLevel.set(e.difficulty, []);
+    byLevel.get(e.difficulty)!.push(i);
   }
 
   // Niveaux ayant encore au moins un mot non tire.
@@ -1339,11 +1352,15 @@ export function drawWord(
   if (exhausted) levels = [...byLevel.keys()];
 
   if (levels.length === 0) {
-    // Cas degenere : fourchette de difficulte qui ne matche rien.
-    // Fallback sur la banque complete pour ne pas casser la partie.
-    const allIndices = WORD_BANK.map((_, i) => i);
-    const remaining = allIndices.filter((i) => !drawn.has(i));
-    const fallback = remaining.length > 0 ? remaining : allIndices;
+    // Cas degenere : la combinaison difficulte x type ne matche rien.
+    // On elargit par etapes plutot que de sauter direct a la banque entiere :
+    // d'abord on garde le type demande (toutes difficultes), puis en dernier
+    // recours seulement, toute la banque. Ainsi "expressions" ne renvoie jamais
+    // un mot simple si la banque contient au moins une expression.
+    const byType = WORD_BANK.map((_, i) => i).filter((i) => typeOk(WORD_BANK[i]));
+    const base = byType.length > 0 ? byType : WORD_BANK.map((_, i) => i);
+    const remaining = base.filter((i) => !drawn.has(i));
+    const fallback = remaining.length > 0 ? remaining : base;
     const index = fallback[rand(fallback.length)];
     return { index, entry: WORD_BANK[index] };
   }

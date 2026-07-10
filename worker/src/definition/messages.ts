@@ -88,7 +88,17 @@ export interface GameConfig {
    */
   minDifficulty: 1 | 2 | 3 | 4 | 5;
   maxDifficulty: 1 | 2 | 3 | 4 | 5;
+  /**
+   * Type d'entrees tirees : mots simples, expressions (locutions contenant un
+   * espace), ou les deux. Aligne le mode competitif sur le mode chill, qui
+   * proposait deja ce filtre.
+   * Absent (anciens clients) => "all", tolere par validateConfig.
+   */
+  entryType: EntryType;
 }
+
+/** Filtre de type d'entree. Une "expression" contient au moins un espace. */
+export type EntryType = "words" | "expressions" | "all";
 
 // ===========================================
 // Etat de la room (vu par le client)
@@ -222,7 +232,49 @@ export type ServerMessage =
   | {
       type: "game_finished";
       ranking: PlayerInfo[];
+      /** Statistiques agregees de la partie. Absent = ancien serveur. */
+      stats?: GameStats;
     };
+
+// ===========================================
+// Statistiques de fin de partie
+// ===========================================
+
+/** Statistiques par joueur, cumulees sur toute la partie. */
+export interface PlayerStats {
+  pseudo: string;
+  /** Score total (redondant avec le ranking, pratique cote client). */
+  totalScore: number;
+  /** Nombre de manches ou le joueur etait present au scoring. */
+  roundsPlayed: number;
+  /** Points moyens par manche jouee. Le vrai indicateur de regularite. */
+  averageScore: number;
+  /** Meilleure note obtenue sur une manche (en points). */
+  bestRoundScore: number;
+  /** Manches ou ce joueur a obtenu la meilleure note (ex aequo comptes). */
+  roundWins: number;
+  /** Definitions laissees vides. */
+  emptyDefinitions: number;
+  /**
+   * Note moyenne RECUE (0 a 1), sur les votes des autres. Mesure la qualite
+   * percue des definitions.
+   */
+  averageReceived: number;
+  /**
+   * Note moyenne DONNEE (0 a 1), sur les votes emis. Bien plus basse que la
+   * moyenne generale = juge severe ; bien plus haute = juge genereux.
+   */
+  averageGiven: number;
+}
+
+export interface GameStats {
+  /** Nombre de manches effectivement scorees. */
+  roundsPlayed: number;
+  /** Un bloc par joueur, ordre non garanti. */
+  players: PlayerStats[];
+  /** Note moyenne donnee, tous joueurs confondus (reference pour la severite). */
+  averageVoteOverall: number;
+}
 
 // ===========================================
 // Codes d'erreur

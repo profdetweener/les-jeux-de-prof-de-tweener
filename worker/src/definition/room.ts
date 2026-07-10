@@ -17,7 +17,9 @@ import type {
   ClientMessage,
   ErrorCode,
   GameConfig,
+  GameStats,
   PlayerInfo,
+  PlayerStats,
   RoomPhase,
   RoundResult,
   ServerMessage,
@@ -40,6 +42,34 @@ interface PlayerSession {
   hasLocked: boolean; // a verrouille sa definition pour la manche en cours
 }
 
+/**
+ * Compteurs bruts accumules manche apres manche. Convertis en PlayerStats
+ * (avec moyennes) au moment de finishGame.
+ */
+interface RawPlayerStats {
+  roundsPlayed: number;
+  bestRoundScore: number;
+  roundWins: number;
+  emptyDefinitions: number;
+  sumReceived: number;
+  countReceived: number;
+  sumGiven: number;
+  countGiven: number;
+}
+
+function emptyRawStats(): RawPlayerStats {
+  return {
+    roundsPlayed: 0,
+    bestRoundScore: 0,
+    roundWins: 0,
+    emptyDefinitions: 0,
+    sumReceived: 0,
+    countReceived: 0,
+    sumGiven: 0,
+    countGiven: 0,
+  };
+}
+
 export class DefinitionRoom {
   private state: DurableObjectState;
   private players: Map<string, PlayerSession>;
@@ -58,6 +88,16 @@ export class DefinitionRoom {
   private votes: VoteMatrix; // voter -> author -> valeur
   private currentResult: RoundResult | null;
 
+  /**
+   * Accumulateur de statistiques de partie.
+   *
+   * On n'archive PAS l'historique complet des manches (memoire d'un Durable
+   * Object, et payload de fin de partie). On accumule uniquement les compteurs
+   * necessaires aux stats finales. Remis a zero a chaque demarrage de partie.
+   */
+  private statRoundsPlayed: number;
+  private statByPlayer: Map<string, RawPlayerStats>;
+
   constructor(state: DurableObjectState) {
     this.state = state;
     this.players = new Map();
@@ -74,6 +114,8 @@ export class DefinitionRoom {
     this.definitions = {};
     this.votes = {};
     this.currentResult = null;
+    this.statRoundsPlayed = 0;
+    this.statByPlayer = new Map();
 
     this.state.blockConcurrencyWhile(async () => {
       try {
@@ -425,6 +467,9 @@ export class DefinitionRoom {
     for (const p of this.players.values()) p.totalScore = 0;
     this.currentRound = 0;
     this.drawnIndices = [];
+    // Nouvelle partie : les statistiques repartent de zero.
+    this.statRoundsPlayed = 0;
+    this.statByPlayer = new Map();
     this.startNextRound();
   }
 
@@ -434,7 +479,8 @@ export class DefinitionRoom {
     const { index, entry } = drawWord(
       this.drawnIndices,
       this.config.minDifficulty ?? 1,
-      this.config.maxDifficulty ?? 5
+      this.config.maxDifficulty ?? 5,
+      this.config.entryType ?? "all"
     );
     this.drawnIndices.push(index);
     this.currentWord = entry.word;
@@ -673,6 +719,8 @@ export class DefinitionRoom {
       this.currentResult.aggregateByAuthor = aggregateByAuthor;
       this.currentResult.scoreByPlayer = scoreByPlayer;
 
+      this.collectRoundStats(authors, aggregateByAuthor, scoreByPlayer);
+
       for (const [p, score] of Object.entries(scoreByPlayer)) {
         const session = this.players.get(p);
         if (session) {
@@ -702,6 +750,106 @@ export class DefinitionRoom {
     }
   }
 
+  /**
+   * Accumule les compteurs d'une manche qui vient d'etre scoree.
+   *
+   * Note sur "roundWins" : on compte les manches ou l'auteur atteint la
+   * meilleure note agregee. Les ex aequo sont TOUS credites (deux joueurs a
+   * 0.9 gagnent chacun une manche), sinon le total des victoires ne
+   * correspondrait plus au nombre de manches et l'affichage serait trompeur.
+   * Une manche ou personne n'a marque (tous a 0) ne fait aucun gagnant.
+   */
+  private collectRoundStats(
+    authors: string[],
+    aggregateByAuthor: Record<string, number>,
+    scoreByPlayer: Record<string, number>
+  ): void {
+    this.statRoundsPlayed += 1;
+
+    const statFor = (p: string): RawPlayerStats => {
+      let s = this.statByPlayer.get(p);
+      if (!s) {
+        s = emptyRawStats();
+        this.statByPlayer.set(p, s);
+      }
+      return s;
+    };
+
+    // Meilleure note agregee de la manche (0 => pas de gagnant).
+    let best = 0;
+    for (const a of authors) best = Math.max(best, aggregateByAuthor[a] ?? 0);
+
+    for (const author of authors) {
+      const s = statFor(author);
+      s.roundsPlayed += 1;
+
+      const score = scoreByPlayer[author] ?? 0;
+      if (score > s.bestRoundScore) s.bestRoundScore = score;
+
+      const agg = aggregateByAuthor[author] ?? 0;
+      if (best > 0 && agg >= best - 1e-9) s.roundWins += 1;
+
+      if ((this.definitions[author] ?? "").trim().length === 0) {
+        s.emptyDefinitions += 1;
+      }
+    }
+
+    // Notes recues et donnees, a partir de la matrice de votes.
+    for (const voter of authors) {
+      const row = this.votes[voter];
+      if (!row) continue;
+      for (const author of authors) {
+        if (voter === author) continue; // pas d'auto-vote
+        const v = row[author];
+        if (typeof v !== "number" || !Number.isFinite(v)) continue;
+        const sv = statFor(voter);
+        sv.sumGiven += v;
+        sv.countGiven += 1;
+        const sa = statFor(author);
+        sa.sumReceived += v;
+        sa.countReceived += 1;
+      }
+    }
+  }
+
+  /** Convertit les compteurs bruts en statistiques presentables. */
+  private buildGameStats(): GameStats {
+    const round1 = (n: number) => Math.round(n * 10) / 10;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    const players: PlayerStats[] = [];
+    let sumAllGiven = 0;
+    let countAllGiven = 0;
+
+    for (const [pseudo, s] of this.statByPlayer) {
+      const session = this.players.get(pseudo);
+      sumAllGiven += s.sumGiven;
+      countAllGiven += s.countGiven;
+      players.push({
+        pseudo,
+        totalScore: session ? session.totalScore : 0,
+        roundsPlayed: s.roundsPlayed,
+        averageScore:
+          s.roundsPlayed > 0 && session
+            ? round1(session.totalScore / s.roundsPlayed)
+            : 0,
+        bestRoundScore: round1(s.bestRoundScore),
+        roundWins: s.roundWins,
+        emptyDefinitions: s.emptyDefinitions,
+        averageReceived:
+          s.countReceived > 0 ? round2(s.sumReceived / s.countReceived) : 0,
+        averageGiven: s.countGiven > 0 ? round2(s.sumGiven / s.countGiven) : 0,
+      });
+    }
+
+    return {
+      roundsPlayed: this.statRoundsPlayed,
+      players,
+      averageVoteOverall:
+        countAllGiven > 0 ? round2(sumAllGiven / countAllGiven) : 0,
+    };
+  }
+
   private finishGame(): void {
     this.phase = "finished";
     this.currentWord = null;
@@ -710,7 +858,7 @@ export class DefinitionRoom {
     const ranking = this.snapshotPlayers().sort(
       (a, b) => b.totalScore - a.totalScore
     );
-    this.broadcast({ type: "game_finished", ranking });
+    this.broadcast({ type: "game_finished", ranking, stats: this.buildGameStats() });
     this.broadcastRoomState();
   }
 

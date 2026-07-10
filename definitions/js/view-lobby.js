@@ -3,7 +3,7 @@
  * Liste des joueurs + configuration (hôte) ou visualisation (invité).
  */
 
-import { LIMITS, AGGREGATION_LABELS, AGGREGATION_HINTS, MODE_LABELS } from "./constants.js";
+import { LIMITS, AGGREGATION_LABELS, AGGREGATION_HINTS, MODE_LABELS, ENTRY_TYPE_LABELS } from "./constants.js";
 import { showToast } from "../../shared/js/toast.js";
 
 export function initLobbyView(state, conn, roomCode) {
@@ -24,6 +24,7 @@ export function initLobbyView(state, conn, roomCode) {
   const roundsInput = document.getElementById("rounds-input");
   const roundsUnlimitedInput = document.getElementById("rounds-unlimited-input");
   const timerInput = document.getElementById("timer-input");
+  const entryTypeInput = document.getElementById("entry-type-input");
   const aggregationInput = document.getElementById("aggregation-input");
   const aggregationHint = document.getElementById("aggregation-hint");
   const startBtn = document.getElementById("btn-start-game");
@@ -177,7 +178,11 @@ export function initLobbyView(state, conn, roomCode) {
     // tromper l'invite cote affichage).
     if (mode === "chill") totalRounds = 0;
 
-    return { mode, totalRounds, timerSeconds, aggregation, minDifficulty, maxDifficulty };
+    // Type d'entrees : mots simples, expressions, ou les deux.
+    const raw = entryTypeInput?.value;
+    const entryType = ["words", "expressions", "all"].includes(raw) ? raw : "all";
+
+    return { mode, totalRounds, timerSeconds, aggregation, minDifficulty, maxDifficulty, entryType };
   }
 
   function updateAggregationHint() {
@@ -224,6 +229,9 @@ export function initLobbyView(state, conn, roomCode) {
     if (diffMaxInput && config.maxDifficulty >= 1 && config.maxDifficulty <= 5) {
       diffMaxInput.value = String(config.maxDifficulty);
     }
+    if (entryTypeInput && ["words", "expressions", "all"].includes(config.entryType)) {
+      entryTypeInput.value = config.entryType;
+    }
     updateAggregationHint();
     applyModeVisibility();
   };
@@ -243,6 +251,10 @@ export function initLobbyView(state, conn, roomCode) {
       const dmin = config.minDifficulty ?? 1;
       const dmax = config.maxDifficulty ?? 5;
       guestDiff.textContent = dmin === dmax ? `${dmin}` : `${dmin} à ${dmax}`;
+    }
+    const guestEntry = document.getElementById("guest-entry-type");
+    if (guestEntry) {
+      guestEntry.textContent = ENTRY_TYPE_LABELS[config.entryType ?? "all"] ?? "Mots et expressions";
     }
     for (const el of guestCompetOnly) {
       el.style.display = isChill ? "none" : "";

@@ -43,6 +43,13 @@ export const MODE_LABELS = {
   chill: "Chill",
 };
 
+/** Libelles du filtre de type d'entrees (affichage invite, lecture seule). */
+export const ENTRY_TYPE_LABELS = {
+  all: "Mots et expressions",
+  words: "Mots simples",
+  expressions: "Expressions",
+};
+
 /**
  * Couleur SATUREE d'une note (0..1) : echelle rouge -> jaune -> vert.
  * Sert pour les badges d'agregat dans la vue Scores (texte blanc dessus).

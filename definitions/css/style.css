@@ -1760,3 +1760,89 @@ input.code-input::placeholder {
   line-height: 1.5;
 }
 .def-multi li:last-child { margin-bottom: 0; }
+
+/* --- Stats de fin de partie ------------------------------------------------
+   Repliees par defaut : le classement reste l'information principale. */
+
+.final-stats { margin-top: 20px; }
+.final-stats-body { margin-top: 14px; }
+
+.stats-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris-texte);
+  margin: 18px 0 8px;
+}
+.stats-title:first-child { margin-top: 0; }
+
+.stats-highlights { display: grid; gap: 8px; }
+.stat-hl {
+  background: var(--beige);
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--bleu-nuit);
+}
+.stat-hl-key {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris-texte);
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.stat-hl-val b { color: var(--bleu-accent); }
+
+/* Le tableau peut deborder a 8+ joueurs : conteneur defilable, comme ailleurs. */
+.stats-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.stats-table th,
+.stats-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--beige-fonce);
+  text-align: center;
+  white-space: nowrap;
+}
+.stats-table th {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  cursor: help;
+}
+.stats-table td.stats-name,
+.stats-table th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--beige);
+  font-weight: 600;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stats-table th:first-child { background: var(--bleu-nuit); z-index: 2; }
+.stats-table td.num { font-family: "Menlo", "Consolas", monospace; }
+.stats-table tr:last-child td { border-bottom: none; }
+.stats-table tr.is-self td { background: #eaf2fc; }
+.stats-table tr.is-self td.stats-name { background: #dbe8f7; }
+
+.stats-legend {
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin-top: 8px;
+}

@@ -174,7 +174,9 @@ conn.on("joined", (msg) => {
       players: msg.players,
     });
   } else if (msg.phase === "finished" && msg.finalRanking) {
-    state.renderFinished(msg.finalRanking);
+    // Reconstruction en cours de partie : pas de stats dans le snapshot d'etat,
+  // le bloc restera masque jusqu'au prochain game_finished.
+  state.renderFinished(msg.finalRanking, null);
   }
 
   showView(msg.phase);
@@ -296,7 +298,7 @@ conn.on("round_scored", (msg) => {
 
 conn.on("game_finished", (msg) => {
   state.phase = "finished";
-  state.renderFinished(msg.ranking);
+  state.renderFinished(msg.ranking, msg.stats);
   showView("finished");
 });
 

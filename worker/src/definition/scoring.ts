@@ -206,5 +206,14 @@ export function validateGameConfig(
   ) {
     return { ok: false, error: "Difficulté minimale supérieure à la maximale." };
   }
+  // entryType : absent (anciens clients) => "all" cote drawWord.
+  if (
+    c.entryType !== undefined &&
+    c.entryType !== "words" &&
+    c.entryType !== "expressions" &&
+    c.entryType !== "all"
+  ) {
+    return { ok: false, error: "Type d'entrées invalide." };
+  }
   return { ok: true };
 }

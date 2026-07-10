@@ -118,6 +118,19 @@
           </p>
         </div>
 
+        <div class="form-group">
+          <label for="entry-type-input">Type d'entrées</label>
+          <select id="entry-type-input">
+            <option value="all" selected>Mots et expressions</option>
+            <option value="words">Mots simples uniquement</option>
+            <option value="expressions">Expressions uniquement</option>
+          </select>
+          <p class="info-line" style="font-size: 12px; margin-top: 4px;">
+            Une <strong>expression</strong> est une locution en plusieurs mots
+            (« tomber dans les pommes »).
+          </p>
+        </div>
+
         <button class="btn btn-primary btn-block" id="btn-start-game">
           🚀 Démarrer la partie
         </button>
@@ -154,6 +167,10 @@
           <div class="form-group">
             <label class="sub-label">Difficulté des mots</label>
             <div class="readonly-value" id="guest-difficulty">—</div>
+          </div>
+          <div class="form-group">
+            <label class="sub-label">Type d'entrées</label>
+            <div class="readonly-value" id="guest-entry-type">—</div>
           </div>
         </div>
         <p class="info-line" style="text-align: center; font-style: italic;">
@@ -299,6 +316,23 @@
     <div class="card view" id="view-finished" style="display: none;">
       <h2 style="text-align: center;">🏆 Fin de la partie !</h2>
       <ol class="ranking-list ranking-final" id="final-ranking"></ol>
+
+      <div class="final-stats" id="final-stats" style="display: none;">
+        <button type="button" class="btn btn-secondary btn-block" id="btn-toggle-stats">
+          📊 Voir les stats détaillées
+        </button>
+        <div class="final-stats-body" id="final-stats-body" style="display: none;">
+          <h3 class="stats-title">Moments de la partie</h3>
+          <div class="stats-highlights" id="stats-highlights"></div>
+
+          <h3 class="stats-title">Détail par joueur</h3>
+          <div class="stats-table-wrap">
+            <table class="stats-table" id="stats-table"></table>
+          </div>
+          <p class="info-line stats-legend" id="stats-legend"></p>
+        </div>
+      </div>
+
       <div class="host-actions" id="finished-host-actions" style="display: none; margin-top: 24px;">
         <button class="btn btn-primary btn-block" id="btn-back-lobby">
           🔄 Retour au lobby (rejouer)
