@@ -91,6 +91,7 @@ export function initVotingView(state, conn) {
     renderTable();
     renderProgress();
     updateHostActions();
+    autoVoteEmptyDefinitions();
     // Reset override state pour la nouvelle manche
     overrideMode = false;
     overriddenCells.clear();
@@ -163,7 +164,7 @@ export function initVotingView(state, conn) {
     trHead.appendChild(thCorner);
     for (const voter of voters) {
       const th = document.createElement("th");
-      th.textContent = voter + (voter === state.myPseudo ? " (toi)" : "");
+      th.textContent = voter === state.myPseudo ? "Toi" : voter;
       if (voter === state.myPseudo) th.classList.add("voter-me");
       trHead.appendChild(th);
     }
@@ -181,7 +182,7 @@ export function initVotingView(state, conn) {
       tdAuthor.className = "author-cell";
       const name = document.createElement("span");
       name.className = "author-name";
-      name.textContent = author + (author === state.myPseudo ? " (toi)" : "");
+      name.textContent = author === state.myPseudo ? "Toi" : author;
       tdAuthor.appendChild(name);
       const def = document.createElement("span");
       def.className = "author-def";
@@ -207,6 +208,26 @@ export function initVotingView(state, conn) {
       tbody.appendChild(tr);
     }
     tableEl.appendChild(tbody);
+  }
+
+  /**
+   * Une definition vide ne merite aucun point : on emet automatiquement un
+   * vote a 0 pour ces auteurs, plutot que d'obliger chaque joueur a deplacer
+   * un curseur pour rien. La cellule reste modifiable (l'hote peut corriger).
+   *
+   * On n'emet que pour SA PROPRE ligne, et seulement si le vote n'existe pas
+   * deja, pour ne pas ecraser un vote deja exprime ni voter a la place d'autrui.
+   */
+  function autoVoteEmptyDefinitions() {
+    const me = state.myPseudo;
+    if (!me) return;
+    for (const author of authors) {
+      if (author === me) continue;                       // pas d'auto-vote
+      const text = (definitions[author] ?? "").trim();
+      if (text.length > 0) continue;                     // definition presente
+      if (votes[me]?.[author] !== undefined) continue;   // deja vote
+      conn.send({ type: "set_vote", author, value: 0 });
+    }
   }
 
   function renderCell(td, author, voter) {

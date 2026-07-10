@@ -321,6 +321,13 @@ export class DefinitionRoom {
     const session = this.players.get(pseudo);
     if (!session) return;
 
+    // GARDE ESSENTIELLE (cf. MotusRoom) : si la session pointe deja vers une
+    // AUTRE socket, c'est que le joueur s'est reconnecte entre-temps. Le "close"
+    // qui arrive ici concerne l'ancienne socket : l'ignorer completement.
+    // Sans cette garde, une reconnexion est immediatement annulee par le close
+    // tardif de la connexion precedente (ws remis a null, ou joueur supprime).
+    if (session.ws !== null && session.ws !== ws) return;
+
     if (this.phase === "lobby" || this.phase === "finished") {
       this.removePlayer(pseudo);
     } else {

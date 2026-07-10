@@ -18,6 +18,7 @@ export function initWritingView(state, conn) {
   const charcountEl = document.getElementById("def-charcount");
   const lockBtn = document.getElementById("btn-lock");
   const forceEndBtn = document.getElementById("btn-force-end-writing");
+  const endGameBtn = document.getElementById("btn-end-game-writing");
   const statusEl = document.getElementById("writing-status");
   const writersStatusEl = document.getElementById("writers-status");
 
@@ -67,9 +68,16 @@ export function initWritingView(state, conn) {
 
   // Bouton "passer aux votes" pour l'hote en mode chill
   function refreshHostForceEnd() {
-    if (!forceEndBtn) return;
-    const isChill = state.config?.mode === "chill";
-    forceEndBtn.style.display = (state.isHost && isChill) ? "block" : "none";
+    if (forceEndBtn) {
+      const isChill = state.config?.mode === "chill";
+      forceEndBtn.style.display = (state.isHost && isChill) ? "block" : "none";
+    }
+    // "Terminer la partie" : disponible a l'hote dans TOUS les modes, y compris
+    // pendant la redaction. Le worker accepte deja end_game en phase "writing"
+    // (cf. handleEndGame), seule l'interface ne l'exposait pas.
+    if (endGameBtn) {
+      endGameBtn.style.display = state.isHost ? "block" : "none";
+    }
   }
   state.refreshWritingHostState = refreshHostForceEnd;
 
@@ -161,6 +169,13 @@ export function initWritingView(state, conn) {
     forceEndBtn.addEventListener("click", () => {
       if (!confirm("Couper la phase d'écriture maintenant et passer aux votes ?")) return;
       conn.send({ type: "next_round" });
+    });
+  }
+
+  if (endGameBtn) {
+    endGameBtn.addEventListener("click", () => {
+      if (!confirm("Terminer la partie maintenant ? Le classement final sera affiché.")) return;
+      conn.send({ type: "end_game" });
     });
   }
 }

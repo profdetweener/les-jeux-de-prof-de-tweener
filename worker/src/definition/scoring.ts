@@ -32,8 +32,18 @@ export function isValidVoteValue(v: unknown): v is number {
  *                 v < M - 2.5 × MAD. Seuls les outliers BAS sont retires :
  *                 c'est asymetrique a dessein (un saboteur n'a aucun interet a
  *                 mettre un faux 1, et un vrai 1 enthousiaste ne penalise personne).
- *                 Active des qu'on a >= 4 votes ET MAD > 0 (sinon on retombe sur
- *                 mean). Si on retire tout, on retombe egalement sur mean.
+ *
+ *                 Comportement selon le nombre de votes recus :
+ *                   >= 4 votes : MAD (si MAD > 0, sinon moyenne : tout le monde
+ *                                est d'accord, il n'y a pas d'outlier a chercher).
+ *                      3 votes : MEDIANE. La MAD n'est pas exploitable si peu,
+ *                                mais la mediane neutralise deja totalement un
+ *                                vote aberrant isole (0 face a deux votes hauts).
+ *                   <= 2 votes : moyenne simple. Aucune statistique robuste n'a
+ *                                de sens : avec 2 votes on ne peut pas distinguer
+ *                                un saboteur d'un juge severe. C'est precisement
+ *                                pour ce cas que l'hote dispose de l'override de
+ *                                vote (cf. room.ts).
  *   - "median"  : valeur centrale (moyenne des deux centrales si pair).
  *
  * Une liste vide renvoie 0 (aucun vote = aucun point).
@@ -70,7 +80,13 @@ export function aggregate(values: number[], mode: Aggregation): number {
     return meanOf(sorted);
   }
 
-  // "mean" (ou "robust" avec trop peu de votes)
+  if (mode === "robust" && sorted.length === 3) {
+    // Trop peu pour la MAD, assez pour la mediane : un unique vote aberrant
+    // (haut ou bas) n'a alors aucune influence sur le resultat.
+    return medianOfSorted(sorted);
+  }
+
+  // "mean" (ou "robust" avec 2 votes : aucune protection possible)
   return meanOf(sorted);
 }
 
