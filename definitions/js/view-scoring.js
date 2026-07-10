@@ -74,7 +74,7 @@ export function initScoringView(state, conn) {
       if (author === state.myPseudo) tr.classList.add("is-self");
 
       const tdName = document.createElement("td");
-      tdName.textContent = author + (author === state.myPseudo ? " (toi)" : "");
+      tdName.textContent = author === state.myPseudo ? "Toi" : author;
       tr.appendChild(tdName);
 
       const tdDef = document.createElement("td");
@@ -111,7 +111,7 @@ export function initScoringView(state, conn) {
       const li = document.createElement("li");
       const name = document.createElement("span");
       name.className = "rank-pseudo";
-      name.textContent = p.pseudo + (p.pseudo === state.myPseudo ? " (toi)" : "");
+      name.textContent = p.pseudo === state.myPseudo ? "Toi" : p.pseudo;
       const score = document.createElement("span");
       score.className = "rank-score";
       score.textContent = `${p.totalScore} pts`;

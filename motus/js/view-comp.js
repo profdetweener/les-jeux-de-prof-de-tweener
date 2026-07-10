@@ -1215,15 +1215,19 @@ export function initCompView(state, conn) {
     if (showRoundPts) html += "<th>Succès</th><th>Manche</th>";
     html += "<th>Total</th></tr></thead><tbody>";
     results.forEach((r, i) => {
+      const isMe = r.playerId === state.myPseudo;
+      // Attention : pseudoHtml sert AUSSI d'identifiant au bouton "kick"
+      // (data-kick-target). On ne remplace donc que le LIBELLE affiche.
       const pseudoHtml = escapeHtml(r.playerId);
+      const pseudoDisplay = isMe ? "Toi" : pseudoHtml;
       // Bouton "kick" inline a cote du pseudo : uniquement sur la table de
       // recap (showRoundPts=true), pour l'hote, et pas sur soi-meme. Sur le
       // podium final (showRoundPts=false), kicker n'a plus de sens.
-      const showKick = showRoundPts && state.isHost && r.playerId !== state.myPseudo;
+      const showKick = showRoundPts && state.isHost && !isMe;
       const kickHtml = showKick
         ? ` <button type="button" class="kick-inline-btn" data-kick-target="${pseudoHtml}" title="Exclure ${pseudoHtml} de la partie" aria-label="Exclure ${pseudoHtml}">✕</button>`
         : "";
-      html += `<tr><td>${computed[i]}</td><td><span class="pseudo-label">${pseudoHtml}</span>${kickHtml}</td>`;
+      html += `<tr><td>${computed[i]}</td><td><span class="pseudo-label">${pseudoDisplay}</span>${kickHtml}</td>`;
       if (showRoundPts) {
         const detail = r.pointsBreakdown || (r.found ? "" : "—");
         html += `<td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;

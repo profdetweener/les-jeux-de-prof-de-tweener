@@ -46,8 +46,8 @@ export const MODE_LABELS = {
 /** Libelles du filtre de type d'entrees (affichage invite, lecture seule). */
 export const ENTRY_TYPE_LABELS = {
   all: "Mots et expressions",
-  words: "Mots simples",
-  expressions: "Expressions",
+  words: "Mots uniquement",
+  expressions: "Expressions uniquement",
 };
 
 /**

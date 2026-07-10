@@ -186,7 +186,9 @@ export function initValidatingView(state, conn) {
       tdPseudo.className = "category-cell";
       const pseudoLabel = document.createElement("span");
       pseudoLabel.className = "pseudo-label";
-      pseudoLabel.textContent = pseudo + (isMe ? " (toi)" : "");
+      // Le joueur courant est designe par "Toi" (et non "pseudo (toi)") :
+      // plus court, plus clair, et evite le doublon dans un tableau deja dense.
+      pseudoLabel.textContent = isMe ? "Toi" : pseudo;
       tdPseudo.appendChild(pseudoLabel);
       // Bouton "kick mid-game" visible uniquement par l'hote, sur les autres
       // joueurs. Sert surtout a evacuer un joueur qui ecrit des reponses
