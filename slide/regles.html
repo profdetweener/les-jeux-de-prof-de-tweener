@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Slide, règles</title>
   <link rel="stylesheet" href="../shared/css/landing.css">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
   <header class="landing-header">
@@ -15,26 +15,150 @@
     <span class="header-tagline">un plateau, du décalage, des groupes</span>
   </header>
 
-  <main class="regles">
-    <p class="lead">Slide se joue sur un seul plateau de cartes à valeur. On décale des lignes ou des colonnes pour rapprocher des cartes de même valeur, et on encaisse les groupes que son propre coup vient de former. Pour ce prototype, c'est du solo : atteins l'objectif en un minimum de tours.</p>
+  <main class="rules-main">
+    <div class="card rules-card">
+      <h2>Règles du jeu</h2>
+      <p class="subtitle">Un plateau commun de cartes à valeur. <strong>Chill</strong> en solo pour l'instant, <strong>Compétitif</strong> à venir.</p>
 
-    <h2>Le coup</h2>
-    <p>À ton tour, tu choisis une carte dans la rivière (les trois cartes face visible en bas), puis tu cliques une flèche au bord d'une ligne ou d'une colonne. La carte entre par ce bord, toutes les cartes de cette ligne coulissent d'un cran, et la carte du bout opposé sort du plateau. Le plateau reste toujours plein.</p>
+      <div class="rules-tabs" role="tablist">
+        <button class="rules-tab is-active" role="tab" data-tab="commun" aria-selected="true">Commun</button>
+        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">Chill</button>
+        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">Compétitif</button>
+      </div>
 
-    <h2>Former un groupe</h2>
-    <p>Ton décalage change les voisinages sur toute la ligne poussée, pas seulement près de la carte que tu poses. Un groupe de deux cartes ou plus de même valeur, collées orthogonalement, est encaissable si ton coup vient de le créer ou de l'agrandir, où qu'il soit sur la grille. Un groupe déjà présent que ton coup n'a pas touché reste intouchable, même s'il a simplement glissé en restant collé.</p>
+      <section class="rules-panel is-active" data-panel="commun" role="tabpanel">
+        <h3>Le principe</h3>
+        <p>Le plateau est une grille de cartes portant une valeur. À ton tour, tu prends une carte dans la rivière et tu la glisses dans le plateau. Le but : coller des cartes de même valeur pour former des groupes, et les encaisser pour marquer des points.</p>
 
-    <h2>Encaisser</h2>
-    <p>Les groupes formés par ton coup s'allument en fond plein. Clique-les pour marquer leurs points. Tu peux tout prendre, une partie, ou rien : laisser un groupe sur le plateau te permet de tenter de le grossir plus tard, au risque de le voir se défaire. Les cartes encaissées sont remplacées par du tirage au hasard.</p>
+        <h3>Le coup</h3>
+        <p>Tu choisis une carte de la rivière, puis une flèche au bord d'une ligne ou d'une colonne. La carte entre par ce bord, toute la ligne coulisse d'un cran, et la carte du bout opposé sort. Le plateau reste toujours plein.</p>
+        <div class="rules-fig"><svg width="100%" viewBox="0 0 520 210" role="img" style="max-width:520px">
+<text x="0" y="24" style="font-family:sans-serif;font-size:13px;fill:#1a2540">Avant</text>
+<rect x="60" y="10" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="81.0" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">8</text>
+<rect x="106" y="10" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="127.0" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">6</text>
+<rect x="152" y="10" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="173.0" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">5</text>
+<rect x="198" y="10" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="219.0" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">2</text>
+<rect x="244" y="10" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="265.0" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">9</text>
+<text x="18" y="31.0" text-anchor="middle" dominant-baseline="central" style="font-family:sans-serif;font-size:13px;fill:#4a6fa5">3→</text>
+<text x="0" y="120" style="font-family:sans-serif;font-size:13px;fill:#1a2540">Après</text>
+<rect x="60" y="106" width="42" height="42" rx="4" fill="none" stroke="#4a6fa5" stroke-width="2.5" stroke-dasharray="4 3"/><text x="81.0" y="127.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">3</text>
+<rect x="106" y="106" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="127.0" y="127.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">8</text>
+<rect x="152" y="106" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="173.0" y="127.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">6</text>
+<rect x="198" y="106" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="219.0" y="127.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">5</text>
+<rect x="244" y="106" width="42" height="42" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="265.0" y="127.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:18px" fill="#1a2540">2</text>
+<text x="286" y="127.0" dominant-baseline="central" style="font-family:sans-serif;font-size:13px;fill:#999">9↷</text>
+<text x="60" y="185" style="font-family:sans-serif;font-size:12.5px;fill:#5a5a5a">On insère le 3 à gauche, tout glisse d'un cran, le 9 sort à droite.</text>
+</svg></div>
 
-    <h2>Le score</h2>
-    <p>Un groupe de n cartes de valeur v rapporte v × n + n × (n − 1). La longueur paie de plus en plus : une paire de 4 vaut 10, un triplet 18, un quadruplet 28. C'est ce qui rend le pari « je laisse grossir » intéressant.</p>
+        <h3>Former un groupe, partout sur la grille</h3>
+        <p>Le décalage ne bouge qu'une ligne, mais il change les voisinages tout du long, y compris à la verticale. Un groupe de deux cartes ou plus de même valeur, collées orthogonalement, est <strong>encaissable si ton coup vient de le créer ou de l'agrandir</strong>, où qu'il soit sur la grille, même loin de la carte que tu poses. Un groupe déjà présent que ton coup n'a pas nourri reste intouchable.</p>
+        <div class="rules-fig"><svg width="100%" viewBox="0 0 500 230" role="img" style="max-width:500px">
+<text x="0" y="16" style="font-family:sans-serif;font-size:12.5px;fill:#1a2540">Avant mon coup</text>
+<rect x="0" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="15.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="33" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="48.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">9</text>
+<rect x="66" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="81.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="99" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="114.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">4</text>
+<rect x="132" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="147.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">3</text>
+<rect x="0" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="15.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<rect x="33" y="59" width="30" height="30" rx="4" fill="none" stroke="hsl(150 60% 46%)" stroke-width="2" stroke-dasharray="4 3"/><text x="48.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">6</text>
+<rect x="66" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="81.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="99" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="114.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="132" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="147.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">9</text>
+<rect x="0" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="15.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">4</text>
+<rect x="33" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="48.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="66" y="92" width="30" height="30" rx="4" fill="none" stroke="hsl(150 60% 46%)" stroke-width="2" stroke-dasharray="4 3"/><text x="81.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">6</text>
+<rect x="99" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="114.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="132" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="147.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="0" y="125" width="30" height="30" rx="4" fill="none" stroke="hsl(180 55% 44%)" stroke-width="2" stroke-dasharray="4 3"/><text x="15.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="33" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="48.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">3</text>
+<rect x="66" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="81.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<rect x="99" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="114.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="132" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="147.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">6</text>
+<rect x="0" y="158" width="30" height="30" rx="4" fill="none" stroke="hsl(180 55% 44%)" stroke-width="2" stroke-dasharray="4 3"/><text x="15.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="33" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="48.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="66" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="81.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="99" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="114.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">9</text>
+<rect x="132" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="147.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<text x="248" y="120" text-anchor="middle" style="font-family:sans-serif;font-size:20px;fill:#4a6fa5">→</text>
+<text x="285" y="16" style="font-family:sans-serif;font-size:12.5px;fill:#1a2540">Après le décalage</text>
+<rect x="285" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="300.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="318" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="333.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">9</text>
+<rect x="351" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="366.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="384" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="399.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">4</text>
+<rect x="417" y="26" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="432.0" y="41.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">3</text>
+<rect x="285" y="59" width="30" height="30" rx="4" fill="none" stroke="#4a6fa5" stroke-width="2.5" stroke-dasharray="4 3"/><text x="300.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">3</text>
+<rect x="318" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="333.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<rect x="351" y="59" width="30" height="30" rx="4" fill="hsl(150 60% 46%)"/><text x="366.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#fff">6</text>
+<rect x="384" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="399.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="417" y="59" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="432.0" y="74.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="285" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="300.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">4</text>
+<rect x="318" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="333.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="351" y="92" width="30" height="30" rx="4" fill="hsl(150 60% 46%)"/><text x="366.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#fff">6</text>
+<rect x="384" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="399.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="417" y="92" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="432.0" y="107.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="285" y="125" width="30" height="30" rx="4" fill="none" stroke="hsl(180 55% 44%)" stroke-width="2" stroke-dasharray="4 3"/><text x="300.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="318" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="333.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">3</text>
+<rect x="351" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="366.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<rect x="384" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="399.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">1</text>
+<rect x="417" y="125" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="432.0" y="140.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">6</text>
+<rect x="285" y="158" width="30" height="30" rx="4" fill="none" stroke="hsl(180 55% 44%)" stroke-width="2" stroke-dasharray="4 3"/><text x="300.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">7</text>
+<rect x="318" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="333.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">5</text>
+<rect x="351" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="366.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">2</text>
+<rect x="384" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="399.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">9</text>
+<rect x="417" y="158" width="30" height="30" rx="4" fill="#fff" stroke="#d9d9d9" stroke-width="2"/><text x="432.0" y="173.0" text-anchor="middle" dominant-baseline="central" style="font-family:Georgia,serif;font-weight:800;font-size:13px" fill="#1a2540">8</text>
+<text x="0" y="212" style="font-family:sans-serif;font-size:12px;fill:#5a5a5a">En poussant la ligne 2, les deux 6 s'alignent en colonne 3 : groupe formé par mon coup, encaissable,</text>
+<text x="0" y="228" style="font-family:sans-serif;font-size:12px;fill:#5a5a5a">loin de la carte posée. La paire de 7 était déjà là, mon coup n'y touche pas : pas à moi.</text>
+</svg></div>
 
-    <h2>Les couleurs</h2>
-    <p>Chaque valeur a sa propre teinte. Au repos, un contour pointillé teinté marque les groupes de même valeur déjà collés, à titre d'information. Quand un groupe s'allume en fond plein, c'est qu'il est né de ton coup et qu'il est à toi.</p>
+        <h3>Le code couleur</h3>
+        <ul class="rules-colors">
+          <li><span class="color-chip" style="background:hsl(150 60% 46%)"></span><span><strong>Fond plein</strong>, groupe né de ton coup : cliquable pour l'encaisser.</span></li>
+          <li><span class="color-chip" style="background:#fff;border:2px dashed hsl(180 55% 44%)"></span><span><strong>Contour pointillé</strong>, groupe de même valeur déjà collé, que ton coup n'a pas formé : information, pas encaissable.</span></li>
+        </ul>
+        <p class="rules-note">Chaque valeur a sa propre teinte, du 1 au 10. Les couleurs des exemples ne servent qu'à distinguer les groupes.</p>
 
-    <h2>À venir</h2>
-    <p>Le multijoueur sur plateau partagé (chacun son tour, rivière dimensionnée au nombre de joueurs, groupes colorés par joueur ou équipe) arrivera dans une prochaine version.</p>
+        <h3>Le score</h3>
+        <p>Un groupe de <strong>n</strong> cartes de valeur <strong>v</strong> rapporte <strong>v × n + n × (n − 1)</strong>. La longueur paie de plus en plus, ce qui rend tentant le pari « je laisse grossir » au risque qu'un décalage le défasse.</p>
+        <ul class="rules-list">
+          <li>Paire de 4 : 8 + 2 = <strong>10</strong></li>
+          <li>Triplet de 4 : 12 + 6 = <strong>18</strong></li>
+          <li>Quadruplet de 4 : 16 + 12 = <strong>28</strong></li>
+        </ul>
+        <p>Une fois encaissé, le groupe disparaît et des cartes au hasard comblent les trous. Ces nouvelles cartes sont inertes : elles ne rapportent que si un futur coup les met en jeu.</p>
+      </section>
+
+      <section class="rules-panel" data-panel="chill" role="tabpanel" hidden>
+        <h3>Mode chill, solo</h3>
+        <p>Tu joues seul contre un objectif de score, à atteindre en un minimum de tours. Idéal pour se faire la main ou meubler un moment de stream, sans pression ni chrono.</p>
+        <h3>Avant de lancer</h3>
+        <p>Tu règles la <strong>taille de grille</strong> (4×4, 5×5 ou 6×6) et l'<strong>objectif</strong> de points. Une grille plus grande laisse plus de place pour manœuvrer, un objectif plus haut allonge la partie.</p>
+        <p class="rules-note">Le plateau de départ ne contient jamais de groupe déjà formé : tout se construit par tes coups.</p>
+      </section>
+
+      <section class="rules-panel" data-panel="comp" role="tabpanel" hidden>
+        <h3>Mode compétitif, à venir</h3>
+        <p>Le multijoueur se jouera sur un <strong>plateau partagé</strong>, chacun son tour. Tout le monde agit sur la même grille, donc ton décalage remue aussi le terrain des autres.</p>
+        <div class="rules-cols">
+          <div>
+            <h4>La rivière</h4>
+            <ul class="rules-list">
+              <li>Autant de cartes révélées que de joueurs.</li>
+              <li>On choisit sa carte dans l'ordre du tour, qui pivote à chaque tour de table pour ne léser personne.</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Marquer</h4>
+            <ul class="rules-list">
+              <li>Chacun n'encaisse que les groupes que son propre coup a formés.</li>
+              <li>Les groupes s'allument à la couleur du joueur ou de son équipe.</li>
+              <li>Premier joueur ou première équipe à l'objectif : victoire.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="rules-note">Cette partie n'est pas encore disponible, elle arrivera dans une prochaine version.</p>
+      </section>
+
+    </div>
   </main>
 
   <footer class="app-footer">
@@ -46,5 +170,25 @@
     <span class="footer-sep">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
+
+  <script>
+    const tabs = document.querySelectorAll(".rules-tab");
+    const panels = document.querySelectorAll(".rules-panel");
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        const target = tab.dataset.tab;
+        for (const t of tabs) {
+          const active = t === tab;
+          t.classList.toggle("is-active", active);
+          t.setAttribute("aria-selected", active ? "true" : "false");
+        }
+        for (const p of panels) {
+          const show = p.dataset.panel === target;
+          p.classList.toggle("is-active", show);
+          p.hidden = !show;
+        }
+      });
+    }
+  </script>
 </body>
 </html>

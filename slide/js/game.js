@@ -33,11 +33,24 @@ function newGame(){
   document.documentElement.style.setProperty("--c",
     "clamp(38px," + Math.floor(86/N) + "vw," + (N<=4?64:N===5?56:48) + "px)");
   bag = shuffle(rebuildValues());
-  while(bag.length < N*N + RIVER) bag = bag.concat(shuffle(rebuildValues()));
+  while(bag.length < N*N + RIVER + 12) bag = bag.concat(shuffle(rebuildValues()));
+  // Plateau de depart sans aucune paire de meme valeur deja collee : chaque case
+  // evite la valeur de ses voisins gauche et haut, pour ne pas offrir de chemins gratuits.
   board = [];
-  for(let r=0;r<N;r++){ const row=[]; for(let c=0;c<N;c++) row.push(makeCard(bag.shift())); board.push(row); }
+  for(let r=0;r<N;r++){
+    const row=[];
+    for(let c=0;c<N;c++){
+      const bad=new Set();
+      if(c>0) bad.add(row[c-1].value);
+      if(r>0) bad.add(board[r-1][c].value);
+      let k=bag.findIndex(v=>!bad.has(v));
+      if(k<0) k=0;
+      row.push(makeCard(bag.splice(k,1)[0]));
+    }
+    board.push(row);
+  }
   river = []; while(river.length < RIVER) river.push(makeCard(bag.shift()));
-  render(); setStatus("Choisis une carte dans la rivière.");
+  render(); setStatus("");
 }
 
 // ---- Voisinages, par identite de carte ----
@@ -105,7 +118,7 @@ function claim(g){
 function advanceTurn(){
   while(river.length < RIVER) river.push(draw());
   litGroups=[]; phase="select"; selRiver=-1;
-  render(); setStatus("Choisis une carte dans la rivière.");
+  render(); setStatus("");
 }
 
 // ---- Rendu ----
