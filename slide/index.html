@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Slide — proto solo</title>
+  <link rel="stylesheet" href="../shared/css/landing.css">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
+    <h1>Slide</h1>
+    <span class="header-tagline">décale, forme des groupes, encaisse</span>
+  </header>
+
+  <main class="slide-main">
+    <div class="hud">
+      <div class="box"><div class="lbl">Score</div><div class="num" id="score">0</div></div>
+      <div class="box"><div class="lbl">Objectif</div><div class="num goal" id="goal">50</div></div>
+      <div class="box"><div class="lbl">Tours</div><div class="num" id="turns">0</div></div>
+    </div>
+
+    <div class="sizebar">
+      <span>Taille de grille</span>
+      <div class="seg" id="sizeSeg">
+        <button data-n="4">4×4</button>
+        <button data-n="5" class="on">5×5</button>
+        <button data-n="6">6×6</button>
+      </div>
+    </div>
+
+    <div class="frame" id="frame"></div>
+
+    <div class="river-lbl">Rivière — choisis une carte</div>
+    <div class="river" id="river"></div>
+
+    <div class="status" id="status"></div>
+    <div class="btns">
+      <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
+      <button class="btn btn-ghost" id="reset">Nouvelle partie</button>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="help">
+      <p><b>Le coup.</b> Choisis une carte dans la rivière, puis clique une flèche au bord d'une ligne ou d'une colonne. La carte entre par ce bord, tout coulisse d'un cran, la carte du bout opposé sort.</p>
+      <p><b>Les couleurs.</b> Chaque valeur a sa teinte. Un contour pointillé teinté signale un groupe de même valeur déjà collé, que ton coup n'a pas formé, donc pas encaissable. Un groupe en fond plein est né de ton décalage : clique-le pour marquer <b>valeur × n + n × (n−1)</b>.</p>
+      <p><a href="regles.html">Règles complètes →</a></p>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/game.js?v=1"></script>
+</body>
+</html>
