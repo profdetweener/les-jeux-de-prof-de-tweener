@@ -1,5 +1,5 @@
 /**
- * Constantes partagees cote frontend — Definitions.
+ * Constantes partagees cote frontend, Definitions.
  * En miroir de worker/src/definition/messages.ts.
  */
 
@@ -77,7 +77,7 @@ export function voteCellBg(value) {
 
 /** Formate un agrégat 0..1 en pourcentage lisible (ex. "0.75" -> "75 %"). */
 export function formatAggregate(value) {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   return `${Math.round(value * 100)} %`;
 }
 

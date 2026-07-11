@@ -1,5 +1,5 @@
 /**
- * Vue "writing" — Definitions.
+ * Vue "writing", Definitions.
  * Affiche le mot, une zone de saisie pour sa définition, un timer, et un bouton
  * "Valider ma définition" (lock). Sauvegarde continue debounced ; le serveur
  * garde la dernière version même si le timer tombe.
@@ -106,7 +106,7 @@ export function initWritingView(state, conn) {
     }
     const names = [...lockedPlayers].join(", ");
     writersStatusEl.innerHTML =
-      `<span class="locked-list">A validé : ${names}</span> — ${count} / ${total}`;
+      `<span class="locked-list">A validé : ${names}</span>, ${count} / ${total}`;
   }
 
   function updateCharcount() {
@@ -160,7 +160,7 @@ export function initWritingView(state, conn) {
     conn.send({ type: "lock_definition" });
     textarea.disabled = true;
     lockBtn.disabled = true;
-    lockBtn.textContent = "Définition validée — en attente des autres…";
+    lockBtn.textContent = "Définition validée, en attente des autres…";
     statusEl.textContent = "Ta définition a été envoyée. La manche se termine quand tout le monde a validé (ou au timer).";
     showToast("Définition validée.", { type: "success", duration: 1500 });
   });

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Motus — styles spécifiques.
+   Motus, styles spécifiques.
    Réutilise les tokens de Petit Bac (couleurs, boutons, header, layout).
    On n'importe pas le CSS Petit Bac entier (trop lourd) : on redéfinit le
    strict nécessaire ici.
@@ -18,8 +18,8 @@
   --gris-clair: #d9d9d9;
   --gris-cell: #d3d1c7;
   --vert: #4a8c5a;
-  --case-bien: #6aaa64;   /* vert — lettre bien placee (Sesame) */
-  --case-mal: #c9b458;    /* jaune — lettre mal placee (Sesame) */
+  --case-bien: #6aaa64;   /* vert, lettre bien placee (Sesame) */
+  --case-mal: #c9b458;    /* jaune, lettre mal placee (Sesame) */
   --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
   --rayon: 10px;
   --rayon-sm: 6px;
@@ -771,7 +771,7 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 }
 
 /* ===========================================================================
-   Mode competitif — UI lobby (présets + config avancée + résumé guest)
+   Mode competitif, UI lobby (présets + config avancée + résumé guest)
    =========================================================================== */
 
 /* Grille de cartes preset (4 cartes) */
@@ -910,7 +910,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 
 /* ===========================================================================
-   Page règles — onglets horizontaux
+   Page règles, onglets horizontaux
    =========================================================================== */
 
 .rules-card { max-width: 760px; }
@@ -1002,7 +1002,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 
 /* ===========================================================================
-   Mode compétitif — vue de jeu (refonte)
+   Mode compétitif, vue de jeu (refonte)
    =========================================================================== */
 
 .comp-game-header {
@@ -1334,7 +1334,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 }
 
 /* ===========================================================================
-   Mode compétitif — récap & final
+   Mode compétitif, récap & final
    =========================================================================== */
 
 .comp-recap-word {

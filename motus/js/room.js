@@ -1,5 +1,5 @@
 /**
- * Motus — orchestrateur de la page de partie.
+ * Motus, orchestrateur de la page de partie.
  *
  *   - Lit le code de room dans la query string
  *   - Recupere le pseudo depuis localStorage
@@ -319,7 +319,7 @@ if (copyBtn) {
       await navigator.clipboard.writeText(inviteUrl);
       showToast("Lien copié !", { type: "success" });
     } catch {
-      showToast("Impossible de copier — sélectionne manuellement.", { type: "error" });
+      showToast("Impossible de copier, sélectionne manuellement.", { type: "error" });
     }
   });
 }

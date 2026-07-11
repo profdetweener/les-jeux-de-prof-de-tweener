@@ -125,7 +125,7 @@ export function initScoringView(state, conn) {
         scoreEl.textContent = score;
         const answerEl = document.createElement("div");
         answerEl.className = "score-cell-answer";
-        answerEl.textContent = answer.trim() ? answer : "—";
+        answerEl.textContent = answer.trim() ? answer : "-";
         td.appendChild(scoreEl);
         td.appendChild(answerEl);
         tr.appendChild(td);

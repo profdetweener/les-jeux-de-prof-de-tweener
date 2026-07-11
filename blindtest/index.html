@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a2540">
-<title>Blind Test — Prof de Tweener</title>
+<title>Blind Test, Prof de Tweener</title>
 <link rel="stylesheet" href="../shared/css/landing.css">
 <style>
-  /* Blind Test — aligné sur la charte du site (variables héritées de landing.css) */
+  /* Blind Test, aligné sur la charte du site (variables héritées de landing.css) */
   .mono{font-family:"Menlo","Consolas",monospace;}
   .app-header-home{color:var(--beige);text-decoration:none;font-size:13px;opacity:.8;padding:6px 10px;border-radius:6px;}
   .app-header-home:hover{opacity:1;background:rgba(255,255,255,.08);}
@@ -383,7 +383,7 @@
 
 <script>
 /* ============================================================
-   BLIND TEST TWITCH — Prof de Tweener
+   BLIND TEST TWITCH, Prof de Tweener
    Autonome, sans backend. À déposer sur GitHub Pages.
    ============================================================ */
 
@@ -649,7 +649,7 @@ function connectTwitch(channel){
     });
   };
   ws.onerror=()=>setStatus('err','Erreur de connexion');
-  ws.onclose=()=>{ setStatus('err','Déconnecté — reconnexion…'); setTimeout(()=>connectTwitch(wsChannel),3000); };
+  ws.onclose=()=>{ setStatus('err','Déconnecté, reconnexion…'); setTimeout(()=>connectTwitch(wsChannel),3000); };
 }
 function handleIRC(line){
   // tags optionnels: @...;display-name=Xxx;... :nick!... PRIVMSG #chan :message
@@ -719,7 +719,7 @@ function revealCard(kind, value, finder, found){
   const card=$(kind==='title'?'cardTitle':'cardArtist');
   const val=$(kind==='title'?'titleVal':'artistVal');
   const fin=$(kind==='title'?'titleFinder':'artistFinder');
-  val.textContent=value||'—';
+  val.textContent=value||'-';
   card.classList.remove('miss');
   card.classList.add(found?'found':'miss');
   card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
@@ -822,8 +822,8 @@ function endRound(solved){
   $('playBtn').disabled=false;
 }
 function pushHistory(r){
-  const title = r.entry.titles.length ? r.entry.titles[0].orig : '—';
-  const artist = r.entry.artists.length ? r.entry.artists[0].orig : '—';
+  const title = r.entry.titles.length ? r.entry.titles[0].orig : '-';
+  const artist = r.entry.artists.length ? r.entry.artists[0].orig : '-';
   G.history.unshift({
     n:G.idx+1, title, artist, year:r.entry.year||null, tid:r.entry.trackId||'',
     titleBy:r.titleBy||null, artistBy:r.artistBy||null,
@@ -860,7 +860,7 @@ function finishGame(){
 }
 
 /* ---------- Écran de fin : podium + stats ---------- */
-function fmtTime(t){ return t==null ? '—' : t.toFixed(1)+'s'; }
+function fmtTime(t){ return t==null ? '-' : t.toFixed(1)+'s'; }
 
 function showFinal(){
   const rows = Object.entries(G.scores).sort((a,b)=>b[1]-a[1]);
@@ -924,9 +924,9 @@ function showFinal(){
       `<b>${escapeHtml(slow.titleBy)}</b> en ${fmtTime(slow.titleTime)} sur « ${escapeHtml(slow.title)} »`]);
   }
   const bestT = Object.entries(G.stats.titles).sort((a,b)=>b[1]-a[1])[0];
-  if(bestT) hl.push(['🎵 Roi des titres', `<b>${escapeHtml(G.names[bestT[0]])}</b> — ${bestT[1]} titre(s)`]);
+  if(bestT) hl.push(['🎵 Roi des titres', `<b>${escapeHtml(G.names[bestT[0]])}</b>, ${bestT[1]} titre(s)`]);
   const bestA = Object.entries(G.stats.artists).sort((a,b)=>b[1]-a[1])[0];
-  if(bestA) hl.push(['🎤 Roi des artistes', `<b>${escapeHtml(G.names[bestA[0]])}</b> — ${bestA[1]} artiste(s)`]);
+  if(bestA) hl.push(['🎤 Roi des artistes', `<b>${escapeHtml(G.names[bestA[0]])}</b>, ${bestA[1]} artiste(s)`]);
   const doubles = G.history.filter(h=>h.titleBy && h.artistBy && h.titleBy===h.artistBy).length;
   if(doubles) hl.push(['🎯 Doublés titre + artiste', `${doubles} manche(s) remportée(s) entièrement par la même personne`]);
 
@@ -937,7 +937,7 @@ function showFinal(){
   // Morceaux non trouvés
   const missed = G.history.filter(h=>!h.solved);
   $('finalMissed').innerHTML = missed.length
-    ? missed.map(h=>`<div>#${h.n} <span>${escapeHtml(h.title)}</span> — ${escapeHtml(h.artist)}${h.year?' ('+h.year+')':''}</div>`).join('')
+    ? missed.map(h=>`<div>#${h.n} <span>${escapeHtml(h.title)}</span>, ${escapeHtml(h.artist)}${h.year?' ('+h.year+')':''}</div>`).join('')
     : '<div>Aucun ! Le chat a trouvé au moins une réponse à chaque manche.</div>';
 
   $('finalStats').style.display='none';
@@ -1118,7 +1118,7 @@ async function sendReport(){
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         access_key: WEB3FORMS_KEY,
-        subject: `Blind Test — erreur signalée : ${reportEntry.title}`,
+        subject: `Blind Test, erreur signalée : ${reportEntry.title}`,
         from_name: 'Blind Test',
         botcheck: '',
         titre: reportEntry.title,

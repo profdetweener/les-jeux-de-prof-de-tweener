@@ -241,7 +241,7 @@ export function initValidatingView(state, conn) {
     const isValid = answer.trim().length > 0 && goodLetter && goodLength;
 
     if (!answer.trim()) {
-      text.textContent = "— vide —";
+      text.textContent = "vide,";
       text.classList.add("answer-empty");
     } else if (!goodLetter) {
       text.textContent = answer;

@@ -1,5 +1,5 @@
 /**
- * Motus chill — orchestrateur de la page solo.
+ * Motus chill, orchestrateur de la page solo.
  *
  * Pas de WebSocket, pas de room, pas de pseudo : tout passe par 2 endpoints
  * REST stateless du worker :
@@ -144,8 +144,8 @@ function updateSoundToggleUI() {
   els.soundToggle.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
   if (els.soundIcon) els.soundIcon.textContent = soundEnabled ? "🔊" : "🔇";
   els.soundToggle.title = soundEnabled
-    ? "Sons activés — clic pour couper"
-    : "Sons coupés — clic pour activer";
+    ? "Sons activés, clic pour couper"
+    : "Sons coupés, clic pour activer";
 }
 
 /** Met a jour le compteur "X / N" affiche dans la barre de saisie (mobile).
@@ -336,7 +336,7 @@ function resetKeyboardColors() {
  *
  * Regle de monotonie : on ne degrade jamais une couleur (absent < misplaced < good).
  * Le drapeau hasMore est un raffinement de "good" qui s'ajoute sans changer l'ordre.
- * Il est conserve tant que la touche reste "good" — c'est utile car la presence
+ * Il est conserve tant que la touche reste "good", c'est utile car la presence
  * d'une autre occurrence dans le mot ne change pas d'un essai a l'autre.
  *
  * @param {string} letter
@@ -352,10 +352,13 @@ function updateKeyColor(letter, status, hasMore = false) {
     btn.classList.remove("kb-absent", "kb-misplaced", "kb-good");
     btn.classList.add(`kb-${status}`);
   }
-  // Drapeau has-more : se cumule avec kb-good. Une fois pose, on le garde
-  // (sauf si la touche est ramenee en deçà de "good" — impossible par monotonie).
-  if (status === "good" && hasMore) {
-    btn.classList.add("kb-has-more");
+  // Drapeau has-more : reflete le dernier essai connu pour cette lettre.
+  // On l'ajoute tant qu'une occurrence en trop reste a placer, on le retire
+  // des qu'un essai montre la lettre bien placee sans surplus. Sans ce retrait,
+  // un ancien has-more resterait affiche a tort une fois toutes les occurrences trouvees.
+  if (status === "good") {
+    if (hasMore) btn.classList.add("kb-has-more");
+    else btn.classList.remove("kb-has-more");
   }
 }
 
@@ -462,7 +465,7 @@ async function animateAttemptRow(rowIndex, attempt) {
  * (geste "tape tout le mot, premiere lettre comprise" plus instinctif) plutot
  * que de la verrouiller. L'utilisateur peut l'effacer s'il le souhaite.
  *
- * Retourne un tableau toujours vide (de longueur wordLength) — on garde la
+ * Retourne un tableau toujours vide (de longueur wordLength), on garde la
  * fonction et la propriete `lockedRow` pour minimiser les modifs ailleurs.
  */
 function computeLockedRow() {
@@ -770,7 +773,7 @@ document.addEventListener("keydown", (e) => {
  * @returns {string}
  */
 function formatDuration(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (!Number.isFinite(ms) || ms < 0) return "-";
   const totalSec = Math.round(ms / 1000);
   if (totalSec < 60) return `${totalSec}s`;
   const min = Math.floor(totalSec / 60);
@@ -794,7 +797,7 @@ function startTimer() {
 }
 
 /**
- * Arrete le timer live (entre les parties). N'efface PAS currentStartTime —
+ * Arrete le timer live (entre les parties). N'efface PAS currentStartTime,
  * la duree finale est calculee dans recordSessionWord.
  */
 function stopLiveTimer() {
@@ -863,18 +866,18 @@ function renderStats() {
 
   setText("stat-games", String(total));
   setText("stat-found", String(foundCount));
-  setText("stat-rate", rate == null ? "—" : `${rate}%`);
-  setText("stat-avg", avgAttempts == null ? "—" : avgAttempts.toFixed(1));
-  setText("stat-best", best == null ? "—" : `${best} essai${best > 1 ? "s" : ""}`);
+  setText("stat-rate", rate == null ? "-" : `${rate}%`);
+  setText("stat-avg", avgAttempts == null ? "-" : avgAttempts.toFixed(1));
+  setText("stat-best", best == null ? "-" : `${best} essai${best > 1 ? "s" : ""}`);
   setText("stat-streak", String(session.currentStreak));
   setText("stat-streak-best", String(session.bestStreak));
 
   // Timers
-  setText("stat-time-total", totalDuration > 0 ? formatDuration(totalDuration) : "—");
-  setText("stat-time-avg", avgDuration == null ? "—" : formatDuration(avgDuration));
+  setText("stat-time-total", totalDuration > 0 ? formatDuration(totalDuration) : "-");
+  setText("stat-time-avg", avgDuration == null ? "-" : formatDuration(avgDuration));
   setText("stat-time-live", session.currentStartTime !== null
     ? formatDuration(liveDuration)
-    : "—");
+    : "-");
 }
 
 /**
@@ -1021,7 +1024,7 @@ function closeDefinition() {
 
 function goBetween() {
   // Calcule la duree de la partie qui vient de se terminer (si on a un
-  // startTime — sinon on stocke null, signalant une duree non mesurable).
+  // startTime, sinon on stocke null, signalant une duree non mesurable).
   let durationMs = null;
   if (session.currentStartTime !== null) {
     durationMs = Date.now() - session.currentStartTime;
@@ -1070,7 +1073,7 @@ function goBetween() {
 }
 
 /**
- * Abandon manuel : l'utilisateur clique "Abandonner — voir le mot". On demande
+ * Abandon manuel : l'utilisateur clique "Abandonner, voir le mot". On demande
  * au serveur de reveler le mot (motusChillReveal), on marque la partie comme
  * "exhausted" (non trouvee), et on bascule vers la vue between. Equivalent
  * fonctionnel a avoir epuise les essais, en moins long.
@@ -1332,7 +1335,7 @@ async function init() {
       }
     });
     // iOS : la coche "Done" declenche blur. Si le mot est complet, on
-    // soumet — sauf si on vient deja de soumettre (dedupe 300ms).
+    // soumet, sauf si on vient deja de soumettre (dedupe 300ms).
     els.nativeInput.addEventListener("blur", () => {
       if (!canType()) return;
       if (Date.now() - lastSubmitTs < 300) return;

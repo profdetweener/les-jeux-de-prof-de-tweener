@@ -1,16 +1,15 @@
 "use strict";
-// Slide — proto solo. Plateau commun, decalage facon Dekal, groupes de meme valeur.
-// Les parametres reglables sont en haut, ce sont les leviers d'equilibrage.
+// Slide, proto solo. Plateau commun, decalage facon Dekal, groupes de meme valeur.
+// La partie demarre depuis l'ecran de parametres (taille de grille, objectif).
 
 // ---- Parametres reglables ----
-let N = 5;                                  // taille de grille (modifiable dans l'UI)
+let N = 5;                                  // taille de grille (choisie a l'ecran de setup)
+let TARGET = 50;                            // objectif de score (choisi au setup)
 const VALUES = [1,2,3,4,5,6,7,8,9,10];      // valeurs de cartes (moins de valeurs = groupes plus frequents)
 const PER_VALUE = 10;                       // cartes par valeur dans le sac
 const RIVER = 3;                            // taille de riviere (solo)
-const TARGET = 50;                          // objectif de score
 
-// Teinte generee par famille de chiffre, repartie sur la roue chromatique.
-// S'adapte automatiquement au nombre de valeurs.
+// Teinte par famille de chiffre, repartie sur la roue chromatique. S'adapte au nombre de valeurs.
 function hues(v){
   const i = VALUES.indexOf(v), n = VALUES.length;
   const h = Math.round(i * 300 / n);
@@ -123,9 +122,9 @@ function render(){
   const frame = $("frame"); frame.className = "frame" + (aim?" aim":"");
 
   let html = '<div class="arrow-row">';
-  for(let c=0;c<N;c++) html += arw("col",c,true,"▼");
+  for(let c=0;c<N;c++) html += arw("col",c,true,"\u25BC");
   html += '</div><div class="mid"><div class="arrow-col">';
-  for(let r=0;r<N;r++) html += arw("row",r,true,"▶");
+  for(let r=0;r<N;r++) html += arw("row",r,true,"\u25B6");
   html += '</div><div class="grid">';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const v=board[r][c].value, col=hues(v); let cls="cell", style="";
@@ -134,9 +133,9 @@ function render(){
     html += '<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'" style="'+style+'">'+v+'</div>';
   }
   html += '</div><div class="arrow-col">';
-  for(let r=0;r<N;r++) html += arw("row",r,false,"◀");
+  for(let r=0;r<N;r++) html += arw("row",r,false,"\u25C0");
   html += '</div></div><div class="arrow-row">';
-  for(let c=0;c<N;c++) html += arw("col",c,false,"▲");
+  for(let c=0;c<N;c++) html += arw("col",c,false,"\u25B2");
   html += '</div>';
   frame.innerHTML = html;
 
@@ -151,7 +150,7 @@ function render(){
       cell.onclick = () => { const g=litGroupAt(+cell.dataset.r,+cell.dataset.c); if(g) claim(g); };
     });
   }
-  renderRiver(); renderLegend();
+  renderRiver();
   $("endTurn").style.display = phase==="claim" ? "" : "none";
 }
 
@@ -176,20 +175,24 @@ function renderRiver(){
     rv.appendChild(d);
   });
 }
-function renderLegend(){
-  const el=$("legend"); if(el.dataset.done) return; el.dataset.done="1";
-  let h=""; for(const v of VALUES){ const col=hues(v); h+='<div class="it"><span class="sw" style="background:linear-gradient(160deg,'+col.base+','+col.dark+')"></span>'+v+'</div>'; }
-  el.innerHTML=h;
-}
 
 let toastT=null;
 function toast(m){ const t=$("toast"); t.textContent=m; t.className="toast show"; clearTimeout(toastT); toastT=setTimeout(()=>t.className="toast",1400); }
 function setStatus(m){ $("status").textContent=m; }
 
+// ---- Ecran de parametres, puis partie ----
+function startGame(){ $("setup").hidden=true; $("game").hidden=false; newGame(); }
+function showSetup(){ $("game").hidden=true; $("setup").hidden=false; }
+
+function wireSeg(segId, apply){
+  const seg=$(segId); if(!seg) return;
+  seg.querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{ seg.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); apply(b); };
+  });
+}
+wireSeg("sizeSeg", b => { N = +b.dataset.n; });
+wireSeg("targetSeg", b => { TARGET = +b.dataset.t; });
+$("launchBtn").onclick = startGame;
 $("endTurn").onclick = () => { if(phase==="claim") advanceTurn(); };
 $("reset").onclick = newGame;
-$("sizeSeg").querySelectorAll("button").forEach(b=>{
-  b.onclick = () => { $("sizeSeg").querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); N=+b.dataset.n; newGame(); };
-});
-
-newGame();
+$("backSetup").onclick = showSetup;

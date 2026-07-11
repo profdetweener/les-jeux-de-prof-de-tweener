@@ -1,5 +1,5 @@
 /**
- * Vue "voting" — Definitions.
+ * Vue "voting", Definitions.
  *
  * Matrice N×N :
  *   - LIGNES   = auteurs (pseudo + leur définition proposée)
@@ -339,7 +339,7 @@ export function initVotingView(state, conn) {
     const mine = others.length > 0
       ? `Tes votes : ${myVotes} / ${others.length}`
       : "Aucun adversaire à noter.";
-    progressEl.textContent = `${mine} — Total exprimé : ${cast} / ${expected}`;
+    progressEl.textContent = `${mine}, Total exprimé : ${cast} / ${expected}`;
   }
 
   function updateHostActions() {

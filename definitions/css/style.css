@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Petit Bac — Frontend (phase 4)
+   Petit Bac, Frontend (phase 4)
    Palette : bleu nuit + beige
    ========================================================================== */
 
@@ -632,7 +632,7 @@ input.code-input::placeholder {
 }
 
 /* ==========================================================================
-   Footer — pied de page minimal pour les liens vers mentions légales
+   Footer, pied de page minimal pour les liens vers mentions légales
    ========================================================================== */
 .app-footer {
   display: flex;
@@ -797,7 +797,7 @@ input.code-input::placeholder {
 }
 
 /* ==========================================================================
-   MOBILE — tablettes & telephones (<= 760px)
+   MOBILE, tablettes & telephones (<= 760px)
    ========================================================================== */
 @media (max-width: 760px) {
   /* --- Layout global --- */
@@ -1231,7 +1231,7 @@ input.code-input::placeholder {
 }
 
 /* ==========================================================================
-   PETITS ECRANS (<= 380px) — derniers ajustements
+   PETITS ECRANS (<= 380px), derniers ajustements
    ========================================================================== */
 @media (max-width: 380px) {
   .app-header h1 { font-size: 15px; }
@@ -1245,7 +1245,7 @@ input.code-input::placeholder {
 }
 
 /* ==========================================================================
-   PAYSAGE TELEPHONE (hauteur faible) — on compresse pour laisser place au clavier
+   PAYSAGE TELEPHONE (hauteur faible), on compresse pour laisser place au clavier
    ========================================================================== */
 @media (max-width: 900px) and (max-height: 500px) {
   .app-header { padding: 8px 16px; }
@@ -1260,7 +1260,7 @@ input.code-input::placeholder {
 }
 
 /* ==========================================================================
-   DÉFINITIONS — styles spécifiques au jeu
+   DÉFINITIONS, styles spécifiques au jeu
    (le reste du fichier est la base partagée, héritée de Petit Bac)
    ========================================================================== */
 
@@ -1627,7 +1627,7 @@ input.code-input::placeholder {
   margin-bottom: 16px;
 }
 
-/* Pill "Mode : Chill / Compétitif" — visible quand le mode est verrouille
+/* Pill "Mode : Chill / Compétitif", visible quand le mode est verrouille
    (i.e. fixe par le picker via ?mode=). Sur la page join.html ET dans le
    lobby cote hote. */
 .mode-pill {

@@ -127,7 +127,7 @@ async function fetchViaRest(lower) {
   }
 
   const entries = frEntries.map((entry) => ({
-    partOfSpeech: entry.partOfSpeech || "—",
+    partOfSpeech: entry.partOfSpeech || "-",
     definitions: (entry.definitions || []).map((d) => ({
       text: stripHtml(d.definition),
       examples: (d.examples || []).map(stripHtml).filter(Boolean),
@@ -175,7 +175,7 @@ async function resolveAccentedTitle(asciiLower) {
   if (hit1) return hit1;
 
   // Deuxième passe : avec un préfixe plus court (les 3 premières lettres dé-accentuées
-  // — ici c'est déjà l'ASCII). Plus de candidats à filtrer mais on couvre les cas
+  //, ici c'est déjà l'ASCII). Plus de candidats à filtrer mais on couvre les cas
   // où la forme accentuée diverge dès les premières lettres.
   if (asciiLower.length > 3) {
     const candidates2 = await opensearchSuggestions(asciiLower.slice(0, 3), 50);
@@ -331,7 +331,7 @@ async function fetchViaMediawiki(lower) {
  * Parse le HTML d'une page Wiktionnaire FR et extrait les définitions par
  * section reconnue (Nom commun, Verbe, etc.) sous la langue Français.
  *
- * IMPORTANT — deux formats à gérer :
+ * IMPORTANT, deux formats à gérer :
  *
  *   ANCIEN (MediaWiki avant 1.43, jusqu'à mi-2024) :
  *     <h2><span class="mw-headline" id="Français">Français</span></h2>
@@ -347,7 +347,7 @@ async function fetchViaMediawiki(lower) {
  *
  * Différence cruciale : dans le nouveau format, le <h3> est enveloppé dans un
  * <div class="mw-heading">. Donc `h3.nextElementSibling` est null (le h3 est
- * seul dans son wrapper) — il faut prendre le sibling du DIV pour atteindre
+ * seul dans son wrapper), il faut prendre le sibling du DIV pour atteindre
  * le <ol> qui suit.
  *
  * Stratégie : on collecte la liste plate d'éléments "intéressants" au niveau
@@ -391,8 +391,8 @@ function parseMediawikiHtml(html) {
     hClone.querySelectorAll(".mw-editsection").forEach((n) => n.remove());
     const text = (hClone.textContent || "").trim();
 
-    // L'anchor — l'élément dont on doit parcourir les nextElementSibling pour
-    // trouver le contenu — est le wrapper .mw-heading s'il existe, sinon le h.
+    // L'anchor, l'élément dont on doit parcourir les nextElementSibling pour
+    // trouver le contenu, est le wrapper .mw-heading s'il existe, sinon le h.
     const wrapper = h.closest(".mw-heading");
     const anchor = wrapper || h;
 
@@ -502,7 +502,7 @@ export async function fetchDefinition(word) {
     // qui renvoie vers la forme accentuée). On résout l'ASCII vers la vraie forme
     // via opensearch, puis on re-tente le REST sur la forme résolue.
     //
-    // NB : on ne déclenche PAS sur UPSTREAM (501) ni PARSE — ces codes signalent
+    // NB : on ne déclenche PAS sur UPSTREAM (501) ni PARSE, ces codes signalent
     // que la page existe mais le REST a un problème ; le fallback MediaWiki est
     // plus pertinent dans ce cas, et il marchera avec le titre ASCII tel quel.
     const accentRetryCodes = new Set(["NOT_FOUND", "EMPTY", "NO_FR"]);

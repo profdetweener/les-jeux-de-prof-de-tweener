@@ -1,5 +1,5 @@
 /**
- * Orchestrateur principal de la page room.html — Definitions.
+ * Orchestrateur principal de la page room.html, Definitions.
  *
  * Calque sur petitbac/js/lobby.js :
  *   - lit le code de room (URL) + le pseudo (storage)

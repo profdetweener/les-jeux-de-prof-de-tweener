@@ -103,7 +103,7 @@ export function initGameView(state, conn) {
 
   // Clavier physique
   document.addEventListener("keydown", (e) => {
-    // Si on est dans un champ texte ailleurs (chat, etc. — pas le cas ici mais
+    // Si on est dans un champ texte ailleurs (chat, etc., pas le cas ici mais
     // safety), on n'intercepte pas.
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
     if (!canType()) return;

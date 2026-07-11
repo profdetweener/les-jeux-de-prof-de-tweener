@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sésame — Règles du jeu</title>
+  <title>Sésame, Règles du jeu</title>
   <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
   <header class="app-header">
-    <h1>Sésame — Règles</h1>
+    <h1>Sésame, Règles</h1>
     <a href="index.html" class="header-info" style="color: var(--beige); text-decoration: none;">← Retour</a>
   </header>
 
   <main>
     <div class="card rules-card">
       <h2>Règles du jeu</h2>
-      <p class="subtitle">Deux modes : <strong>Chill 🛋️</strong> pour le stream en solo, <strong>Compétitif ⚔️</strong> pour s'affronter.</p>
+      <p class="subtitle">Deux modes : <strong>Chill</strong> pour le stream en solo, <strong>Compétitif</strong> pour s'affronter.</p>
 
       <!-- Onglets -->
       <div class="rules-tabs" role="tablist">
         <button class="rules-tab is-active" role="tab" data-tab="commun" aria-selected="true">Commun</button>
-        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">🛋️ Chill</button>
-        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">⚔️ Compétitif</button>
+        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">Chill</button>
+        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">Compétitif</button>
       </div>
 
       <!-- Panneau COMMUN -->
@@ -30,7 +30,7 @@
         <p>
           Deviner un mot français en un nombre limité d'essais. La première lettre est toujours donnée.
           Chaque essai doit faire la bonne longueur, commencer par la lettre donnée et exister dans le
-          dictionnaire — sinon il est refusé sans consommer d'essai.
+          dictionnaire, sinon il est refusé sans consommer d'essai.
         </p>
         <h3>Le dictionnaire</h3>
         <p>
@@ -38,39 +38,39 @@
           conjugué ni un adjectif). Le dictionnaire utilisé est <strong>volontairement allégé</strong>
           pour garder l'application légère et fluide : certains mots français parfaitement valides ne
           s'y trouvent pas. Si ton essai est refusé alors que tu es sûr qu'il existe, ce n'est
-          probablement pas un bug — il n'est juste pas dans la liste. Tente autre chose.
+          probablement pas un bug, il n'est juste pas dans la liste. Tente autre chose.
         </p>
         <h3>Le code couleur</h3>
         <ul class="rules-colors">
           <li>
             <span class="color-chip" style="background:#6aaa64;"></span>
-            <span><strong>Vert</strong> — lettre bien placée et nulle part ailleurs.</span>
+            <span><strong>Vert</strong>, lettre bien placée et nulle part ailleurs.</span>
           </li>
           <li>
             <span class="color-chip" style="background:linear-gradient(135deg,#6aaa64 50%,#c9b458 50%);"></span>
-            <span><strong>Vert + jaune</strong> — bien placée, mais il en reste une autre ailleurs.</span>
+            <span><strong>Vert + jaune</strong>, bien placée, mais il en reste une autre ailleurs.</span>
           </li>
           <li>
             <span class="color-chip" style="background:#c9b458;"></span>
-            <span><strong>Jaune</strong> — présente dans le mot, mais mal placée.</span>
+            <span><strong>Jaune</strong>, présente dans le mot, mais mal placée.</span>
           </li>
           <li>
             <span class="color-chip" style="background:#d3d1c7;"></span>
-            <span><strong>Gris</strong> — absente du mot.</span>
+            <span><strong>Gris</strong>, absente du mot.</span>
           </li>
         </ul>
         <p class="rules-note">
           La diagonale vert/jaune est une variante maison : « cette lettre est bien là, mais il en reste
-          une autre quelque part ». La plupart des jeux de ce type te laissent le deviner — ici on te le signale.
+          une autre quelque part ». La plupart des jeux de ce type te laissent le deviner, ici on te le signale.
         </p>
       </section>
 
       <!-- Panneau CHILL -->
       <section class="rules-panel" data-panel="chill" role="tabpanel" hidden>
-        <h3>🛋️ Mode chill — solo, idéal en stream</h3>
+        <h3>Mode chill, solo, idéal en stream</h3>
         <p>
           Tu joues seul et tu tapes les essais sur ton clavier. En stream, tes viewers proposent des mots
-          à l'oral ou dans le chat — à toi de décider quoi tenter. Pas de timer, pas de score, pas de
+          à l'oral ou dans le chat, à toi de décider quoi tenter. Pas de timer, pas de score, pas de
           pression.
         </p>
         <p>
@@ -81,11 +81,11 @@
 
       <!-- Panneau COMPÉTITIF -->
       <section class="rules-panel" data-panel="comp" role="tabpanel" hidden>
-        <h3>⚔️ Mode compétitif — 2 à 12 joueurs</h3>
+        <h3>Mode compétitif, 2 à 12 joueurs</h3>
         <p>
           Tout le monde reçoit le <strong>même mot</strong> au même moment, chacun sur sa propre grille.
           Tu vois la progression <em>colorée</em> des adversaires (les couleurs de leurs cases) mais
-          <strong>pas leurs lettres</strong> — le suspense reste entier. L'hôte configure la partie ; il faut
+          <strong>pas leurs lettres</strong>, le suspense reste entier. L'hôte configure la partie ; il faut
           au moins 2 joueurs pour démarrer.
         </p>
 
@@ -99,26 +99,26 @@
           <div>
             <h4>Présets</h4>
             <ul class="rules-list">
-              <li><strong>⚡ Speed</strong> — le 1<sup>er</sup> qui trouve termine la manche. 1 pt pour lui. 5 manches.</li>
-              <li><strong>⏱️ Chrono</strong> — timer 90 s, tout le monde joue. Score Essais + Position. 5 manches.</li>
-              <li><strong>🏃 Marathon</strong> — timer long (4 min), score Essais. Manches illimitées.</li>
-              <li><strong>🛠️ Custom</strong> — tu règles tout toi-même.</li>
+              <li><strong>⚡ Speed</strong>, le 1<sup>er</sup> qui trouve termine la manche. 1 pt pour lui. 5 manches.</li>
+              <li><strong>⏱️ Chrono</strong>, timer 90 s, tout le monde joue. Score Essais + Position. 5 manches.</li>
+              <li><strong>🏃 Marathon</strong>, timer long (4 min), score Essais. Manches illimitées.</li>
+              <li><strong>🛠️ Custom</strong>, tu règles tout toi-même.</li>
             </ul>
 
             <h4>Fin de manche</h4>
             <ul class="rules-list">
-              <li><strong>Premier trouvé</strong> — s'arrête dès qu'un joueur trouve.</li>
-              <li><strong>Fin au timer</strong> — dure exactement la durée du timer.</li>
+              <li><strong>Premier trouvé</strong>, s'arrête dès qu'un joueur trouve.</li>
+              <li><strong>Fin au timer</strong>, dure exactement la durée du timer.</li>
             </ul>
           </div>
 
           <div>
             <h4>Modes de score</h4>
             <ul class="rules-list">
-              <li><strong>Binaire</strong> — 1 pt au premier, 0 aux autres.</li>
-              <li><strong>Essais</strong> — d'autant plus de points qu'il te restait d'essais (trouvé au 3<sup>e</sup>/6 → 4 pts).</li>
-              <li><strong>Position</strong> — selon l'ordre d'arrivée, dégressif et adapté au nombre de joueurs (à 2 : 2 puis 1).</li>
-              <li><strong>Essais + Position</strong> — efficacité + bonus d'ordre d'arrivée.</li>
+              <li><strong>Binaire</strong>, 1 pt au premier, 0 aux autres.</li>
+              <li><strong>Essais</strong>, d'autant plus de points qu'il te restait d'essais (trouvé au 3<sup>e</sup>/6 → 4 pts).</li>
+              <li><strong>Position</strong>, selon l'ordre d'arrivée, dégressif et adapté au nombre de joueurs (à 2 : 2 puis 1).</li>
+              <li><strong>Essais + Position</strong>, efficacité + bonus d'ordre d'arrivée.</li>
             </ul>
             <p class="rules-note">
               Avec « Premier trouvé », seuls Binaire et Essais sont possibles (on ignore ce qu'auraient fait les autres).
@@ -126,9 +126,9 @@
 
             <h4>Format de partie</h4>
             <ul class="rules-list">
-              <li><strong>Manches fixes</strong> — nombre défini à l'avance.</li>
-              <li><strong>Illimité</strong> — jusqu'à ce que l'hôte arrête.</li>
-              <li><strong>Premier à X points</strong> — s'arrête au seuil atteint.</li>
+              <li><strong>Manches fixes</strong>, nombre défini à l'avance.</li>
+              <li><strong>Illimité</strong>, jusqu'à ce que l'hôte arrête.</li>
+              <li><strong>Premier à X points</strong>, s'arrête au seuil atteint.</li>
             </ul>
           </div>
         </div>

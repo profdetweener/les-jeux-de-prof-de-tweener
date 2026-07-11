@@ -7,7 +7,7 @@
  *   - finished       -> #view-comp-final  (podium final)
  *
  * Principe cle : sur ma grille je vois mes lettres + couleurs. Sur les
- * miniatures adverses je ne vois QUE les couleurs (jamais les lettres) —
+ * miniatures adverses je ne vois QUE les couleurs (jamais les lettres),
  * c'est ce qui cree le stress sans permettre de tricher.
  *
  * Le serveur fait foi pour toute la logique (validation, coloration, scoring,
@@ -170,8 +170,8 @@ export function initCompView(state, conn) {
     soundToggleEl.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
     if (soundIconEl) soundIconEl.textContent = soundEnabled ? "🔊" : "🔇";
     soundToggleEl.title = soundEnabled
-      ? "Sons activés — clic pour couper"
-      : "Sons coupés — clic pour activer";
+      ? "Sons activés, clic pour couper"
+      : "Sons coupés, clic pour activer";
   }
   updateSoundToggleUI();
 
@@ -385,7 +385,8 @@ export function initCompView(state, conn) {
   /**
    * Met a jour la couleur d'une touche selon le dernier feedback. Regle de
    * monotonie : absent < misplaced < good. On ne degrade jamais une touche.
-   * hasMore est un raffinement de "good" qu'on conserve une fois pose.
+   * hasMore reflete le dernier essai connu : on le retire des que la lettre est
+   * bien placee sans occurrence en trop, sinon un ancien has-more resterait a tort.
    */
   function updateKeyColor(letter, status, hasMore = false) {
     const btn = keyButtons[letter];
@@ -396,8 +397,9 @@ export function initCompView(state, conn) {
       btn.classList.remove("kb-absent", "kb-misplaced", "kb-good");
       btn.classList.add(`kb-${status}`);
     }
-    if (status === "good" && hasMore) {
-      btn.classList.add("kb-has-more");
+    if (status === "good") {
+      if (hasMore) btn.classList.add("kb-has-more");
+      else btn.classList.remove("kb-has-more");
     }
   }
 
@@ -649,7 +651,7 @@ export function initCompView(state, conn) {
       if (state.phase !== "in_round") return;
       // Affiche un hint discret au-dessus du clavier
       selfNoticeEl.style.display = "";
-      selfNoticeEl.textContent = "⏳ Fin de manche imminente — en attente du serveur…";
+      selfNoticeEl.textContent = "⏳ Fin de manche imminente, en attente du serveur…";
     }, 4000);
   }
   function clearRoundEndedSafetyNet() {
@@ -807,7 +809,7 @@ export function initCompView(state, conn) {
       // Toggle si deja charge
       if (loaded) {
         panelEl.hidden = !panelEl.hidden;
-        btnEl.textContent = panelEl.hidden ? "📖 Voir la définition" : "📖 Masquer la définition";
+        btnEl.textContent = panelEl.hidden ? "Voir la définition" : "Masquer la définition";
         return;
       }
       if (loading) return;
@@ -815,18 +817,18 @@ export function initCompView(state, conn) {
       if (!word) return;
       loading = true;
       btnEl.disabled = true;
-      btnEl.textContent = "📖 Chargement…";
+      btnEl.textContent = "Chargement…";
       try {
         const data = await fetchDefinition(word);
         panelEl.innerHTML = renderDefinitionHtml(data);
         panelEl.hidden = false;
         loaded = true;
-        btnEl.textContent = "📖 Masquer la définition";
+        btnEl.textContent = "Masquer la définition";
       } catch (e) {
         panelEl.innerHTML = `<p class="def-error">${escapeHtml(e?.message || "Définition introuvable.")}</p>`;
         panelEl.hidden = false;
         loaded = true;
-        btnEl.textContent = "📖 Masquer la définition";
+        btnEl.textContent = "Masquer la définition";
       } finally {
         loading = false;
         btnEl.disabled = false;
@@ -882,7 +884,7 @@ export function initCompView(state, conn) {
     // Reset de la definition (nouveau mot a chaque manche)
     recapDefPanel.hidden = true;
     recapDefPanel.innerHTML = "";
-    recapDefBtn.textContent = "📖 Voir la définition";
+    recapDefBtn.textContent = "Voir la définition";
     // Force la re-attache en revertant l'etat "loaded" : pas possible avec
     // closure -> on detache et reattache un nouveau handler. Plus simple :
     // on stocke loaded sur l'element et on le reset ici.
@@ -983,7 +985,7 @@ export function initCompView(state, conn) {
       finalDefPanel.innerHTML = "";
       finalDefBtn.replaceWith(finalDefBtn.cloneNode(true));
       const freshFinalBtn = document.getElementById("comp-final-def-btn");
-      freshFinalBtn.textContent = "📖 Voir la définition";
+      freshFinalBtn.textContent = "Voir la définition";
       attachDefButton(freshFinalBtn, finalDefPanel, () => lastRevealedWord);
     } else {
       finalWordEl.style.display = "none";
@@ -1010,10 +1012,10 @@ export function initCompView(state, conn) {
   /**
    * Formatte une duree en secondes vers une chaine compacte adaptee
    * a un récap. < 60s -> "23 s", sinon -> "m min s s" (ex: "8 min 42 s").
-   * Retourne "—" si valeur null/non finie.
+   * Retourne "-" si valeur null/non finie.
    */
   function fmtSec(sec) {
-    if (sec === null || sec === undefined || !isFinite(sec)) return "—";
+    if (sec === null || sec === undefined || !isFinite(sec)) return "-";
     const s = Math.round(sec);
     if (s < 60) return `${s} s`;
     const m = Math.floor(s / 60);
@@ -1023,10 +1025,10 @@ export function initCompView(state, conn) {
 
   /**
    * Formatte une moyenne d'essais : 2.83 -> "2,8" (1 decimale, virgule fr).
-   * Retourne "—" si null.
+   * Retourne "-" si null.
    */
   function fmtAvg(v) {
-    if (v === null || v === undefined || !isFinite(v)) return "—";
+    if (v === null || v === undefined || !isFinite(v)) return "-";
     return v.toFixed(1).replace(".", ",");
   }
 
@@ -1055,11 +1057,11 @@ export function initCompView(state, conn) {
       const bestCell =
         p.bestAttempts !== null && p.bestWord
           ? `<span class="num">${p.bestAttempts}</span> · <span class="stats-word">${escapeHtml(p.bestWord)}</span>`
-          : "—";
+          : "-";
       const recordCell =
         p.recordTimeSec !== null && p.recordWord
           ? `${fmtSec(p.recordTimeSec)}`
-          : "—";
+          : "-";
       rows +=
         '<tr>' +
         `<td><span class="${rankClass}">${rank}</span></td>` +
@@ -1095,7 +1097,7 @@ export function initCompView(state, conn) {
 
   /**
    * Construit le bloc highlights. Chaque highlight est optionnel ; si null
-   * on saute la pill (au lieu d'afficher du "—" partout).
+   * on saute la pill (au lieu d'afficher du "-" partout).
    */
   function buildStatsHighlights(gs) {
     const h = gs.highlights;
@@ -1229,7 +1231,7 @@ export function initCompView(state, conn) {
         : "";
       html += `<tr><td>${computed[i]}</td><td><span class="pseudo-label">${pseudoDisplay}</span>${kickHtml}</td>`;
       if (showRoundPts) {
-        const detail = r.pointsBreakdown || (r.found ? "" : "—");
+        const detail = r.pointsBreakdown || (r.found ? "" : "-");
         html += `<td class="breakdown">${escapeHtml(detail)}</td><td>+${r.roundPoints}</td>`;
       }
       html += `<td><strong>${r.totalPoints}</strong></td></tr>`;

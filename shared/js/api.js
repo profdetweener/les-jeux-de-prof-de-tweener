@@ -76,7 +76,7 @@ export async function pingWorker() {
 }
 
 // ===========================================================================
-// Motus chill — endpoints REST stateless
+// Motus chill, endpoints REST stateless
 // ===========================================================================
 
 /**
@@ -147,7 +147,7 @@ export async function motusChillReveal(token) {
 }
 
 // ===========================================================================
-// Definitions — banque de mots pour le mode chill solo
+// Definitions, banque de mots pour le mode chill solo
 // ===========================================================================
 
 /**

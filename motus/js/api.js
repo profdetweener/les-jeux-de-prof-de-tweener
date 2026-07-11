@@ -76,7 +76,7 @@ export async function pingWorker() {
 }
 
 // ===========================================================================
-// Motus chill — endpoints REST stateless
+// Motus chill, endpoints REST stateless
 // ===========================================================================
 
 /**

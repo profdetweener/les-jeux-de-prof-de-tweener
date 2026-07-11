@@ -1,5 +1,5 @@
 /**
- * Vue "scoring" — Definitions.
+ * Vue "scoring", Definitions.
  * Affiche, par auteur : sa définition, la note moyenne agrégée (badge coloré)
  * et les points de la manche. Puis le classement cumulé.
  */

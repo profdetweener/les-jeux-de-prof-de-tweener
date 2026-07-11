@@ -1,5 +1,5 @@
 /**
- * Vue "lobby" — Definitions.
+ * Vue "lobby", Definitions.
  * Liste des joueurs + configuration (hôte) ou visualisation (invité).
  */
 
@@ -56,7 +56,7 @@ export function initLobbyView(state, conn, roomCode) {
     if (chillBanner) chillBanner.style.display = isChill ? "block" : "none";
     // Pill mode (affichee a l'hote)
     if (modePillEl && modePillValEl) {
-      modePillValEl.textContent = isChill ? "Chill 🛋️" : "Compétitif ⚔️";
+      modePillValEl.textContent = isChill ? "Chill" : "Compétitif";
       modePillEl.classList.toggle("mode-chill", isChill);
       modePillEl.classList.toggle("mode-compet", !isChill);
     }

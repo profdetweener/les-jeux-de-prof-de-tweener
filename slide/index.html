@@ -4,55 +4,55 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
-  <title>Slide — proto solo</title>
+  <title>Slide, choisis ton mode</title>
   <link rel="stylesheet" href="../shared/css/landing.css">
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
   <header class="landing-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
     <h1>Slide</h1>
-    <span class="header-tagline">décale, forme des groupes, encaisse</span>
+    <span class="header-tagline">décale, colle, encaisse</span>
   </header>
 
-  <main class="slide-main">
-    <div class="hud">
-      <div class="box"><div class="lbl">Score</div><div class="num" id="score">0</div></div>
-      <div class="box"><div class="lbl">Objectif</div><div class="num goal" id="goal">50</div></div>
-      <div class="box"><div class="lbl">Tours</div><div class="num" id="turns">0</div></div>
-    </div>
+  <main class="landing-main">
+    <section class="landing-intro">
+      <h2>Quel mode aujourd'hui ?</h2>
+    </section>
 
-    <div class="sizebar">
-      <span>Taille de grille</span>
-      <div class="seg" id="sizeSeg">
-        <button data-n="4">4×4</button>
-        <button data-n="5" class="on">5×5</button>
-        <button data-n="6">6×6</button>
+    <div class="games-grid">
+
+      <a href="chill.html" class="game-card">
+        <h3 class="game-card-title">Chill</h3>
+        <p class="game-card-tagline">
+          Tu joues seul contre un objectif de score. Idéal pour se faire la main
+          ou jouer en stream, sans pression.
+        </p>
+        <div class="game-card-meta"><span>1 joueur</span></div>
+        <div class="game-card-cta">Lancer <span class="arrow">→</span></div>
+      </a>
+
+      <div class="game-card game-card-soon" aria-disabled="true">
+        <h3 class="game-card-title">Compétitif</h3>
+        <p class="game-card-tagline">
+          Plateau partagé, chacun son tour, groupes colorés par joueur ou équipe.
+          En cours de construction.
+        </p>
+        <div class="game-card-meta"><span>Bientôt</span></div>
+        <div class="game-card-cta">Bientôt disponible</div>
       </div>
-    </div>
 
-    <div class="frame" id="frame"></div>
-
-    <div class="river-lbl">Rivière — choisis une carte</div>
-    <div class="river" id="river"></div>
-
-    <div class="status" id="status"></div>
-    <div class="btns">
-      <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
-      <button class="btn btn-ghost" id="reset">Nouvelle partie</button>
-    </div>
-
-    <div class="legend" id="legend"></div>
-
-    <div class="help">
-      <p><b>Le coup.</b> Choisis une carte dans la rivière, puis clique une flèche au bord d'une ligne ou d'une colonne. La carte entre par ce bord, tout coulisse d'un cran, la carte du bout opposé sort.</p>
-      <p><b>Les couleurs.</b> Chaque valeur a sa teinte. Un contour pointillé teinté signale un groupe de même valeur déjà collé, que ton coup n'a pas formé, donc pas encaissable. Un groupe en fond plein est né de ton décalage : clique-le pour marquer <b>valeur × n + n × (n−1)</b>.</p>
-      <p><a href="regles.html">Règles complètes →</a></p>
     </div>
   </main>
 
-  <div class="toast" id="toast"></div>
-
-  <script src="js/game.js?v=1"></script>
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
 </body>
 </html>

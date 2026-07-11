@@ -458,7 +458,7 @@ export function initLobbyView(state, conn, currentRoomCode) {
 
   // --- Contrainte de longueur : radio + input numerique ---
   // Le numero est grise si "Aucune", actif sinon. Le label dynamique ("min" /
-  // "max" / "—") aide a la lisibilite.
+  // "max" / "-") aide a la lisibilite.
   function syncLengthConstraintUI() {
     let mode = "none";
     for (const r of lengthModeRadios) {

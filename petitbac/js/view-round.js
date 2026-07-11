@@ -70,7 +70,7 @@ export function initRoundView(state, conn) {
     } else {
       stopBtn.style.display = "";
       stopBtn.disabled = true; // grise par defaut, active quand toutes les cases sont remplies
-      stopBtn.textContent = "🛑 STOP — j'ai terminé";
+      stopBtn.textContent = "🛑 STOP, j'ai terminé";
       const lenDesc = describeLengthConstraint(currentLengthConstraint);
       submissionStatusEl.textContent = lenDesc
         ? `Remplis toutes les cases (bonne lettre + ${lenDesc}) pour pouvoir cliquer STOP.`
@@ -262,7 +262,7 @@ export function initRoundView(state, conn) {
 
     // Marque visuellement chaque input dont la valeur viole la contrainte de
     // longueur. On le fait aussi pour les inputs non-vides qui ne commencent
-    // pas par la bonne lettre — meme principe, c'est le meme genre d'erreur.
+    // pas par la bonne lettre, meme principe, c'est le meme genre d'erreur.
     Object.values(inputs).forEach((input) => {
       const v = input.value.trim();
       const badLetter = v.length > 0 && !answerMatchesLetter(input.value, currentLetter);
@@ -304,13 +304,13 @@ export function initRoundView(state, conn) {
     if (allFilled && allGoodLetter && allGoodLength) {
       submissionStatusEl.textContent = "";
     } else if (!allFilled) {
-      submissionStatusEl.textContent = `${filled} / ${total} cases remplies — remplis tout pour pouvoir cliquer STOP.`;
+      submissionStatusEl.textContent = `${filled} / ${total} cases remplies, remplis tout pour pouvoir cliquer STOP.`;
     } else if (!allGoodLetter) {
       // Toutes remplies, mais certaines ne commencent pas par la lettre
-      submissionStatusEl.textContent = `${badLetter} réponse(s) ne commence(nt) pas par ${currentLetter} — corrige avant de cliquer STOP.`;
+      submissionStatusEl.textContent = `${badLetter} réponse(s) ne commence(nt) pas par ${currentLetter}, corrige avant de cliquer STOP.`;
     } else {
       // Toutes remplies + bonne lettre, mais contrainte de longueur violee
-      submissionStatusEl.textContent = `${badLength} réponse(s) hors limite (${lengthDesc}) — corrige avant de cliquer STOP.`;
+      submissionStatusEl.textContent = `${badLength} réponse(s) hors limite (${lengthDesc}), corrige avant de cliquer STOP.`;
     }
   }
 

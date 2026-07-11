@@ -1,5 +1,5 @@
 /**
- * Vue Lobby Motus — gere les deux modes (coop_stream / competitive).
+ * Vue Lobby Motus, gere les deux modes (coop_stream / competitive).
  *
  * Le mode est determine par state.config.mode au moment du premier `joined`.
  * Il est fige : la room a ete creee en coop OU en comp, on ne switche pas
@@ -282,7 +282,7 @@ export function initLobbyView(state, conn) {
    *   2. si le scoring courant n'est plus autorise, bascule sur le 1er autorise
    *
    * Le timer est TOUJOURS obligatoire (on ne veut pas qu'un joueur AFK bloque
-   * la manche). Il n'y a donc plus d'option "Aucun" — on garantit juste une
+   * la manche). Il n'y a donc plus d'option "Aucun", on garantit juste une
    * valeur par defaut si jamais elle manquait.
    */
   function applyCoherenceRules() {
@@ -463,7 +463,7 @@ export function initLobbyView(state, conn) {
     if (state.config && state.config.mode === "competitive") {
       // On adopte la config serveur si elle diverge sur n'importe quel champ
       // pertinent. NB : maxRounds n'est pertinent que pour format=fixed_rounds,
-      // et pointsTarget que pour format=first_to_points — comparer en dehors de
+      // et pointsTarget que pour format=first_to_points, comparer en dehors de
       // ces cas creerait des fausses divergences (le serveur renvoie 0 quand
       // c'est inapplicable).
       const s = state.config;
@@ -512,12 +512,12 @@ export function initLobbyView(state, conn) {
 
   function renderGuestCompSummary() {
     const items = [
-      ["Préset", PRESET_LABELS[compConfig.preset] || "—"],
+      ["Préset", PRESET_LABELS[compConfig.preset] || "-"],
       ["Mot", `${compConfig.wordLength} lettres, ${compConfig.maxAttempts} essais`],
-      ["Fin de manche", END_CONDITION_LABELS[compConfig.endCondition] || "—"],
-      ["Score", SCORING_LABELS[compConfig.scoring] || "—"],
+      ["Fin de manche", END_CONDITION_LABELS[compConfig.endCondition] || "-"],
+      ["Score", SCORING_LABELS[compConfig.scoring] || "-"],
       ["Timer", `${compConfig.timerSeconds}s`],
-      ["Format", FORMAT_LABELS[compConfig.format] || "—"],
+      ["Format", FORMAT_LABELS[compConfig.format] || "-"],
     ];
     if (compConfig.format === "fixed_rounds") {
       items.push(["Manches", String(compConfig.maxRounds)]);

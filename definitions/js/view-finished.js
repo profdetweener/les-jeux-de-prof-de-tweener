@@ -1,5 +1,5 @@
 /**
- * Vue "finished" — Definitions.
+ * Vue "finished", Definitions.
  * Classement final, statistiques detaillees, bouton "retour au lobby" (hote).
  *
  * Les stats arrivent dans le message `game_finished` (champ `stats`). Elles sont
@@ -89,7 +89,7 @@ export function initFinishedView(state, conn) {
     if (regular && regular.averageScore > 0) {
       items.push([
         "📈 Le plus régulier",
-        `<b>${esc(nameOf(regular))}</b> — ${regular.averageScore} pts par manche en moyenne`,
+        `<b>${esc(nameOf(regular))}</b>, ${regular.averageScore} pts par manche en moyenne`,
       ]);
     }
 
@@ -98,7 +98,7 @@ export function initFinishedView(state, conn) {
     if (winner && winner.roundWins > 0) {
       items.push([
         "🥇 Meilleure définition le plus souvent",
-        `<b>${esc(nameOf(winner))}</b> — ${winner.roundWins} manche(s) sur ${stats.roundsPlayed}`,
+        `<b>${esc(nameOf(winner))}</b>, ${winner.roundWins} manche(s) sur ${stats.roundsPlayed}`,
       ]);
     }
 
@@ -107,7 +107,7 @@ export function initFinishedView(state, conn) {
     if (peak && peak.bestRoundScore > 0) {
       items.push([
         "💥 Meilleure manche",
-        `<b>${esc(nameOf(peak))}</b> — ${peak.bestRoundScore} pts en une seule manche`,
+        `<b>${esc(nameOf(peak))}</b>, ${peak.bestRoundScore} pts en une seule manche`,
       ]);
     }
 
@@ -119,11 +119,11 @@ export function initFinishedView(state, conn) {
       if (generous.averageGiven - strict.averageGiven >= 0.1) {
         items.push([
           "🧊 Le juge le plus sévère",
-          `<b>${esc(nameOf(strict))}</b> — ${pct(strict.averageGiven)} de note moyenne donnée`,
+          `<b>${esc(nameOf(strict))}</b>, ${pct(strict.averageGiven)} de note moyenne donnée`,
         ]);
         items.push([
           "☀️ Le juge le plus généreux",
-          `<b>${esc(nameOf(generous))}</b> — ${pct(generous.averageGiven)} de note moyenne donnée`,
+          `<b>${esc(nameOf(generous))}</b>, ${pct(generous.averageGiven)} de note moyenne donnée`,
         ]);
       }
     }
@@ -172,7 +172,7 @@ export function initFinishedView(state, conn) {
           `<td class="num">${p.roundWins}</td>` +
           `<td class="num">${pct(p.averageReceived)}</td>` +
           `<td class="num">${pct(p.averageGiven)}</td>` +
-          `<td class="num">${p.emptyDefinitions || "—"}</td>` +
+          `<td class="num">${p.emptyDefinitions || "-"}</td>` +
           "</tr>"
         );
       })

@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Définitions — Règles du jeu</title>
+  <title>Définitions, Règles du jeu</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="app-header">
-    <h1>Définitions — Règles</h1>
+    <h1>Définitions, Règles</h1>
     <a href="index.html" class="app-header-home" title="Retour">← Retour</a>
   </header>
 
@@ -16,15 +16,15 @@
     <div class="card rules-card">
       <h2>Règles du jeu</h2>
       <p class="subtitle">
-        Deux modes : <strong>Chill 🛋️</strong> pour le stream en solo,
-        <strong>Compétitif ⚔️</strong> pour s'affronter en ligne avec notation collaborative.
+        Deux modes : <strong>Chill</strong> pour le stream en solo,
+        <strong>Compétitif</strong> pour s'affronter en ligne avec notation collaborative.
       </p>
 
       <!-- Onglets -->
       <div class="rules-tabs" role="tablist">
         <button class="rules-tab is-active" role="tab" data-tab="commun" aria-selected="true">Commun</button>
-        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">🛋️ Chill</button>
-        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">⚔️ Compétitif</button>
+        <button class="rules-tab" role="tab" data-tab="chill" aria-selected="false">Chill</button>
+        <button class="rules-tab" role="tab" data-tab="comp" aria-selected="false">Compétitif</button>
       </div>
 
       <!-- Panneau COMMUN -->
@@ -44,7 +44,7 @@
           à 5 (très difficile), pour calibrer la partie selon l'audience.
         </p>
         <p class="rules-note">
-          🎲 Le tirage évite les répétitions au sein d'une même session.
+          Le tirage évite les répétitions au sein d'une même session.
           Tu peux jouer longtemps sans recroiser deux fois le même mot.
         </p>
         <p class="rules-note">
@@ -79,7 +79,7 @@
 
       <!-- Panneau CHILL -->
       <section class="rules-panel" data-panel="chill" role="tabpanel" hidden>
-        <h3>🛋️ Mode chill — solo, idéal en stream</h3>
+        <h3>Mode chill, solo, idéal en stream</h3>
         <p>
           Tu joues <strong>seul</strong>. Pas de room, pas de lien d'invitation, pas d'attente.
           Un mot ou une expression apparaît avec sa définition <strong>floutée</strong> juste en
@@ -89,8 +89,8 @@
 
         <h4>Options</h4>
         <ul class="rules-list">
-          <li><strong>Type d'entrée</strong> — mots seuls, expressions seules, ou les deux mélangés.</li>
-          <li><strong>Difficulté</strong> — fourchette min → max de 1 à 5. Un compteur indique
+          <li><strong>Type d'entrée</strong>, mots seuls, expressions seules, ou les deux mélangés.</li>
+          <li><strong>Difficulté</strong>, fourchette min → max de 1 à 5. Un compteur indique
             combien d'entrées correspondent à ton filtre.</li>
         </ul>
         <p class="rules-note">
@@ -101,7 +101,7 @@
 
       <!-- Panneau COMPÉTITIF -->
       <section class="rules-panel" data-panel="comp" role="tabpanel" hidden>
-        <h3>⚔️ Mode compétitif — 2 à 12 joueurs</h3>
+        <h3>Mode compétitif, 2 à 12 joueurs</h3>
         <p>
           Tout le monde reçoit le même mot. Chacun écrit sa <strong>fausse définition</strong>
           à l'aveugle dans le temps imparti. La vraie est ensuite révélée, et chaque joueur
@@ -136,20 +136,20 @@
         <h4>Calcul de la note moyenne</h4>
         <p>Trois méthodes au choix de l'hôte pour agréger les votes reçus par une définition :</p>
         <ul class="rules-list">
-          <li><strong>Anti-saboteur</strong> (recommandé) — médiane des votes, puis exclusion
+          <li><strong>Anti-saboteur</strong> (recommandé), médiane des votes, puis exclusion
             <em>uniquement</em> des votes anormalement bas (détection MAD). Un joueur qui mettrait
             exprès 0 à tout le monde est neutralisé ; un vrai 1 enthousiaste reste compté.
             S'active dès 4 votes ; en-dessous on tombe sur la moyenne simple.</li>
-          <li><strong>Moyenne simple</strong> — la moyenne de tous les votes. Sensible aux extrêmes.</li>
-          <li><strong>Médiane</strong> — valeur centrale. Très robuste à un vote isolé.</li>
+          <li><strong>Moyenne simple</strong>, la moyenne de tous les votes. Sensible aux extrêmes.</li>
+          <li><strong>Médiane</strong>, valeur centrale. Très robuste à un vote isolé.</li>
         </ul>
 
         <h4>Configuration</h4>
         <ul class="rules-list">
-          <li><strong>Nombre de manches</strong> — fixé à l'avance (1 à 30) ou illimité (l'hôte clôt).</li>
-          <li><strong>Temps d'écriture</strong> — de 30 s à 10 min par manche.</li>
-          <li><strong>Méthode d'agrégation</strong> — anti-saboteur / moyenne / médiane.</li>
-          <li><strong>Difficulté des mots</strong> — fourchette de 1 (très accessible) à 5 (très difficile).
+          <li><strong>Nombre de manches</strong>, fixé à l'avance (1 à 30) ou illimité (l'hôte clôt).</li>
+          <li><strong>Temps d'écriture</strong>, de 30 s à 10 min par manche.</li>
+          <li><strong>Méthode d'agrégation</strong>, anti-saboteur / moyenne / médiane.</li>
+          <li><strong>Difficulté des mots</strong>, fourchette de 1 (très accessible) à 5 (très difficile).
             Le tirage se fait dans la sous-banque qui correspond. <strong>2 → 4</strong> est conseillé pour
             un mix équilibré ; <strong>1 → 5</strong> pour la banque entière.</li>
         </ul>

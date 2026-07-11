@@ -176,7 +176,7 @@ function startGame() {
  */
 function updateDiffHint() {
   if (!allWords.length) {
-    diffHint.textContent = "—";
+    diffHint.textContent = "-";
     return;
   }
   const v = entryTypeInput.value;

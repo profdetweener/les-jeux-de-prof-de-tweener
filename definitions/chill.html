@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
-  <title>Définitions chill — Partie en cours</title>
+  <title>Définitions chill, Partie en cours</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/chill.css">
 </head>
@@ -41,22 +41,22 @@
         <label>Difficulté</label>
         <div class="diff-range">
           <select id="diff-min-input">
-            <option value="1">1 — très accessible</option>
-            <option value="2" selected>2 — accessible</option>
-            <option value="3">3 — moyen</option>
-            <option value="4">4 — difficile</option>
-            <option value="5">5 — très difficile</option>
+            <option value="1">1, très accessible</option>
+            <option value="2" selected>2, accessible</option>
+            <option value="3">3, moyen</option>
+            <option value="4">4, difficile</option>
+            <option value="5">5, très difficile</option>
           </select>
           <span class="diff-range-sep">→</span>
           <select id="diff-max-input">
-            <option value="1">1 — très accessible</option>
-            <option value="2">2 — accessible</option>
-            <option value="3">3 — moyen</option>
-            <option value="4" selected>4 — difficile</option>
-            <option value="5">5 — très difficile</option>
+            <option value="1">1, très accessible</option>
+            <option value="2">2, accessible</option>
+            <option value="3">3, moyen</option>
+            <option value="4" selected>4, difficile</option>
+            <option value="5">5, très difficile</option>
           </select>
         </div>
-        <p class="info-line" id="diff-hint">—</p>
+        <p class="info-line" id="diff-hint">-</p>
       </div>
 
       <button class="btn btn-primary btn-block" id="start-btn" disabled>
@@ -73,12 +73,12 @@
 
         <div class="chill-word-banner">
           <span class="chill-word-label">À définir</span>
-          <span class="chill-word-value" id="chill-word">—</span>
+          <span class="chill-word-value" id="chill-word">-</span>
         </div>
 
         <div class="chill-def-block is-blurred" id="chill-def-block">
           <span class="chill-def-label">✅ Vraie définition</span>
-          <div class="chill-def-text" id="chill-def-text">—</div>
+          <div class="chill-def-text" id="chill-def-text">-</div>
           <button type="button" class="chill-def-reveal" id="chill-def-reveal">
             👁️ Révéler la définition
           </button>
@@ -93,8 +93,8 @@
                  min="1" max="5" step="0.1" value="3"
                  aria-label="Difficulté ressentie, de 1 à 5">
           <div class="chill-vote-scale">
-            <span>1 — très facile</span>
-            <span>5 — très difficile</span>
+            <span>1, très facile</span>
+            <span>5, très difficile</span>
           </div>
           <div class="chill-vote-foot">
             <p class="chill-vote-note" id="chill-vote-note">
@@ -124,7 +124,7 @@
     <div class="card view" id="view-finished" style="display: none;">
       <h2 style="text-align: center;">🎉 Banque épuisée !</h2>
       <p style="text-align: center;">
-        Tu as vu les <strong id="finished-count">—</strong> entrées correspondant
+        Tu as vu les <strong id="finished-count">-</strong> entrées correspondant
         à ton filtre. Bravo pour la persévérance.
       </p>
       <div class="host-actions">
