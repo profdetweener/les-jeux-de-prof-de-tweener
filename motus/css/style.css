@@ -18,6 +18,8 @@
   --gris-clair: #d9d9d9;
   --gris-cell: #d3d1c7;
   --vert: #4a8c5a;
+  --case-bien: #6aaa64;   /* vert — lettre bien placee (Sesame) */
+  --case-mal: #c9b458;    /* jaune — lettre mal placee (Sesame) */
   --ombre: 0 4px 12px rgba(26, 37, 64, 0.12);
   --rayon: 10px;
   --rayon-sm: 6px;
@@ -332,14 +334,14 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
    garantir un contour visible meme apres l'animation de revelation. */
 .motus-cell.filled { border-color: var(--gris-clair); }
 .motus-cell.status-good {
-  background: var(--rouge);
+  background: var(--case-bien);
   color: var(--blanc);
-  border-color: var(--rouge);
+  border-color: var(--case-bien);
 }
 .motus-cell.status-misplaced {
-  background: var(--jaune);
+  background: var(--case-mal);
   color: var(--blanc);
-  border-color: var(--jaune);
+  border-color: var(--case-mal);
 }
 .motus-cell.status-absent {
   background: var(--blanc);
@@ -349,7 +351,7 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
 /* La 4e situation : bien placée + autre instance dans le mot.
    Diagonale rouge-vers-jaune (haut-gauche -> bas-droite). */
 .motus-cell.status-good.has-more {
-  background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
+  background: linear-gradient(135deg, var(--case-bien) 50%, var(--case-mal) 50%);
 }
 
 /* --- Motus : clavier --- */
@@ -383,14 +385,14 @@ input:focus { outline: none; border-color: var(--bleu-accent); background: var(-
   font-size: 11px;
   letter-spacing: 0.5px;
 }
-.kb-key.kb-good { background: var(--rouge); color: var(--blanc); border-color: var(--rouge); }
-.kb-key.kb-misplaced { background: var(--jaune); color: var(--blanc); border-color: var(--jaune); }
+.kb-key.kb-good { background: var(--case-bien); color: var(--blanc); border-color: var(--case-bien); }
+.kb-key.kb-misplaced { background: var(--case-mal); color: var(--blanc); border-color: var(--case-mal); }
 .kb-key.kb-absent { background: var(--blanc); color: var(--gris-texte); border-color: var(--gris-clair); }
 /* 4e situation : bien placée + autre instance ailleurs dans le mot.
    Meme gradient diagonal que la case rouge-vers-jaune. */
 .kb-key.kb-good.kb-has-more {
-  background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
-  border-color: var(--rouge);
+  background: linear-gradient(135deg, var(--case-bien) 50%, var(--case-mal) 50%);
+  border-color: var(--case-bien);
 }
 
 .motus-guest-notice {
@@ -1323,12 +1325,12 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   box-sizing: border-box;
   justify-self: center;
 }
-.opp-cell.status-good { background: var(--rouge); border-color: var(--rouge); }
-.opp-cell.status-misplaced { background: var(--jaune); border-color: var(--jaune); }
+.opp-cell.status-good { background: var(--case-bien); border-color: var(--case-bien); }
+.opp-cell.status-misplaced { background: var(--case-mal); border-color: var(--case-mal); }
 .opp-cell.status-absent { background: var(--blanc); border-color: #9a9a9a; }
 .opp-cell.status-good.has-more {
-  background: linear-gradient(135deg, var(--rouge) 50%, var(--jaune) 50%);
-  border-color: var(--rouge);
+  background: linear-gradient(135deg, var(--case-bien) 50%, var(--case-mal) 50%);
+  border-color: var(--case-bien);
 }
 
 /* ===========================================================================
@@ -1342,7 +1344,7 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
   color: var(--gris-texte);
 }
 .comp-recap-word strong {
-  color: var(--rouge);
+  color: var(--case-bien);
   font-family: Georgia, serif;
   letter-spacing: 1px;
   text-transform: uppercase;

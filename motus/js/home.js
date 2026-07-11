@@ -252,7 +252,7 @@ async function doAction() {
   if (!isCreateMode) {
     // Garde-fou : on ne devrait jamais arriver ici si le bouton est desactive,
     // mais au cas ou.
-    showError("Aucune partie à créer ou rejoindre. Retourne au menu Motus.");
+    showError("Aucune partie à créer ou rejoindre. Retourne au menu Sésame.");
     return;
   }
   btnAction.disabled = true;
