@@ -18,7 +18,7 @@ let phase = "lobby";
 let config = null;
 let game = null;         // GameStateDTO
 let selectedCardId = null;
-let startCfg = { gridSize: 5, target: 50 };
+let startCfg = { gridSize: 5, target: 100, turnSeconds: 20 };
 
 // ---------- Connexion ----------
 const conn = new RoomConnection(CODE, "slide");
@@ -85,6 +85,52 @@ function playerRow(p, opts = {}) {
 }
 function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+// Couleur (pointillés) d'un groupe selon sa valeur.
+function grpColor(v) { return `hsl(${(v * 36 + 200) % 360} 68% 42%)`; }
+
+// Composantes connexes de meme valeur (taille >= 2) -> Map "r,c" => couleur.
+function clusterColorMap(board, N) {
+  const seen = Array.from({ length: N }, () => new Array(N).fill(false));
+  const map = new Map();
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    if (seen[r][c] || !board[r][c]) continue;
+    const val = board[r][c].value;
+    const stack = [[r, c]], cells = [];
+    seen[r][c] = true;
+    while (stack.length) {
+      const [cr, cc] = stack.pop();
+      cells.push([cr, cc]);
+      for (const [nr, nc] of [[cr - 1, cc], [cr + 1, cc], [cr, cc - 1], [cr, cc + 1]]) {
+        if (nr < 0 || nc < 0 || nr >= N || nc >= N || seen[nr][nc]) continue;
+        const n = board[nr][nc];
+        if (!n || n.value !== val) continue;
+        seen[nr][nc] = true; stack.push([nr, nc]);
+      }
+    }
+    if (cells.length >= 2) { const col = grpColor(val); for (const [cr, cc] of cells) map.set(cr + "," + cc, col); }
+  }
+  return map;
+}
+
+// ---------- Timer de tour ----------
+// Tous les clients affichent le décompte ; quand il atteint 0, n'importe quel
+// client envoie "timeout" pour débloquer (le serveur ignore les doublons).
+let _lastTimeoutFor = 0;
+setInterval(() => {
+  const el = $("sb-timer");
+  if (!el || phase !== "playing" || !game) return;
+  const ends = game.turnEndsAt || 0;
+  if (!ends) { el.textContent = ""; el.classList.remove("low"); return; }
+  const remain = Math.max(0, ends - Date.now());
+  const secs = Math.ceil(remain / 1000);
+  el.textContent = ` · ⏱ ${secs}s`;
+  el.classList.toggle("low", secs <= 5);
+  if (remain <= 0 && _lastTimeoutFor !== ends) {
+    _lastTimeoutFor = ends;
+    conn.send({ type: "timeout" });
+  }
+}, 300);
+
 function renderLobby() {
   $("lobbyPlayers").innerHTML = players.map((p) => playerRow(p)).join("");
   const pc = $("playerCount");
@@ -95,10 +141,11 @@ function renderLobby() {
     $("waitNote").hidden = true;
     wireSeg("sizeSeg", (b) => (startCfg.gridSize = +b.dataset.n));
     wireSeg("targetSeg", (b) => (startCfg.target = +b.dataset.t));
+    wireSeg("timeSeg", (b) => (startCfg.turnSeconds = +b.dataset.s));
     const btn = $("startBtn");
     btn.disabled = connected < 2;
     $("startErr").textContent = connected < 2 ? "Il faut au moins 2 joueurs connectés." : "";
-    btn.onclick = () => conn.send({ type: "start", gridSize: startCfg.gridSize, target: startCfg.target });
+    btn.onclick = () => conn.send({ type: "start", gridSize: startCfg.gridSize, target: startCfg.target, turnSeconds: startCfg.turnSeconds });
   } else {
     $("hostControls").hidden = true;
     $("waitNote").hidden = false;
@@ -121,7 +168,7 @@ function renderGame() {
   // Bandeau compact : objectif + une "chip" par joueur. Le joueur actif est
   // surligné avec un ▶ (remplace la bannière "Au tour de…").
   $("scorePanel").innerHTML =
-    `<div class="sb-goal">Objectif ${game.target}</div>` +
+    `<div class="sb-goal">Objectif ${game.target}<span class="sb-timer" id="sb-timer"></span></div>` +
     `<div class="sb-players">` +
     players.map((p) => {
       const isActive = p.pseudo === game.activePseudo;
@@ -138,6 +185,10 @@ function renderGame() {
   // Ensemble des cases encaissables -> cle du groupe
   const litKey = new Map();
   for (const g of game.lit) for (const c of g.cells) litKey.set(c.r + "," + c.c, g.key);
+  // Groupes de meme valeur adjacents (>=2) -> contour pointillé coloré (aide
+  // visuelle permanente, pour tous les joueurs). Les groupes encaissables du
+  // tour (lit) sont eux remplis.
+  const grpColorMap = clusterColorMap(game.board, N);
 
   // Plateau + fleches
   const canPush = mine && game.turnPhase === "push" && selectedCardId != null;
@@ -149,8 +200,10 @@ function renderGame() {
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const card = game.board[r][c];
     const key = litKey.get(r + "," + c);
-    const cls = "cell" + (key ? " lit" : "");
-    html += `<div class="${cls}" data-r="${r}" data-c="${c}"${key ? ` data-key="${key}"` : ""}>${card.value}</div>`;
+    let cls = "cell", style = "";
+    if (key) cls += " lit";
+    else if (grpColorMap.has(r + "," + c)) { cls += " grp"; style = `border-color:${grpColorMap.get(r + "," + c)}`; }
+    html += `<div class="${cls}" data-r="${r}" data-c="${c}"${key ? ` data-key="${key}"` : ""}${style ? ` style="${style}"` : ""}>${card.value}</div>`;
   }
   html += '</div><div class="arrow-col">';
   for (let r = 0; r < N; r++) html += arw("row", r, false, "\u25C0");
@@ -215,7 +268,7 @@ function sizeBoard() {
   const cW = (availW - gap * (N + 1)) / (N + 1.24);
   const cH = (availH - gap * (N + 1)) / (N + 2);
   let c = Math.floor(Math.min(cW, cH));
-  c = Math.max(26, Math.min(64, c));
+  c = Math.max(20, Math.min(64, c));
   const root = document.documentElement.style;
   root.setProperty("--n", N);
   root.setProperty("--c", c + "px");
@@ -230,10 +283,17 @@ function arw(t, idx, fs, g) { return `<button class="arrow" data-type="${t}" dat
 function renderFinished(m) {
   $("lobby").hidden = true; $("game").hidden = true; $("finished").hidden = false;
   const won = m.winner === ME;
-  $("winTitle").textContent = won ? "Gagné !" : `${m.winner} l'emporte`;
-  $("ranking").innerHTML = m.ranking.map((p, i) => `<div class="player-row"><span class="rank">${i + 1}</span>` +
-    `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>` +
-    `<span class="pscore">${p.score}</span></div>`).join("");
+  $("winTitle").innerHTML = won ? "🏆 Gagné !" : `🏆 ${escapeHtml(m.winner)} l'emporte`;
+  const medals = ["🥇", "🥈", "🥉"];
+  const tiers = ["gold", "silver", "bronze"];
+  $("ranking").innerHTML = m.ranking.map((p, i) => {
+    const tier = tiers[i] || "";
+    const badge = medals[i] || `<span class="rank-num">${i + 1}</span>`;
+    return `<div class="rank-row${tier ? " " + tier : ""}">` +
+      `<span class="rank-medal">${badge}</span>` +
+      `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>` +
+      `<span class="pscore">${p.score}</span></div>`;
+  }).join("");
   const lb = $("lobbyBtn");
   lb.hidden = !isHost;
   lb.onclick = () => conn.send({ type: "backToLobby" });

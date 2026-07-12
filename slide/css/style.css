@@ -56,9 +56,9 @@
 .sb-goal { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); margin-bottom: 6px; }
 .sb-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .sb-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
   background: var(--blanc); border: 1px solid var(--gris-clair); box-shadow: var(--ombre);
-  font-size: 14px; font-weight: 600; color: var(--bleu-nuit);
+  font-size: 13px; font-weight: 600; color: var(--bleu-nuit);
 }
 .sb-chip.active { background: var(--bleu-nuit); color: var(--blanc); border-color: var(--bleu-nuit); }
 .sb-chip .sb-turn { font-size: 10px; line-height: 1; }
@@ -67,6 +67,24 @@
 
 .board-area { display: flex; align-items: center; justify-content: center; width: 100%; }
 .game-bottom { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 4px; }
+
+/* Groupes de même valeur adjacents : contour pointillé coloré (couleur inline) */
+.cell.grp { border-style: dashed; border-width: 3px; }
+
+/* Timer de tour dans le bandeau de score */
+.sb-timer { color: var(--gris-texte); font-weight: 700; }
+.sb-timer.low { color: var(--rouge, #c84545); }
+
+/* Podium de fin de partie */
+#finished .setup-card { max-width: 430px; }
+.rank-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--rayon-sm); background: var(--blanc); border: 1px solid var(--gris-clair); margin-bottom: 8px; text-align: left; }
+.rank-row .rank-medal { font-size: 20px; width: 26px; text-align: center; flex: none; }
+.rank-row .rank-num { font-family: Georgia, serif; font-weight: 700; color: var(--gris-texte); font-size: 15px; }
+.rank-row .pname { font-weight: 600; }
+.rank-row .pscore { margin-left: auto; font-family: Georgia, serif; font-weight: 800; font-size: 17px; }
+.rank-row.gold { background: linear-gradient(180deg, #fff7e0, #fbe7b6); border-color: #e8c874; }
+.rank-row.silver { background: linear-gradient(180deg, #f8f9fb, #e6e8ec); border-color: #ccd1d7; }
+.rank-row.bronze { background: linear-gradient(180deg, #fbeee2, #efd4bd); border-color: #dcb896; }
 
 /* Bandeau de score (mode solo/chill) */
 .hud { display: flex; gap: 10px; width: 100%; max-width: 340px; margin: 4px auto 14px; }
@@ -98,10 +116,10 @@
 
 /* Riviere */
 .river-lbl { margin: 6px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); width: 100%; text-align: center; }
-.river { display: flex; gap: 10px; width: 100%; justify-content: center; }
-.river-card { width: 52px; height: 52px; border-radius: var(--rayon-sm); background: var(--blanc);
+.river { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; justify-content: center; }
+.river-card { width: 44px; height: 44px; border-radius: var(--rayon-sm); background: var(--blanc);
   border: 2px solid var(--gris-clair); box-shadow: var(--ombre); font-family: Georgia, serif; font-weight: 800;
-  font-size: 24px; color: var(--bleu-nuit); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--bleu-nuit); cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: transform .1s, border-color .12s; }
 .river-card:hover { transform: translateY(-2px); }
 .river-card.sel { border-color: var(--bleu-nuit); box-shadow: 0 0 0 3px rgba(26,37,64,.2); }

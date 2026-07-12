@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Slide compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
   <header class="landing-header">
@@ -45,14 +45,25 @@
                   <button data-n="4">4×4</button>
                   <button data-n="5" class="on">5×5</button>
                   <button data-n="6">6×6</button>
+                  <button data-n="7">7×7</button>
                 </div>
               </div>
               <div class="setup-row">
                 <span class="setup-label">Objectif</span>
                 <div class="seg" id="targetSeg">
-                  <button data-t="30">30</button>
-                  <button data-t="50" class="on">50</button>
-                  <button data-t="80">80</button>
+                  <button data-t="50">50</button>
+                  <button data-t="100" class="on">100</button>
+                  <button data-t="150">150</button>
+                  <button data-t="200">200</button>
+                </div>
+              </div>
+              <div class="setup-row">
+                <span class="setup-label">Temps / tour</span>
+                <div class="seg" id="timeSeg">
+                  <button data-s="15">15s</button>
+                  <button data-s="20" class="on">20s</button>
+                  <button data-s="30">30s</button>
+                  <button data-s="45">45s</button>
                 </div>
               </div>
               <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
@@ -99,6 +110,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=4"></script>
+  <script type="module" src="js/room.js?v=5"></script>
 </body>
 </html>
