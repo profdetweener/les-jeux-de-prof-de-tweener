@@ -28,6 +28,10 @@ class_name = "DefinitionRoom"
 name = "DEFINITION_VOTES"
 class_name = "DefinitionVotes"
 
+[[durable_objects.bindings]]
+name = "SLIDE_ROOMS"
+class_name = "SlideRoom"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PetitBacRoom"]
@@ -43,3 +47,7 @@ new_sqlite_classes = ["DefinitionRoom"]
 [[migrations]]
 tag = "v4"
 new_sqlite_classes = ["DefinitionVotes"]
+
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["SlideRoom"]

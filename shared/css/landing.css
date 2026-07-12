@@ -84,8 +84,10 @@ body { display: flex; flex-direction: column; }
   margin-bottom: 48px;
 }
 
-/* Pages de choix de mode : cartes ajustees a leur contenu (pas etirees). */
-.games-grid-modes { align-items: start; }
+/* Pages de choix de mode : contenu centre verticalement dans la carte,
+   comme sur les autres jeux (la tagline ne s'etire plus pour laisser un vide). */
+.games-grid-modes .game-card { justify-content: center; }
+.games-grid-modes .game-card-tagline { flex: none; }
 
 .game-card {
   background: var(--blanc);

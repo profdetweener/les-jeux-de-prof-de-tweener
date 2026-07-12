@@ -25,6 +25,7 @@ export { PetitBacRoom } from "./petitbac/room";
 export { MotusRoom } from "./motus/room";
 export { DefinitionRoom } from "./definition/room";
 export { DefinitionVotes } from "./definition/votes";
+export { SlideRoom } from "./slide/room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
@@ -32,6 +33,7 @@ export interface Env {
   DEFINITION_ROOMS: DurableObjectNamespace;
   // Singleton d'agregation des votes de difficulte (jeu Definitions).
   DEFINITION_VOTES: DurableObjectNamespace;
+  SLIDE_ROOMS: DurableObjectNamespace;
   // Secret HMAC pour le mode chill stateless. Fallback dev "dev-secret-do-not-use-in-prod".
   // En prod, definir via : npx wrangler secret put CHILL_SECRET
   CHILL_SECRET?: string;
@@ -172,7 +174,7 @@ export default {
       return jsonResponse({
         status: "ok",
         service: "les-jeux-de-prof-de-tweener",
-        games: ["petitbac", "motus", "definitions"],
+        games: ["petitbac", "motus", "definitions", "slide"],
         timestamp: new Date().toISOString(),
       });
     }
@@ -263,6 +265,12 @@ export default {
       }
 
       const res = await handleGameRoutes(request, subPath, env.DEFINITION_ROOMS);
+      if (res) return res;
+    }
+
+    if (url.pathname.startsWith("/slide/")) {
+      const subPath = url.pathname.slice("/slide".length);
+      const res = await handleGameRoutes(request, subPath, env.SLIDE_ROOMS);
       if (res) return res;
     }
 
