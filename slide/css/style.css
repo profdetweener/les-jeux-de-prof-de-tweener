@@ -48,7 +48,27 @@
 .seg button.on { background: var(--bleu-nuit); color: var(--blanc); }
 #launchBtn { width: 100%; margin-top: 4px; }
 
-/* Bandeau de score */
+/* ===================== Vue de jeu compétitive (sans scroll) =====================
+   Colonne pleine hauteur : bandeau joueurs (compact) en haut, plateau au centre
+   redimensionné en JS pour tenir, rivière + actions en bas toujours visibles. */
+.room-main #game { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 560px; margin: 0 auto; gap: 8px; }
+.scoreboard { width: 100%; }
+.sb-goal { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); margin-bottom: 6px; }
+.sb-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.sb-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  background: var(--blanc); border: 1px solid var(--gris-clair); box-shadow: var(--ombre);
+  font-size: 14px; font-weight: 600; color: var(--bleu-nuit);
+}
+.sb-chip.active { background: var(--bleu-nuit); color: var(--blanc); border-color: var(--bleu-nuit); }
+.sb-chip .sb-turn { font-size: 10px; line-height: 1; }
+.sb-chip b { font-family: Georgia, serif; font-weight: 800; }
+.sb-chip .badge.off { margin-left: 2px; }
+
+.board-area { display: flex; align-items: center; justify-content: center; width: 100%; }
+.game-bottom { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 4px; }
+
+/* Bandeau de score (mode solo/chill) */
 .hud { display: flex; gap: 10px; width: 100%; max-width: 340px; margin: 4px auto 14px; }
 .hud .box { flex: 1; background: var(--blanc); border-radius: var(--rayon-sm); box-shadow: var(--ombre); padding: 8px 6px; text-align: center; }
 .hud .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); }
@@ -72,12 +92,12 @@
 .cell { background: var(--blanc); border: 2px solid var(--gris-clair); border-radius: var(--rayon-sm);
   display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 800;
   font-size: calc(var(--c, 56px) * .44); color: var(--bleu-nuit); user-select: none; transition: transform .1s; }
-.cell.lit { color: var(--blanc); cursor: pointer; animation: slide-pulse 1.1s ease-in-out infinite; }
+.cell.lit { color: var(--blanc); background: linear-gradient(160deg, var(--bleu-accent), #34517c); cursor: pointer; animation: slide-pulse 1.1s ease-in-out infinite; }
 .cell.preview { outline: 3px solid var(--bleu-nuit); outline-offset: -3px; }
 @keyframes slide-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(26,37,64,0); } 50% { box-shadow: 0 0 0 4px rgba(26,37,64,.16); } }
 
 /* Riviere */
-.river-lbl { margin: 20px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); width: 100%; text-align: center; }
+.river-lbl { margin: 6px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); width: 100%; text-align: center; }
 .river { display: flex; gap: 10px; width: 100%; justify-content: center; }
 .river-card { width: 52px; height: 52px; border-radius: var(--rayon-sm); background: var(--blanc);
   border: 2px solid var(--gris-clair); box-shadow: var(--ombre); font-family: Georgia, serif; font-weight: 800;
@@ -181,8 +201,8 @@
 /* ===================== Salon (lobby) — harmonisé avec Sésame =====================
    Carte blanche large, bandeau « lien d'invitation » bleu nuit, disposition
    deux colonnes (joueurs / configuration). Reprise fidèle du salon de Sésame. */
-.room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 28px 16px 40px; width: 100%; }
-.room-main > section, .room-main > .slide-main, .room-main > .conn-banner { width: 100%; }
+.room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 16px 20px; width: 100%; }
+.room-main > section, .room-main > .conn-banner { width: 100%; }
 
 .lobby-card {
   background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre);

@@ -7,8 +7,6 @@ const ME = (sessionStorage.getItem("slide_pseudo") || "").trim();
 if (!CODE || ME.length < 3) { location.href = "join.html"; }
 
 const $ = (id) => document.getElementById(id);
-const colorFor = (i) => `hsl(${(i * 30) % 360} 60% 48%)`;
-const colorDark = (i) => `hsl(${(i * 30) % 360} 60% 38%)`;
 
 // ---------- Etat ----------
 let isHost = false;
@@ -69,7 +67,6 @@ function playerRow(p, opts = {}) {
   if (p.isHost) badges.push('<span class="badge">hôte</span>');
   if (!p.isConnected) badges.push('<span class="badge off">hors ligne</span>');
   return `<div class="player-row${active ? " active" : ""}">
-    <span class="swatch" style="background:${colorFor(p.color)}"></span>
     <span class="pname">${escapeHtml(p.pseudo)}${p.pseudo === ME ? " (toi)" : ""}</span>
     ${badges.join(" ")}
     ${opts.score ? `<span class="pscore">${p.score}</span>` : ""}
@@ -108,24 +105,28 @@ function wireSeg(id, apply) {
 function renderGame() {
   if (!game) return;
   const N = game.gridSize;
-  document.documentElement.style.setProperty("--n", N);
-  document.documentElement.style.setProperty("--c", "clamp(38px," + Math.floor(86 / N) + "vw," + (N <= 4 ? 60 : N === 5 ? 54 : 46) + "px)");
-
-  // Banniere de tour
   const mine = myTurn();
-  $("turnBanner").className = "turn-banner" + (mine ? " mine" : "");
-  $("turnBanner").innerHTML = mine
-    ? "À toi de jouer"
-    : `Au tour de <strong>${escapeHtml(game.activePseudo)}</strong>`;
 
-  // Panneau des scores (objectif rappele)
-  $("scorePanel").innerHTML = `<div class="score-goal">Objectif ${game.target}</div>` +
-    players.map((p) => playerRow(p, { score: true, activePseudo: game.activePseudo })).join("");
+  // Bandeau compact : objectif + une "chip" par joueur. Le joueur actif est
+  // surligné avec un ▶ (remplace la bannière "Au tour de…").
+  $("scorePanel").innerHTML =
+    `<div class="sb-goal">Objectif ${game.target}</div>` +
+    `<div class="sb-players">` +
+    players.map((p) => {
+      const isActive = p.pseudo === game.activePseudo;
+      const me = p.pseudo === ME;
+      return `<div class="sb-chip${isActive ? " active" : ""}">` +
+        (isActive ? `<span class="sb-turn">▶</span>` : "") +
+        `<span class="sb-name">${escapeHtml(p.pseudo)}${me ? " (toi)" : ""}</span>` +
+        `<b>${p.score}</b>` +
+        (p.isConnected ? "" : `<span class="badge off">off</span>`) +
+        `</div>`;
+    }).join("") +
+    `</div>`;
 
   // Ensemble des cases encaissables -> cle du groupe
   const litKey = new Map();
   for (const g of game.lit) for (const c of g.cells) litKey.set(c.r + "," + c.c, g.key);
-  const activeCol = game.activeColor;
 
   // Plateau + fleches
   const canPush = mine && game.turnPhase === "push" && selectedCardId != null;
@@ -137,10 +138,8 @@ function renderGame() {
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const card = game.board[r][c];
     const key = litKey.get(r + "," + c);
-    let cls = "cell", style = "";
-    if (key) { cls += " lit"; style = `background:linear-gradient(160deg,${colorFor(activeCol)},${colorDark(activeCol)})`; }
-    const claimable = mine && game.turnPhase === "claim" && key;
-    html += `<div class="${cls}" data-r="${r}" data-c="${c}"${key ? ` data-key="${key}"` : ""} style="${style}">${card.value}</div>`;
+    const cls = "cell" + (key ? " lit" : "");
+    html += `<div class="${cls}" data-r="${r}" data-c="${c}"${key ? ` data-key="${key}"` : ""}>${card.value}</div>`;
   }
   html += '</div><div class="arrow-col">';
   for (let r = 0; r < N; r++) html += arw("row", r, false, "\u25C0");
@@ -181,7 +180,39 @@ function renderGame() {
   else setStatus(game.lit.length ? "Encaisse tes groupes, puis termine le tour." : "Aucun groupe formé. Termine le tour.");
   $("endTurn").style.display = mine && game.turnPhase === "claim" ? "" : "none";
   $("endTurn").onclick = () => conn.send({ type: "endTurn" });
+
+  sizeBoard();
 }
+
+// Redimensionne le plateau pour qu'il tienne dans l'espace disponible,
+// arrows comprises, sans jamais forcer un scroll (crucial sur mobile et
+// avec beaucoup de joueurs). Recalcule aussi au resize / rotation.
+function sizeBoard() {
+  if (!game || $("game").hidden) return;
+  const area = $("boardArea");
+  if (!area) return;
+  const N = game.gridSize;
+  const gap = 6;
+  const bottomH = $("gameBottom") ? $("gameBottom").offsetHeight : 0;
+  const footer = document.querySelector(".app-footer");
+  const footerH = footer ? footer.offsetHeight : 0;
+  const top = area.getBoundingClientRect().top;
+  const availH = Math.max(170, window.innerHeight - top - bottomH - footerH - 26);
+  const availW = area.clientWidth;
+  // Largeur : N colonnes + 2 demi-fleches (~0.62c chacune).
+  // Hauteur : N lignes + 2 fleches (haut/bas).
+  const cW = (availW - gap * (N + 1)) / (N + 1.24);
+  const cH = (availH - gap * (N + 1)) / (N + 2);
+  let c = Math.floor(Math.min(cW, cH));
+  c = Math.max(26, Math.min(64, c));
+  const root = document.documentElement.style;
+  root.setProperty("--n", N);
+  root.setProperty("--c", c + "px");
+  root.setProperty("--gap", gap + "px");
+}
+
+let _rz;
+window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(sizeBoard, 120); });
 
 function arw(t, idx, fs, g) { return `<button class="arrow" data-type="${t}" data-idx="${idx}" data-fs="${fs ? 1 : 0}">${g}</button>`; }
 
@@ -190,7 +221,6 @@ function renderFinished(m) {
   const won = m.winner === ME;
   $("winTitle").textContent = won ? "Gagné !" : `${m.winner} l'emporte`;
   $("ranking").innerHTML = m.ranking.map((p, i) => `<div class="player-row"><span class="rank">${i + 1}</span>` +
-    `<span class="swatch" style="background:${colorFor(p.color)}"></span>` +
     `<span class="pname">${escapeHtml(p.pseudo)}${p.pseudo === ME ? " (toi)" : ""}</span>` +
     `<span class="pscore">${p.score}</span></div>`).join("");
   const lb = $("lobbyBtn");

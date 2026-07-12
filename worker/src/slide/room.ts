@@ -331,7 +331,9 @@ export class SlideRoom {
 
   // ========================= Helpers de jeu =========================
   private riverSize(): number {
-    return Math.max(3, this.turnOrder.length || this.connected().length);
+    // La rivière contient exactement une carte par joueur (une carte piochée
+    // par joueur et par tour de table).
+    return Math.max(2, this.turnOrder.length || this.connected().length);
   }
   private ensureBag(min: number): void {
     while (this.bag.length < min) this.bag = this.bag.concat(makeBag());

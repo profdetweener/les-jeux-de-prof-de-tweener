@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Slide compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=2">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <header class="landing-header">
@@ -65,30 +65,28 @@
       </div>
     </section>
 
-    <!-- JEU + FIN : conteneur étroit centré -->
-    <div class="slide-main">
-      <!-- JEU -->
-      <section id="game" hidden>
-        <div class="turn-banner" id="turnBanner"></div>
-        <div class="players scores" id="scorePanel"></div>
+    <!-- JEU : plein écran, sans scroll (plateau redimensionné pour rentrer) -->
+    <section id="game" hidden>
+      <div class="scoreboard" id="scorePanel"></div>
+      <div class="board-area" id="boardArea">
         <div class="frame" id="frame"></div>
+      </div>
+      <div class="game-bottom" id="gameBottom">
         <div class="river-lbl">Rivière</div>
         <div class="river" id="river"></div>
         <div class="status" id="status"></div>
-        <div class="btns">
-          <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
-        </div>
-      </section>
+        <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
+      </div>
+    </section>
 
-      <!-- FIN -->
-      <section id="finished" hidden>
-        <div class="setup-card">
-          <h2 id="winTitle"></h2>
-          <div class="players" id="ranking"></div>
-          <button class="btn btn-primary" id="lobbyBtn" style="width:100%" hidden>Retour au salon</button>
-        </div>
-      </section>
-    </div>
+    <!-- FIN -->
+    <section id="finished" hidden>
+      <div class="setup-card">
+        <h2 id="winTitle"></h2>
+        <div class="players" id="ranking"></div>
+        <button class="btn btn-primary" id="lobbyBtn" style="width:100%" hidden>Retour au salon</button>
+      </div>
+    </section>
   </main>
 
   <footer class="app-footer">
@@ -101,6 +99,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=2"></script>
+  <script type="module" src="js/room.js?v=3"></script>
 </body>
 </html>
