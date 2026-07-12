@@ -308,10 +308,12 @@ export class SlideRoom {
     const n = this.turnOrder.length;
     this.turnPhase = "push";
     this.lit = [];
-    for (let step = 0; step < n + 1; step++) {
+    // On avance d'un joueur ; en bout de liste on repart au premier (nouvelle
+    // manche) et on recharge la rivière. Pas de rotation de l'ordre : elle
+    // faisait rejouer le dernier joueur en début de manche suivante.
+    for (let step = 0; step < n; step++) {
       this.activeIndex++;
       if (this.activeIndex >= n) {
-        this.turnOrder.push(this.turnOrder.shift()!); // rotation de l'ordre
         this.activeIndex = 0;
         this.round++;
         this.refillRiver();

@@ -193,6 +193,11 @@
 }
 .entry-alert.show { display: block; }
 
+.entry-resume { background: var(--beige); border: 1px solid var(--beige-fonce); border-radius: var(--rayon-sm); padding: 14px; margin-bottom: 18px; }
+.entry-resume p { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--bleu-nuit); }
+.entry-resume-actions { display: flex; gap: 8px; }
+.entry-resume-actions .btn { flex: 1; padding: 9px 12px; font-size: 14px; }
+
 .entry-card .btn { width: 100%; padding: 12px 20px; font-size: 15px; }
 .entry-card .btn + .btn { margin-top: 0; }
 

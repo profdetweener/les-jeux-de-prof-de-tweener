@@ -89,6 +89,12 @@ body { display: flex; flex-direction: column; }
 .games-grid-modes .game-card { justify-content: center; }
 .games-grid-modes .game-card-tagline { flex: none; }
 
+/* Le bloc (titre + cartes) est aussi centre verticalement dans l'ecran,
+   plutot que colle en haut avec un grand vide en dessous. Cible uniquement
+   les pages de choix de mode, pas la liste des jeux. */
+.landing-main:has(.games-grid-modes) { justify-content: center; padding-top: 24px; }
+.games-grid-modes { margin-bottom: 0; }
+
 .game-card {
   background: var(--blanc);
   border-radius: var(--rayon);

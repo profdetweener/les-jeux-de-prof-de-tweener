@@ -36,7 +36,32 @@ const inviteCode = parseInviteCode();
 const isJoinMode = inviteCode !== null;
 
 // ---------- Restauration du pseudo ----------
-pseudoInput.value = sessionStorage.getItem("slide_pseudo") || "";
+pseudoInput.value = sessionStorage.getItem("slide_pseudo") || localStorage.getItem("slide_pseudo") || "";
+
+// ---------- Reprise d'une partie en cours (survit à la fermeture de l'appli) ----------
+const ACTIVE_KEY = "slide_active";
+const ACTIVE_TTL = 6 * 60 * 60 * 1000; // 6 h
+function readActive() {
+  try {
+    const a = JSON.parse(localStorage.getItem(ACTIVE_KEY) || "null");
+    if (a && a.code && a.pseudo && Date.now() - (a.ts || 0) < ACTIVE_TTL) return a;
+  } catch {}
+  return null;
+}
+function clearActive() { try { localStorage.removeItem(ACTIVE_KEY); } catch {} }
+
+if (!isJoinMode) {
+  const active = readActive();
+  if (active) {
+    $("resume-banner").hidden = false;
+    $("resumeBtn").onclick = () => {
+      sessionStorage.setItem("slide_pseudo", active.pseudo);
+      localStorage.setItem("slide_pseudo", active.pseudo);
+      location.href = `room.html?code=${encodeURIComponent(active.code)}`;
+    };
+    $("newBtn").onclick = () => { clearActive(); $("resume-banner").hidden = true; };
+  }
+}
 
 // ---------- Application du mode UI ----------
 if (isJoinMode) {
@@ -60,6 +85,7 @@ function showError(msg) { errorBox.textContent = msg || ""; errorBox.classList.t
 function clearError() { showError(""); }
 function go(code) {
   sessionStorage.setItem("slide_pseudo", pseudo());
+  localStorage.setItem("slide_pseudo", pseudo());
   location.href = `room.html?code=${encodeURIComponent(code)}`;
 }
 

@@ -3,8 +3,11 @@ import { RoomConnection } from "../../shared/js/ws.js";
 // ---------- Contexte ----------
 const params = new URLSearchParams(location.search);
 const CODE = (params.get("code") || "").toUpperCase();
-const ME = (sessionStorage.getItem("slide_pseudo") || "").trim();
+// Pseudo : sessionStorage (onglet courant) puis localStorage (survit à la
+// fermeture de l'appli, ex. Safari iOS) pour permettre la reprise de partie.
+const ME = (sessionStorage.getItem("slide_pseudo") || localStorage.getItem("slide_pseudo") || "").trim();
 if (!CODE || ME.length < 3) { location.href = "join.html"; }
+const ACTIVE_KEY = "slide_active";
 
 const $ = (id) => document.getElementById(id);
 
@@ -41,10 +44,18 @@ conn.onStatus((s) => {
   else if (s === "connecting") { b.hidden = false; b.textContent = "Connexion…"; }
   else if (s === "closed" || s === "error") { b.hidden = false; b.textContent = "Connexion perdue, reconnexion…"; }
 });
-conn.on("joined", (m) => { isHost = m.isHost; players = m.players; phase = m.phase; config = m.config; game = m.game; render(); });
+conn.on("joined", (m) => {
+  isHost = m.isHost; players = m.players; phase = m.phase; config = m.config; game = m.game;
+  // Mémorise la partie en cours pour pouvoir la reprendre après fermeture.
+  try {
+    localStorage.setItem("slide_pseudo", ME);
+    localStorage.setItem(ACTIVE_KEY, JSON.stringify({ code: CODE, pseudo: ME, ts: Date.now() }));
+  } catch {}
+  render();
+});
 conn.on("room_state", (m) => { players = m.players; phase = m.phase; render(); });
 conn.on("game_state", (m) => { players = m.players; phase = m.phase; game = m.game; selectedCardId = null; render(); });
-conn.on("finished", (m) => { players = m.players; phase = "finished"; game = null; renderFinished(m); });
+conn.on("finished", (m) => { players = m.players; phase = "finished"; game = null; try { localStorage.removeItem(ACTIVE_KEY); } catch {} renderFinished(m); });
 conn.on("error", (m) => { const e = $("startErr"); if (e) e.textContent = m.message; setStatus(m.message); });
 conn.connect();
 conn.send({ type: "join", pseudo: ME });
@@ -67,7 +78,7 @@ function playerRow(p, opts = {}) {
   if (p.isHost) badges.push('<span class="badge">hôte</span>');
   if (!p.isConnected) badges.push('<span class="badge off">hors ligne</span>');
   return `<div class="player-row${active ? " active" : ""}">
-    <span class="pname">${escapeHtml(p.pseudo)}${p.pseudo === ME ? " (toi)" : ""}</span>
+    <span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>
     ${badges.join(" ")}
     ${opts.score ? `<span class="pscore">${p.score}</span>` : ""}
   </div>`;
@@ -117,7 +128,7 @@ function renderGame() {
       const me = p.pseudo === ME;
       return `<div class="sb-chip${isActive ? " active" : ""}">` +
         (isActive ? `<span class="sb-turn">▶</span>` : "") +
-        `<span class="sb-name">${escapeHtml(p.pseudo)}${me ? " (toi)" : ""}</span>` +
+        `<span class="sb-name">${me ? "toi" : escapeHtml(p.pseudo)}</span>` +
         `<b>${p.score}</b>` +
         (p.isConnected ? "" : `<span class="badge off">off</span>`) +
         `</div>`;
@@ -221,7 +232,7 @@ function renderFinished(m) {
   const won = m.winner === ME;
   $("winTitle").textContent = won ? "Gagné !" : `${m.winner} l'emporte`;
   $("ranking").innerHTML = m.ranking.map((p, i) => `<div class="player-row"><span class="rank">${i + 1}</span>` +
-    `<span class="pname">${escapeHtml(p.pseudo)}${p.pseudo === ME ? " (toi)" : ""}</span>` +
+    `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>` +
     `<span class="pscore">${p.score}</span></div>`).join("");
   const lb = $("lobbyBtn");
   lb.hidden = !isHost;
