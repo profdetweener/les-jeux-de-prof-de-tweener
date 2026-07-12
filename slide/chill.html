@@ -15,7 +15,7 @@
     <span class="header-tagline"></span>
   </header>
 
-  <main class="slide-main">
+  <main class="room-main">
 
     <section class="entry-card" id="setup">
       <h2>Options de la partie</h2>
@@ -29,6 +29,7 @@
           <button data-n="4">4×4</button>
           <button data-n="5" class="on">5×5</button>
           <button data-n="6">6×6</button>
+          <button data-n="7">7×7</button>
         </div>
       </div>
       <div class="setup-row">
@@ -50,16 +51,19 @@
         <div class="box"><div class="lbl">Tours</div><div class="num" id="turns">0</div></div>
       </div>
 
-      <div class="frame" id="frame"></div>
+      <div class="board-area" id="boardArea">
+        <div class="frame" id="frame"></div>
+      </div>
 
-      <div class="river-lbl">Rivière, choisis une carte</div>
-      <div class="river" id="river"></div>
-
-      <div class="status" id="status"></div>
-      <div class="btns">
-        <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
-        <button class="btn btn-ghost" id="reset">Rejouer</button>
-        <button class="btn btn-ghost" id="backSetup">Changer les options</button>
+      <div class="game-bottom" id="gameBottom">
+        <div class="river-lbl">Rivière, choisis une carte</div>
+        <div class="river" id="river"></div>
+        <div class="status" id="status"></div>
+        <div class="btns">
+          <button class="btn btn-primary" id="endTurn" style="display:none">Terminer le tour</button>
+          <button class="btn btn-ghost" id="reset">Rejouer</button>
+          <button class="btn btn-ghost" id="backSetup">Changer les options</button>
+        </div>
       </div>
     </section>
 
@@ -77,6 +81,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script src="js/game.js?v=2"></script>
+  <script src="js/game.js?v=3"></script>
 </body>
 </html>

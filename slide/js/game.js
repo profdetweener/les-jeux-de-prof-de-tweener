@@ -30,8 +30,6 @@ function toBag(v){ bag.push(v); }
 function newGame(){
   nextId=1; score=0; turns=0; phase="select"; selRiver=-1; litGroups=[];
   document.documentElement.style.setProperty("--n", N);
-  document.documentElement.style.setProperty("--c",
-    "clamp(38px," + Math.floor(86/N) + "vw," + (N<=4?64:N===5?56:48) + "px)");
   bag = shuffle(rebuildValues());
   while(bag.length < N*N + RIVER + 12) bag = bag.concat(shuffle(rebuildValues()));
   // Plateau de depart sans aucune paire de meme valeur deja collee : chaque case
@@ -165,7 +163,27 @@ function render(){
   }
   renderRiver();
   $("endTurn").style.display = phase==="claim" ? "" : "none";
+  sizeBoard();
 }
+
+// Redimensionne le plateau pour tenir dans l'espace dispo, arrows comprises,
+// sans jamais scroller (meme logique que le mode competitif).
+function sizeBoard(){
+  const area=$("boardArea"); if(!area || $("game").hidden) return;
+  const gap=6;
+  const bottomH=$("gameBottom")?$("gameBottom").offsetHeight:0;
+  const footer=document.querySelector(".app-footer");
+  const footerH=footer?footer.offsetHeight:0;
+  const top=area.getBoundingClientRect().top;
+  const availH=Math.max(170, window.innerHeight-top-bottomH-footerH-26);
+  const availW=area.clientWidth;
+  const cW=(availW-gap*(N+1))/(N+1.1);
+  const cH=(availH-gap*(N+1))/(N+2);
+  let c=Math.floor(Math.min(cW,cH)); c=Math.max(20,Math.min(84,c));
+  const rt=document.documentElement.style;
+  rt.setProperty("--n",N); rt.setProperty("--c",c+"px"); rt.setProperty("--gap",gap+"px");
+}
+let _rz; window.addEventListener("resize", ()=>{ clearTimeout(_rz); _rz=setTimeout(sizeBoard,120); });
 
 // Apercu : on colore seulement, sans reconstruire le plateau (sinon le clic casse).
 function showPreview(t,idx){

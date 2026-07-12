@@ -85,11 +85,14 @@ function playerRow(p, opts = {}) {
 }
 function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
-// Couleur (pointillés) d'un groupe selon sa valeur.
-function grpColor(v) { return `hsl(${(v * 36 + 200) % 360} 68% 42%)`; }
+// Couleurs d'un groupe selon sa valeur : un ton par valeur, décliné en
+// « base » (remplissage encaissable / bordure) et « tint » (fond clair du cluster).
+function grpHue(v) { return (v * 36 + 200) % 360; }
+function grpBase(v) { return `hsl(${grpHue(v)} 66% 44%)`; }
+function grpTint(v) { return `hsl(${grpHue(v)} 60% 91%)`; }
 
-// Composantes connexes de meme valeur (taille >= 2) -> Map "r,c" => couleur.
-function clusterColorMap(board, N) {
+// Composantes connexes de meme valeur (taille >= 2) -> Map "r,c" => valeur.
+function clusterValueMap(board, N) {
   const seen = Array.from({ length: N }, () => new Array(N).fill(false));
   const map = new Map();
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -107,7 +110,7 @@ function clusterColorMap(board, N) {
         seen[nr][nc] = true; stack.push([nr, nc]);
       }
     }
-    if (cells.length >= 2) { const col = grpColor(val); for (const [cr, cc] of cells) map.set(cr + "," + cc, col); }
+    if (cells.length >= 2) for (const [cr, cc] of cells) map.set(cr + "," + cc, val);
   }
   return map;
 }
@@ -185,10 +188,10 @@ function renderGame() {
   // Ensemble des cases encaissables -> cle du groupe
   const litKey = new Map();
   for (const g of game.lit) for (const c of g.cells) litKey.set(c.r + "," + c.c, g.key);
-  // Groupes de meme valeur adjacents (>=2) -> contour pointillé coloré (aide
-  // visuelle permanente, pour tous les joueurs). Les groupes encaissables du
-  // tour (lit) sont eux remplis.
-  const grpColorMap = clusterColorMap(game.board, N);
+  // Groupes de meme valeur adjacents (>=2). Les cases encaissables du tour (lit)
+  // sont remplies de la couleur de leur valeur ; les autres clusters reçoivent
+  // un fond teinté + contour pointillé de la même teinte (aide visuelle).
+  const grpVal = clusterValueMap(game.board, N);
 
   // Plateau + fleches
   const canPush = mine && game.turnPhase === "push" && selectedCardId != null;
@@ -201,8 +204,15 @@ function renderGame() {
     const card = game.board[r][c];
     const key = litKey.get(r + "," + c);
     let cls = "cell", style = "";
-    if (key) cls += " lit";
-    else if (grpColorMap.has(r + "," + c)) { cls += " grp"; style = `border-color:${grpColorMap.get(r + "," + c)}`; }
+    if (key) {
+      const base = grpBase(card.value);
+      cls += " lit";
+      style = `background:${base};border-color:${base}`;
+    } else if (grpVal.has(r + "," + c)) {
+      const v = grpVal.get(r + "," + c);
+      cls += " grp";
+      style = `background:${grpTint(v)};border-color:${grpBase(v)}`;
+    }
     html += `<div class="${cls}" data-r="${r}" data-c="${c}"${key ? ` data-key="${key}"` : ""}${style ? ` style="${style}"` : ""}>${card.value}</div>`;
   }
   html += '</div><div class="arrow-col">';
@@ -265,10 +275,10 @@ function sizeBoard() {
   const availW = area.clientWidth;
   // Largeur : N colonnes + 2 demi-fleches (~0.62c chacune).
   // Hauteur : N lignes + 2 fleches (haut/bas).
-  const cW = (availW - gap * (N + 1)) / (N + 1.24);
+  const cW = (availW - gap * (N + 1)) / (N + 1.1);
   const cH = (availH - gap * (N + 1)) / (N + 2);
   let c = Math.floor(Math.min(cW, cH));
-  c = Math.max(20, Math.min(64, c));
+  c = Math.max(20, Math.min(84, c));
   const root = document.documentElement.style;
   root.setProperty("--n", N);
   root.setProperty("--c", c + "px");
