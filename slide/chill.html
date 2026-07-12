@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Slide chill</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <header class="landing-header">
@@ -34,12 +34,7 @@
       </div>
       <div class="setup-row">
         <span class="setup-label">Objectif</span>
-        <div class="seg" id="targetSeg">
-          <button data-t="50">50 pts</button>
-          <button data-t="100" class="on">100 pts</button>
-          <button data-t="150">150 pts</button>
-          <button data-t="200">200 pts</button>
-        </div>
+        <input type="number" id="targetInput" class="num-input" value="100" min="10" step="10">
       </div>
       <button class="btn btn-primary btn-block" id="launchBtn">Lancer la partie</button>
     </section>
@@ -81,6 +76,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script src="js/game.js?v=3"></script>
+  <script src="js/game.js?v=4"></script>
 </body>
 </html>

@@ -143,12 +143,15 @@ function renderLobby() {
     $("hostControls").hidden = false;
     $("waitNote").hidden = true;
     wireSeg("sizeSeg", (b) => (startCfg.gridSize = +b.dataset.n));
-    wireSeg("targetSeg", (b) => (startCfg.target = +b.dataset.t));
     wireSeg("timeSeg", (b) => (startCfg.turnSeconds = +b.dataset.s));
     const btn = $("startBtn");
     btn.disabled = connected < 2;
     $("startErr").textContent = connected < 2 ? "Il faut au moins 2 joueurs connectés." : "";
-    btn.onclick = () => conn.send({ type: "start", gridSize: startCfg.gridSize, target: startCfg.target, turnSeconds: startCfg.turnSeconds });
+    btn.onclick = () => {
+      const t = parseInt($("targetInput").value, 10);
+      const target = Number.isFinite(t) && t >= 10 ? t : 100;
+      conn.send({ type: "start", gridSize: startCfg.gridSize, target, turnSeconds: startCfg.turnSeconds });
+    };
   } else {
     $("hostControls").hidden = true;
     $("waitNote").hidden = false;

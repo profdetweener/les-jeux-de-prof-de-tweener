@@ -212,7 +212,11 @@ function toast(m){ const t=$("toast"); t.textContent=m; t.className="toast show"
 function setStatus(m){ $("status").textContent=m; }
 
 // ---- Ecran de parametres, puis partie ----
-function startGame(){ $("setup").hidden=true; $("game").hidden=false; newGame(); }
+function startGame(){
+  const t = parseInt(($("targetInput")||{}).value, 10);
+  TARGET = Number.isFinite(t) && t >= 10 ? t : 100;
+  $("setup").hidden=true; $("game").hidden=false; newGame();
+}
 function showSetup(){ $("game").hidden=true; $("setup").hidden=false; }
 
 function wireSeg(segId, apply){
@@ -222,7 +226,6 @@ function wireSeg(segId, apply){
   });
 }
 wireSeg("sizeSeg", b => { N = +b.dataset.n; });
-wireSeg("targetSeg", b => { TARGET = +b.dataset.t; });
 $("launchBtn").onclick = startGame;
 $("endTurn").onclick = () => { if(phase==="claim") advanceTurn(); };
 $("reset").onclick = newGame;

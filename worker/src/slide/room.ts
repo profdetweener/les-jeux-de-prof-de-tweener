@@ -41,8 +41,11 @@ interface Session {
 }
 
 const MIN_TARGET = 10;
-const MAX_TARGET = 300;
-const ALLOWED_SIZES = [4, 5, 6];
+const MAX_TARGET = 1_000_000_000;
+const ALLOWED_SIZES = [4, 5, 6, 7];
+const MIN_TURN_SECONDS = 10;
+const MAX_TURN_SECONDS = 120;
+const DEFAULT_TURN_SECONDS = 20;
 
 export class SlideRoom {
   private state: DurableObjectState;
@@ -64,6 +67,8 @@ export class SlideRoom {
   private turnPhase: TurnPhase;
   private lit: Group[];
   private nextId: number;
+  private turnSeconds: number;
+  private turnEndsAt: number;
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -82,6 +87,8 @@ export class SlideRoom {
     this.turnPhase = "push";
     this.lit = [];
     this.nextId = 1;
+    this.turnSeconds = DEFAULT_TURN_SECONDS;
+    this.turnEndsAt = 0;
 
     this.state.blockConcurrencyWhile(async () => {
       try {
@@ -138,13 +145,15 @@ export class SlideRoom {
       case "join":
         return this.onJoin(ws, msg.pseudo);
       case "start":
-        return this.onStart(ws, msg.gridSize, msg.target);
+        return this.onStart(ws, msg.gridSize, msg.target, msg.turnSeconds);
       case "push":
         return this.onPush(ws, msg.cardId, msg.kind, msg.index, msg.fromStart);
       case "claim":
         return this.onClaim(ws, msg.key);
       case "endTurn":
         return this.onEndTurn(ws);
+      case "timeout":
+        return this.onTimeout(ws);
       case "backToLobby":
         return this.onBackToLobby(ws);
       default:
@@ -215,7 +224,7 @@ export class SlideRoom {
   }
 
   // ========================= Cycle de jeu =========================
-  private onStart(ws: WebSocket, gridSize: number, target: number): void {
+  private onStart(ws: WebSocket, gridSize: number, target: number, turnSeconds?: number): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo || pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote lance.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Deja lancee.");
@@ -225,6 +234,10 @@ export class SlideRoom {
 
     this.gridSize = ALLOWED_SIZES.includes(gridSize) ? gridSize : 5;
     this.target = Math.max(MIN_TARGET, Math.min(MAX_TARGET, Math.round(target) || 50));
+    this.turnSeconds = Math.max(
+      MIN_TURN_SECONDS,
+      Math.min(MAX_TURN_SECONDS, Math.round(turnSeconds ?? DEFAULT_TURN_SECONDS) || DEFAULT_TURN_SECONDS)
+    );
 
     // reset scores
     for (const p of this.players.values()) p.score = 0;
@@ -241,6 +254,7 @@ export class SlideRoom {
     this.turnPhase = "push";
     this.lit = [];
     this.phase = "playing";
+    this.armTurnTimer();
     this.broadcastGame();
   }
 
@@ -301,6 +315,7 @@ export class SlideRoom {
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote peut relancer.");
     this.phase = "lobby";
     this.lit = [];
+    this.turnEndsAt = 0;
     this.broadcastRoom();
   }
 
@@ -321,12 +336,29 @@ export class SlideRoom {
       const p = this.players.get(this.turnOrder[this.activeIndex]);
       if (p && p.ws) break; // joueur connecte trouve
     }
+    this.armTurnTimer();
     this.broadcastGame();
+  }
+
+  // Arme le minuteur du tour courant. Les clients affichent le décompte à
+  // partir de turnEndsAt ; quand il expire, n'importe quel client peut
+  // envoyer "timeout" pour débloquer la partie (voir onTimeout).
+  private armTurnTimer(): void {
+    this.turnEndsAt = this.turnSeconds > 0 ? Date.now() + this.turnSeconds * 1000 : 0;
+  }
+
+  private onTimeout(_ws: WebSocket): void {
+    if (this.phase !== "playing") return;
+    if (this.turnEndsAt <= 0) return;
+    // Tolérance de 300 ms pour absorber la latence réseau / horloges.
+    if (Date.now() < this.turnEndsAt - 300) return;
+    this.advanceTurn();
   }
 
   private finish(winner: string): void {
     this.phase = "finished";
     this.lit = [];
+    this.turnEndsAt = 0;
     const ranking = this.snapshot().sort((a, b) => b.score - a.score);
     this.broadcast({ type: "finished", players: this.snapshot(), ranking, winner });
   }
@@ -414,6 +446,8 @@ export class SlideRoom {
       turnPhase: this.turnPhase,
       lit: this.lit.map((g) => ({ key: g.key, value: g.value, cells: g.cells })),
       round: this.round,
+      turnSeconds: this.turnSeconds,
+      turnEndsAt: this.turnEndsAt,
     };
   }
 
@@ -425,7 +459,7 @@ export class SlideRoom {
       players: this.snapshot(),
       hostPseudo: this.hostPseudo ?? "",
       phase: this.phase,
-      config: { gridSize: this.gridSize, target: this.target },
+      config: { gridSize: this.gridSize, target: this.target, turnSeconds: this.turnSeconds },
       game: this.phase === "lobby" ? null : this.gameDTO(),
     });
   }

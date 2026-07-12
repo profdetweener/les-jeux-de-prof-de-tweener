@@ -46,6 +46,11 @@
 .seg { display: inline-flex; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm); overflow: hidden; }
 .seg button { border: none; background: var(--blanc); padding: 7px 13px; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--bleu-nuit); }
 .seg button.on { background: var(--bleu-nuit); color: var(--blanc); }
+.num-input {
+  width: 96px; padding: 7px 10px; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm);
+  font-size: 14px; font-family: inherit; color: var(--bleu-nuit); background: var(--blanc); text-align: right;
+}
+.num-input:focus { outline: none; border-color: var(--bleu-accent); }
 #launchBtn { width: 100%; margin-top: 4px; }
 
 /* ===================== Vue de jeu compétitive (sans scroll) =====================

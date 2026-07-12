@@ -43,15 +43,18 @@ export interface GameStateDTO {
   turnPhase: TurnPhase;
   lit: GroupDTO[];
   round: number;
+  turnSeconds: number;
+  turnEndsAt: number; // timestamp ms de fin du tour (0 = pas de limite)
 }
 
 // -------- Client -> serveur --------
 export type ClientMessage =
   | { type: "join"; pseudo: string }
-  | { type: "start"; gridSize: number; target: number }
+  | { type: "start"; gridSize: number; target: number; turnSeconds?: number }
   | { type: "push"; cardId: number; kind: "row" | "col"; index: number; fromStart: boolean }
   | { type: "claim"; key: string }
   | { type: "endTurn" }
+  | { type: "timeout" }
   | { type: "backToLobby" };
 
 // -------- Serveur -> client --------
@@ -63,7 +66,7 @@ export type ServerMessage =
       players: SlidePlayer[];
       hostPseudo: string;
       phase: Phase;
-      config: { gridSize: number; target: number } | null;
+      config: { gridSize: number; target: number; turnSeconds: number } | null;
       game: GameStateDTO | null;
     }
   | { type: "room_state"; players: SlidePlayer[]; hostPseudo: string; phase: Phase }
