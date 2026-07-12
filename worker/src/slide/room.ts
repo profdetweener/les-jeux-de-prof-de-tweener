@@ -154,6 +154,8 @@ export class SlideRoom {
         return this.onEndTurn(ws);
       case "timeout":
         return this.onTimeout(ws);
+      case "endGame":
+        return this.onEndGame(ws);
       case "backToLobby":
         return this.onBackToLobby(ws);
       default:
@@ -317,6 +319,16 @@ export class SlideRoom {
     this.lit = [];
     this.turnEndsAt = 0;
     this.broadcastRoom();
+  }
+
+  // L'hote peut clore la partie a tout moment : le classement actuel fait foi,
+  // le joueur en tete l'emporte. Utile quand l'objectif est haut/illimite.
+  private onEndGame(ws: WebSocket): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote peut terminer la partie.");
+    if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
+    const leader = this.snapshot().slice().sort((a, b) => b.score - a.score)[0];
+    this.finish(leader ? leader.pseudo : "");
   }
 
   private advanceTurn(): void {

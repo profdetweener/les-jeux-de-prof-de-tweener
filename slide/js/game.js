@@ -164,19 +164,21 @@ function render(){
   renderRiver();
   $("endTurn").style.display = phase==="claim" ? "" : "none";
   sizeBoard();
+  requestAnimationFrame(sizeBoard);
 }
 
 // Redimensionne le plateau pour tenir dans l'espace dispo, arrows comprises,
 // sans jamais scroller (meme logique que le mode competitif).
 function sizeBoard(){
   const area=$("boardArea"); if(!area || $("game").hidden) return;
-  const gap=6;
+  const gap=5;
   const bottomH=$("gameBottom")?$("gameBottom").offsetHeight:0;
   const footer=document.querySelector(".app-footer");
   const footerH=footer?footer.offsetHeight:0;
   const top=area.getBoundingClientRect().top;
   const availH=Math.max(170, window.innerHeight-top-bottomH-footerH-26);
   const availW=area.clientWidth;
+  if(availW<40) return;
   const cW=(availW-gap*(N+1))/(N+1.1);
   const cH=(availH-gap*(N+1))/(N+2);
   let c=Math.floor(Math.min(cW,cH)); c=Math.max(20,Math.min(84,c));
@@ -215,9 +217,14 @@ function setStatus(m){ $("status").textContent=m; }
 function startGame(){
   const t = parseInt(($("targetInput")||{}).value, 10);
   TARGET = Number.isFinite(t) && t >= 10 ? t : 100;
-  $("setup").hidden=true; $("game").hidden=false; newGame();
+  $("setup").hidden=true; $("game").hidden=false;
+  const main=document.querySelector(".room-main"); if(main) main.classList.add("in-game");
+  newGame();
 }
-function showSetup(){ $("game").hidden=true; $("setup").hidden=false; }
+function showSetup(){
+  $("game").hidden=true; $("setup").hidden=false;
+  const main=document.querySelector(".room-main"); if(main) main.classList.remove("in-game");
+}
 
 function wireSeg(segId, apply){
   const seg=$(segId); if(!seg) return;

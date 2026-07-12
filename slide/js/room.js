@@ -68,6 +68,8 @@ function render() {
   $("lobby").hidden = phase !== "lobby";
   $("game").hidden = phase !== "playing";
   $("finished").hidden = phase !== "finished";
+  const main = document.querySelector(".room-main");
+  if (main) main.classList.toggle("in-game", phase === "playing");
   if (phase === "lobby") renderLobby();
   else if (phase === "playing") renderGame();
 }
@@ -257,8 +259,18 @@ function renderGame() {
   else setStatus(game.lit.length ? "Encaisse tes groupes, puis termine le tour." : "Aucun groupe formé. Termine le tour.");
   $("endTurn").style.display = mine && game.turnPhase === "claim" ? "" : "none";
   $("endTurn").onclick = () => conn.send({ type: "endTurn" });
+  const eg = $("endGameBtn");
+  if (eg) {
+    eg.hidden = !isHost;
+    eg.onclick = () => {
+      if (confirm("Terminer la partie maintenant ? Le joueur en tête l'emporte.")) conn.send({ type: "endGame" });
+    };
+  }
 
   sizeBoard();
+  // Recalcule après que le layout se soit stabilisé (évite une 1re mesure
+  // faussée qui donnerait des cases minuscules).
+  requestAnimationFrame(sizeBoard);
 }
 
 // Redimensionne le plateau pour qu'il tienne dans l'espace disponible,
@@ -269,13 +281,14 @@ function sizeBoard() {
   const area = $("boardArea");
   if (!area) return;
   const N = game.gridSize;
-  const gap = 6;
+  const gap = 5;
   const bottomH = $("gameBottom") ? $("gameBottom").offsetHeight : 0;
   const footer = document.querySelector(".app-footer");
   const footerH = footer ? footer.offsetHeight : 0;
   const top = area.getBoundingClientRect().top;
   const availH = Math.max(170, window.innerHeight - top - bottomH - footerH - 26);
   const availW = area.clientWidth;
+  if (availW < 40) return; // layout pas encore prêt, on réessaiera
   // Largeur : N colonnes + 2 demi-fleches (~0.62c chacune).
   // Hauteur : N lignes + 2 fleches (haut/bas).
   const cW = (availW - gap * (N + 1)) / (N + 1.1);

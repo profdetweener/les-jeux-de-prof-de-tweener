@@ -229,7 +229,8 @@
 /* ===================== Salon (lobby) — harmonisé avec Sésame =====================
    Carte blanche large, bandeau « lien d'invitation » bleu nuit, disposition
    deux colonnes (joueurs / configuration). Reprise fidèle du salon de Sésame. */
-.room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px 10px 18px; width: 100%; }
+.room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 6px 16px; width: 100%; }
+.room-main.in-game { justify-content: center; }
 .room-main > section, .room-main > .conn-banner { width: 100%; }
 
 .lobby-card {

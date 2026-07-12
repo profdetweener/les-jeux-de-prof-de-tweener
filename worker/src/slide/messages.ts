@@ -55,6 +55,7 @@ export type ClientMessage =
   | { type: "claim"; key: string }
   | { type: "endTurn" }
   | { type: "timeout" }
+  | { type: "endGame" }
   | { type: "backToLobby" };
 
 // -------- Serveur -> client --------
