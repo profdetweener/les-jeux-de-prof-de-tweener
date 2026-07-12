@@ -46,6 +46,7 @@ const ALLOWED_SIZES = [4, 5, 6, 7];
 const MIN_TURN_SECONDS = 10;
 const MAX_TURN_SECONDS = 120;
 const DEFAULT_TURN_SECONDS = 20;
+const CLAIM_SECONDS = 10; // fenêtre fraîche pour encaisser après avoir poussé
 
 export class SlideRoom {
   private state: DurableObjectState;
@@ -276,6 +277,9 @@ export class SlideRoom {
     this.bag.push(fallen.value);
     this.lit = litGroups(this.board, this.gridSize, before);
     this.turnPhase = "claim";
+    // Nouvelle fenêtre de 10s pour encaisser : l'ancien timer de tour est écrasé
+    // (on n'ajoute pas le temps restant, on repart de 10s).
+    this.armTurnTimer(CLAIM_SECONDS);
     this.broadcastGame();
   }
 
@@ -355,8 +359,9 @@ export class SlideRoom {
   // Arme le minuteur du tour courant. Les clients affichent le décompte à
   // partir de turnEndsAt ; quand il expire, n'importe quel client peut
   // envoyer "timeout" pour débloquer la partie (voir onTimeout).
-  private armTurnTimer(): void {
-    this.turnEndsAt = this.turnSeconds > 0 ? Date.now() + this.turnSeconds * 1000 : 0;
+  private armTurnTimer(seconds?: number): void {
+    const s = seconds ?? this.turnSeconds;
+    this.turnEndsAt = s > 0 ? Date.now() + s * 1000 : 0;
   }
 
   private onTimeout(_ws: WebSocket): void {
