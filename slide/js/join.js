@@ -1,42 +1,127 @@
-import { createRoom, roomExists } from "../../shared/js/api.js";
+/**
+ * Page d'entrée du mode compétitif de Slide.
+ *
+ * Deux modes, décidés par l'URL (aligné sur Sésame) :
+ *   - lien d'invitation `join.html#ABC123`  -> mode « Rejoindre » (pseudo seul)
+ *   - sinon (`join.html` ou `?create=competitive`) -> mode « Créer » : pseudo +
+ *     bouton « Créer la partie », plus une section « rejoindre avec un code ».
+ *
+ * Le pseudo est mémorisé entre les sessions. Un ping serveur au chargement
+ * affiche l'état de connexion dans le header (comme les autres jeux).
+ */
+
+import { createRoom, roomExists, pingWorker } from "../../shared/js/api.js";
 
 const $ = (id) => document.getElementById(id);
-const err = (m) => { $("err").textContent = m || ""; };
+const CODE_RE = /^[A-Z0-9]{4,6}$/;
 
-// Pre-remplit le pseudo memorise
-$("pseudo").value = sessionStorage.getItem("slide_pseudo") || "";
+const pseudoInput = $("pseudo");
+const createBtn = $("createBtn");
+const joinBtn = $("joinBtn");
+const codeInput = $("code");
+const errorBox = $("error-box");
+const serverStatus = $("server-status");
+const subtitleCreate = $("subtitle-create");
+const subtitleJoin = $("subtitle-join");
+const joinCodeLabel = $("join-code-label");
+const joinBlock = $("join-block");
+const cardTitle = $("card-title");
 
-function pseudo() { return $("pseudo").value.trim(); }
+// ---------- Détection du mode via le hash (#ABC123 ou #join=ABC123) ----------
+function parseInviteCode() {
+  let raw = (location.hash || "").replace(/^#/, "").trim();
+  if (raw.includes("=")) raw = raw.split("=").pop();
+  raw = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return CODE_RE.test(raw) ? raw : null;
+}
+const inviteCode = parseInviteCode();
+const isJoinMode = inviteCode !== null;
+
+// ---------- Restauration du pseudo ----------
+pseudoInput.value = sessionStorage.getItem("slide_pseudo") || "";
+
+// ---------- Application du mode UI ----------
+if (isJoinMode) {
+  cardTitle.textContent = "Rejoindre une partie";
+  subtitleCreate.hidden = true;
+  subtitleJoin.hidden = false;
+  joinCodeLabel.textContent = inviteCode;
+  createBtn.textContent = "Rejoindre la partie";
+  joinBlock.hidden = true;
+}
+
+// ---------- Ping serveur (état de connexion dans le header) ----------
+(async () => {
+  const ok = await pingWorker();
+  serverStatus.textContent = ok ? "✓ serveur en ligne" : "✗ serveur injoignable";
+  if (!ok) showError("Impossible de joindre le serveur. Réessaie dans un instant.");
+})();
+
+// ---------- Helpers ----------
+function pseudo() { return pseudoInput.value.trim(); }
+function showError(msg) { errorBox.textContent = msg || ""; errorBox.classList.toggle("show", !!msg); }
+function clearError() { showError(""); }
 function go(code) {
   sessionStorage.setItem("slide_pseudo", pseudo());
   location.href = `room.html?code=${encodeURIComponent(code)}`;
 }
 
-$("createBtn").addEventListener("click", async () => {
-  if (pseudo().length < 3) return err("Pseudo trop court (3 caractères min).");
-  err(""); $("createBtn").disabled = true;
+// ---------- Action principale : Créer OU Rejoindre (selon le mode) ----------
+createBtn.addEventListener("click", async () => {
+  clearError();
+  if (pseudo().length < 3) return showError("Pseudo trop court (3 caractères min.).");
+
+  // Mode « Rejoindre » via lien d'invitation
+  if (isJoinMode) {
+    createBtn.disabled = true;
+    createBtn.textContent = "Vérification…";
+    try {
+      const exists = await roomExists("slide", inviteCode);
+      if (!exists) {
+        showError("Cette partie n'existe pas (ou a expiré). Demande un nouveau lien.");
+        createBtn.disabled = false;
+        createBtn.textContent = "Rejoindre la partie";
+        return;
+      }
+      go(inviteCode);
+    } catch (e) {
+      showError("Erreur de connexion. Réessaie dans un instant.");
+      createBtn.disabled = false;
+      createBtn.textContent = "Rejoindre la partie";
+    }
+    return;
+  }
+
+  // Mode « Créer »
+  createBtn.disabled = true;
+  createBtn.textContent = "Création…";
   try {
     const code = await createRoom("slide", {});
     go(code);
   } catch (e) {
-    err("Impossible de créer la partie. Réessaie.");
-    $("createBtn").disabled = false;
+    showError("Impossible de créer la partie. Réessaie dans un instant.");
+    createBtn.disabled = false;
+    createBtn.textContent = "Créer la partie";
   }
 });
 
-$("joinBtn").addEventListener("click", async () => {
-  if (pseudo().length < 3) return err("Pseudo trop court (3 caractères min).");
-  const code = $("code").value.trim().toUpperCase();
-  if (code.length !== 6) return err("Le code fait 6 caractères.");
-  err(""); $("joinBtn").disabled = true;
+// ---------- Rejoindre avec un code saisi à la main ----------
+joinBtn.addEventListener("click", async () => {
+  clearError();
+  if (pseudo().length < 3) return showError("Pseudo trop court (3 caractères min.).");
+  const code = codeInput.value.trim().toUpperCase();
+  if (!CODE_RE.test(code)) return showError("Le code fait 6 caractères.");
+  joinBtn.disabled = true;
   try {
     const exists = await roomExists("slide", code);
-    if (!exists) { err("Cette partie n'existe pas."); $("joinBtn").disabled = false; return; }
+    if (!exists) { showError("Cette partie n'existe pas."); joinBtn.disabled = false; return; }
     go(code);
   } catch (e) {
-    err("Erreur de connexion. Réessaie.");
-    $("joinBtn").disabled = false;
+    showError("Erreur de connexion. Réessaie.");
+    joinBtn.disabled = false;
   }
 });
 
-$("code").addEventListener("keydown", (e) => { if (e.key === "Enter") $("joinBtn").click(); });
+// ---------- Entrée clavier ----------
+pseudoInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); createBtn.click(); } });
+codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); joinBtn.click(); } });

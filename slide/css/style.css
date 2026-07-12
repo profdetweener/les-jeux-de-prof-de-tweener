@@ -143,6 +143,41 @@
 @media (max-width: 600px) { .card { padding: 20px 18px; } .rules-tab { font-size: 13px; padding: 9px 6px; } }
 .rules-cap { font-size: 12.5px; color: var(--gris-texte); margin: 8px auto 0; max-width: 560px; line-height: 1.5; }
 
+/* ===================== Page d'entrée compétitive (harmonisée avec Sésame) =====================
+   Même système visuel que la page « Bienvenue ! » de Sésame : carte blanche large,
+   sous-titre gris, champs pleine largeur avec focus bleu, encart d'erreur rouge.
+   Classes préfixées .entry-* pour ne pas heurter le .card des règles (max-width 760px). */
+.entry-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+.entry-card {
+  background: var(--blanc); border-radius: var(--rayon);
+  box-shadow: var(--ombre); padding: 32px;
+  width: 100%; max-width: 480px;
+}
+.entry-card h2 { margin: 0 0 24px; font-size: 22px; }
+.entry-sub { margin: 0 0 24px; color: var(--gris-texte); font-size: 14px; line-height: 1.5; }
+
+.entry-field { margin-bottom: 16px; text-align: left; }
+.entry-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--bleu-nuit); }
+.entry-field input {
+  width: 100%; padding: 10px 12px;
+  border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
+  font-size: 16px; background: var(--beige); color: var(--bleu-nuit); font-family: inherit;
+}
+.entry-field input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+
+.entry-or { text-align: center; color: var(--gris-texte); font-size: 12px; margin: 22px 0 16px; text-transform: uppercase; letter-spacing: .05em; }
+
+.entry-alert {
+  display: none; padding: 12px 16px; border-radius: var(--rayon-sm); margin-bottom: 16px; font-size: 14px;
+  background: rgba(200, 69, 69, 0.1); color: var(--rouge); border: 1px solid rgba(200, 69, 69, 0.3);
+}
+.entry-alert.show { display: block; }
+
+.entry-card .btn { width: 100%; padding: 12px 20px; font-size: 15px; }
+.entry-card .btn + .btn { margin-top: 0; }
+
+@media (max-width: 600px) { .entry-card { padding: 22px 18px; } .entry-card h2 { font-size: 20px; } }
+
 /* ===================== Mode compétitif ===================== */
 .conn-banner { width: 100%; max-width: 360px; margin: 0 auto 12px; padding: 8px 12px; border-radius: var(--rayon-sm);
   background: var(--beige-fonce); color: var(--bleu-nuit); font-size: 13px; text-align: center; }

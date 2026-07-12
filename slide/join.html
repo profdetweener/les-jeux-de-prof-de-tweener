@@ -5,35 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Slide compétitif</title>
-  <link rel="stylesheet" href="../shared/css/landing.css">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="../shared/css/landing.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <header class="landing-header">
-    <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
+    <a href="index.html" class="app-header-home" title="Retour au choix du mode">← Modes Slide</a>
     <h1>Slide compétitif</h1>
-    <span class="header-tagline">plateau partagé, chacun son tour</span>
+    <span class="header-tagline" id="server-status">connexion au serveur…</span>
   </header>
 
-  <main class="slide-main">
-    <div class="setup-card">
-      <h2>Rejoindre une partie</h2>
-      <label class="setup-field">
-        <span class="setup-label">Ton pseudo</span>
-        <input id="pseudo" type="text" maxlength="20" placeholder="Max" autocomplete="off">
-      </label>
+  <main class="entry-main">
+    <div class="entry-card">
+      <h2 id="card-title">Bienvenue !</h2>
 
-      <button class="btn btn-primary" id="createBtn" style="width:100%;margin-top:6px">Créer une partie</button>
+      <p class="entry-sub" id="subtitle-create">
+        Choisis un pseudo et crée une nouvelle partie <strong>compétitive ⚔️</strong>.
+      </p>
+      <p class="entry-sub" id="subtitle-join" hidden>
+        Tu es invité à rejoindre la partie <strong id="join-code-label">-</strong>. Choisis ton pseudo pour entrer.
+      </p>
 
-      <div class="setup-or">ou rejoindre avec un code</div>
+      <div class="entry-alert" id="error-box"></div>
 
-      <label class="setup-field">
-        <span class="setup-label">Code de la partie</span>
-        <input id="code" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase">
-      </label>
-      <button class="btn btn-ghost" id="joinBtn" style="width:100%">Rejoindre</button>
+      <div class="entry-field">
+        <label for="pseudo">Ton pseudo</label>
+        <input id="pseudo" type="text" maxlength="20" placeholder="Ex : Max" autocomplete="off">
+      </div>
 
-      <p class="setup-err" id="err"></p>
+      <button class="btn btn-primary" id="createBtn">Créer la partie</button>
+
+      <!-- Section « rejoindre avec un code » : masquée quand on arrive via un lien d'invitation -->
+      <div id="join-block">
+        <div class="entry-or">ou rejoindre avec un code</div>
+        <div class="entry-field">
+          <label for="code">Code de la partie</label>
+          <input id="code" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase">
+        </div>
+        <button class="btn btn-ghost" id="joinBtn">Rejoindre</button>
+      </div>
     </div>
   </main>
 
@@ -47,6 +57,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/join.js"></script>
+  <script type="module" src="js/join.js?v=2"></script>
 </body>
 </html>
