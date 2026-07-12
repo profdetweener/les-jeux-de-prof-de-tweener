@@ -21,8 +21,21 @@ let startCfg = { gridSize: 5, target: 50 };
 
 // ---------- Connexion ----------
 const conn = new RoomConnection(CODE, "slide");
-$("roomCode") && ($("roomCode").textContent = CODE);
-$("roomCodeTag").textContent = "salon " + CODE;
+
+// Lien d'invitation canonique : join.html#ABC123 (le code dans le hash).
+// On rejoint la partie en ouvrant ce lien, comme sur les autres jeux.
+function buildInviteUrl(code) {
+  const url = new URL(location.href);
+  url.pathname = url.pathname.replace(/room\.html$/, "join.html");
+  url.search = "";
+  url.hash = code;
+  return url.toString();
+}
+const inviteUrl = buildInviteUrl(CODE);
+const inviteUrlEl = $("inviteUrl");
+if (inviteUrlEl) inviteUrlEl.textContent = inviteUrl;
+const tag = $("roomCodeTag");
+if (tag) tag.textContent = "";
 
 conn.onStatus((s) => {
   const b = $("conn");
@@ -66,6 +79,8 @@ function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<"
 
 function renderLobby() {
   $("lobbyPlayers").innerHTML = players.map((p) => playerRow(p)).join("");
+  const pc = $("playerCount");
+  if (pc) pc.textContent = players.length;
   const connected = players.filter((p) => p.isConnected).length;
   if (isHost) {
     $("hostControls").hidden = false;
@@ -183,6 +198,10 @@ function renderFinished(m) {
   lb.onclick = () => conn.send({ type: "backToLobby" });
 }
 
-// Copier le code
+// Copier le lien d'invitation
 const copyBtn = $("copyBtn");
-if (copyBtn) copyBtn.onclick = () => { navigator.clipboard?.writeText(CODE); copyBtn.textContent = "copié"; setTimeout(() => (copyBtn.textContent = "copier"), 1200); };
+if (copyBtn) copyBtn.onclick = () => {
+  navigator.clipboard?.writeText(inviteUrl);
+  copyBtn.textContent = "Lien copié !";
+  setTimeout(() => (copyBtn.textContent = "Copier le lien"), 1400);
+};

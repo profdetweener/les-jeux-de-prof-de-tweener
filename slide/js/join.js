@@ -1,13 +1,14 @@
 /**
- * Page d'entrée du mode compétitif de Slide.
+ * Page d'entrée du mode compétitif de Slide (alignée sur Sésame).
  *
- * Deux modes, décidés par l'URL (aligné sur Sésame) :
+ * Deux modes, décidés par l'URL :
  *   - lien d'invitation `join.html#ABC123`  -> mode « Rejoindre » (pseudo seul)
- *   - sinon (`join.html` ou `?create=competitive`) -> mode « Créer » : pseudo +
- *     bouton « Créer la partie », plus une section « rejoindre avec un code ».
+ *   - sinon (`join.html` ou `?create=competitive`) -> mode « Créer » (pseudo +
+ *     « Créer la partie »). On rejoint ensuite UNIQUEMENT via le lien d'invitation
+ *     affiché dans le salon (pas de saisie de code manuelle, comme Sésame).
  *
  * Le pseudo est mémorisé entre les sessions. Un ping serveur au chargement
- * affiche l'état de connexion dans le header (comme les autres jeux).
+ * affiche l'état de connexion dans le header.
  */
 
 import { createRoom, roomExists, pingWorker } from "../../shared/js/api.js";
@@ -17,14 +18,11 @@ const CODE_RE = /^[A-Z0-9]{4,6}$/;
 
 const pseudoInput = $("pseudo");
 const createBtn = $("createBtn");
-const joinBtn = $("joinBtn");
-const codeInput = $("code");
 const errorBox = $("error-box");
 const serverStatus = $("server-status");
 const subtitleCreate = $("subtitle-create");
 const subtitleJoin = $("subtitle-join");
 const joinCodeLabel = $("join-code-label");
-const joinBlock = $("join-block");
 const cardTitle = $("card-title");
 
 // ---------- Détection du mode via le hash (#ABC123 ou #join=ABC123) ----------
@@ -47,7 +45,6 @@ if (isJoinMode) {
   subtitleJoin.hidden = false;
   joinCodeLabel.textContent = inviteCode;
   createBtn.textContent = "Rejoindre la partie";
-  joinBlock.hidden = true;
 }
 
 // ---------- Ping serveur (état de connexion dans le header) ----------
@@ -105,23 +102,5 @@ createBtn.addEventListener("click", async () => {
   }
 });
 
-// ---------- Rejoindre avec un code saisi à la main ----------
-joinBtn.addEventListener("click", async () => {
-  clearError();
-  if (pseudo().length < 3) return showError("Pseudo trop court (3 caractères min.).");
-  const code = codeInput.value.trim().toUpperCase();
-  if (!CODE_RE.test(code)) return showError("Le code fait 6 caractères.");
-  joinBtn.disabled = true;
-  try {
-    const exists = await roomExists("slide", code);
-    if (!exists) { showError("Cette partie n'existe pas."); joinBtn.disabled = false; return; }
-    go(code);
-  } catch (e) {
-    showError("Erreur de connexion. Réessaie.");
-    joinBtn.disabled = false;
-  }
-});
-
 // ---------- Entrée clavier ----------
 pseudoInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); createBtn.click(); } });
-codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); joinBtn.click(); } });
