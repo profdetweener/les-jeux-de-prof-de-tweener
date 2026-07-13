@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Mots mêlés, règles</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
+    <h1>Mots mêlés</h1>
+    <span class="header-tagline">règles du jeu</span>
+  </header>
+
+  <main class="rules-main">
+    <div class="card">
+      <h2>Comment jouer</h2>
+      <p class="subtitle">Repère les mots cachés dans la grille, puis devine le mot mystère.</p>
+
+      <div class="rules-tabs" id="tabs">
+        <button class="rules-tab is-active" data-tab="commun">Commun</button>
+        <button class="rules-tab" data-tab="chill">Chill</button>
+        <button class="rules-tab" data-tab="comp">Compétitif</button>
+      </div>
+
+      <section class="rules-panel" id="panel-commun">
+        <h3>Le principe</h3>
+        <p>
+          La grille est entièrement remplie de lettres. Des mots y sont cachés dans
+          tous les sens : horizontalement, verticalement, en diagonale, et même à
+          l'envers selon la difficulté. Aucune liste n'est affichée : c'est à toi de
+          les débusquer.
+        </p>
+        <h3>Sélectionner un mot</h3>
+        <p>
+          Clique sur la <strong>première lettre</strong> du mot, puis sur la
+          <strong>dernière</strong> (ou l'inverse). Si l'alignement correspond à un
+          mot caché, il se verrouille et se colore. Sinon, la grille refuse.
+        </p>
+        <h3>Le mot mystère</h3>
+        <p>
+          Quand tous les mots sont trouvés, il reste quelques cases orphelines. Lues
+          de gauche à droite puis de haut en bas, elles forment un mot mystère. Une
+          définition s'affiche pour t'aider à le deviner et boucler la grille.
+        </p>
+        <p class="rules-note">
+          Trois tailles de grille et trois niveaux de difficulté (les diagonales et
+          les mots à l'envers s'ajoutent avec le niveau).
+        </p>
+      </section>
+
+      <section class="rules-panel" id="panel-chill" hidden>
+        <h3>Solo, à ton rythme</h3>
+        <p>
+          Tu joues seul contre la grille, sans timer imposé (le chrono tourne juste
+          pour info). Parfait pour se faire la main ou jouer tranquillement en stream.
+        </p>
+        <h3>Les aides</h3>
+        <ul class="rules-list">
+          <li>Le compteur de <strong>longueurs restantes</strong> t'indique combien
+            de mots de chaque taille il reste, sans les révéler.</li>
+          <li>Le bouton <strong>Indice</strong> fait clignoter la case de départ d'un
+            mot que tu n'as pas encore trouvé.</li>
+        </ul>
+        <p>Trouve tout, devine le mot mystère, et bats ton meilleur temps.</p>
+      </section>
+
+      <section class="rules-panel" id="panel-comp" hidden>
+        <h3>À venir</h3>
+        <p>Deux formats de compétition sont en préparation :</p>
+        <ul class="rules-list">
+          <li><strong>Grille commune.</strong> Tout le monde sur la même grille en
+            temps réel. Un mot trouvé est verrouillé aux couleurs de celui qui l'a
+            eu en premier et n'est plus disponible. Classement au nombre de mots,
+            départage au chrono.</li>
+          <li><strong>Chacun sa grille.</strong> Même grille pour tous, mais chacun
+            la sienne. Premier à tout trouver et à deviner le mot mystère : victoire.</li>
+        </ul>
+        <p class="rules-note">Le mode chill est déjà jouable, le compétitif arrive juste après.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="index.html">Retour</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script>
+    (function () {
+      var tabs = document.getElementById("tabs");
+      var panels = {
+        commun: document.getElementById("panel-commun"),
+        chill: document.getElementById("panel-chill"),
+        comp: document.getElementById("panel-comp"),
+      };
+      tabs.addEventListener("click", function (e) {
+        var b = e.target.closest(".rules-tab");
+        if (!b) return;
+        tabs.querySelectorAll(".rules-tab").forEach(function (x) { x.classList.remove("is-active"); });
+        b.classList.add("is-active");
+        var key = b.getAttribute("data-tab");
+        Object.keys(panels).forEach(function (k) { panels[k].hidden = (k !== key); });
+      });
+    })();
+  </script>
+</body>
+</html>

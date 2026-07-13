@@ -1,0 +1,159 @@
+/* Mots meles, styles specifiques au jeu.
+   Les tokens (--bleu-nuit, --beige, --gris-texte, --rayon...) viennent de shared/css/landing.css. */
+
+/* En-tete : lien retour, repris a l'identique des autres jeux. */
+.app-header-home {
+  color: var(--beige); text-decoration: none; font-size: 13px; opacity: 0.8;
+  padding: 6px 10px; border-radius: 6px;
+}
+.app-header-home:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
+
+/* Bandeau du bas, repris a l'identique des autres jeux. */
+.app-footer {
+  display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+  gap: 24px; padding: 16px 24px; padding-bottom: max(16px, env(safe-area-inset-bottom));
+  font-size: 13px; background: var(--bleu-nuit); color: var(--beige); margin-top: auto;
+}
+.app-footer a { color: var(--beige); text-decoration: none; opacity: 0.85; }
+.app-footer a:hover { text-decoration: underline; opacity: 1; }
+.footer-sep { opacity: 0.5; }
+
+/* Carte de mode desactivee (Competitif, a venir). */
+.game-card-soon { opacity: 0.55; cursor: default; }
+.game-card-soon:hover { transform: none; box-shadow: var(--ombre); }
+
+/* ===================== Ecran de parametres (mode chill) ===================== */
+.room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 12px 32px; width: 100%; }
+
+.entry-card {
+  background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre);
+  padding: 26px 22px; width: 100%; max-width: 440px; margin: 12px auto;
+}
+.entry-card h2 { margin: 0 0 6px; font-size: 20px; }
+.entry-sub { margin: 0 0 20px; color: var(--gris-texte); font-size: 14px; line-height: 1.5; }
+.setup-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.setup-label { font-size: 13px; color: var(--gris-texte); }
+.seg { display: inline-flex; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm); overflow: hidden; }
+.seg button { border: none; background: var(--blanc); padding: 7px 13px; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--bleu-nuit); }
+.seg button.on { background: var(--bleu-nuit); color: var(--blanc); }
+.btn { padding: 10px 18px; border: none; border-radius: var(--rayon-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .12s, opacity .12s; }
+.btn-primary { background: var(--bleu-nuit); color: var(--blanc); }
+.btn-ghost { background: var(--beige-fonce); color: var(--bleu-nuit); }
+.btn-ghost:hover { background: var(--gris-clair); }
+.btn-block { width: 100%; }
+#launchBtn { margin-top: 6px; }
+
+/* ===================== Vue de jeu ===================== */
+.mm-game { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 640px; margin: 0 auto; gap: 12px; }
+
+.mm-hud { display: flex; gap: 10px; width: 100%; max-width: 420px; }
+.mm-hud .box { flex: 1; background: var(--blanc); border-radius: var(--rayon-sm); box-shadow: var(--ombre); padding: 8px 6px; text-align: center; }
+.mm-hud .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); }
+.mm-hud .num { font-family: Georgia, serif; font-size: 22px; font-weight: 700; }
+.mm-hud .num.goal { color: var(--bleu-accent); }
+
+/* La grille : taille de case pilotee par la variable --c calculee en JS. */
+.mm-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 12), var(--c, 34px));
+  grid-template-rows: repeat(var(--n, 12), var(--c, 34px));
+  gap: 3px;
+  background: var(--beige-fonce);
+  padding: 6px; border-radius: var(--rayon-sm); box-shadow: var(--ombre);
+  touch-action: manipulation;
+}
+.mm-cell {
+  background: var(--blanc);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: Georgia, serif; font-weight: 700;
+  font-size: calc(var(--c, 34px) * .5);
+  color: var(--bleu-nuit); cursor: pointer; user-select: none;
+  transition: transform .08s, box-shadow .1s, background .1s, color .1s;
+}
+.mm-cell:hover { box-shadow: inset 0 0 0 2px var(--bleu-accent); }
+.mm-cell.sel-start {
+  background: var(--bleu-nuit); color: var(--blanc);
+  box-shadow: 0 0 0 2px var(--bleu-nuit);
+}
+/* Case appartenant a un mot deja trouve : fond colore (couleur inline par mot). */
+.mm-cell.found { color: var(--blanc); cursor: default; }
+.mm-cell.found:hover { box-shadow: none; }
+/* Flash de refus (selection invalide). */
+.mm-grid.bad { animation: mm-shake .3s; }
+@keyframes mm-shake { 0%,100%{transform:none} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+/* Reveal du mot mystere : cases restantes mises en avant. */
+.mm-cell.myst { background: var(--jaune); color: var(--bleu-nuit); animation: mm-pop .35s ease; }
+@keyframes mm-pop { from { transform: scale(.7); } to { transform: scale(1); } }
+
+/* Compteur de longueurs restantes (aide douce, sans liste de mots). */
+.mm-lenchips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; max-width: 440px; min-height: 24px; }
+.len-chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--blanc); border: 1px solid var(--gris-clair); border-radius: 999px;
+  padding: 3px 10px; font-size: 12.5px; color: var(--gris-texte); box-shadow: var(--ombre);
+  letter-spacing: 1px;
+}
+.len-chip b { font-family: Georgia, serif; color: var(--bleu-nuit); letter-spacing: 0; }
+
+/* Statut sous la grille */
+.mm-status { min-height: 20px; font-size: 14px; font-weight: 600; text-align: center; color: var(--bleu-nuit); }
+.mm-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ===================== Panneau mot mystere ===================== */
+.mm-mystery {
+  width: 100%; max-width: 440px; background: var(--blanc);
+  border-radius: var(--rayon); box-shadow: var(--ombre-forte);
+  border: 2px solid var(--jaune); padding: 20px; text-align: center;
+}
+.mm-mystery h3 { margin: 0 0 6px; font-size: 17px; color: var(--bleu-nuit); }
+.mm-mystery .def { font-style: italic; color: var(--gris-texte); margin: 0 0 6px; line-height: 1.5; }
+.mm-mystery .hint { font-size: 12.5px; color: var(--gris-texte); margin: 0 0 14px; }
+.mm-mystery .guess-row { display: flex; gap: 8px; }
+.mm-mystery input {
+  flex: 1; padding: 10px 12px; border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
+  font-size: 16px; background: var(--beige); color: var(--bleu-nuit); font-family: inherit;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.mm-mystery input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+.mm-mystery .msg { min-height: 18px; font-size: 13px; font-weight: 600; margin-top: 10px; }
+.mm-mystery .msg.err { color: var(--rouge); }
+.mm-mystery .msg.ok { color: var(--vert); }
+
+/* ===================== Ecran de victoire ===================== */
+.mm-win { width: 100%; max-width: 440px; background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 26px 22px; text-align: center; }
+.mm-win h2 { margin: 0 0 10px; font-size: 22px; }
+.mm-win .big { font-family: Georgia, serif; font-size: 30px; font-weight: 800; color: var(--bleu-accent); margin: 8px 0; }
+.mm-win .word { font-family: Georgia, serif; font-weight: 800; letter-spacing: .05em; }
+.mm-win .mm-btns { margin-top: 18px; }
+
+/* Toast (repris des autres jeux). */
+.toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: var(--bleu-nuit); color: var(--beige);
+  padding: 10px 18px; border-radius: var(--rayon-sm); font-size: 14px; font-weight: 600; box-shadow: var(--ombre-forte);
+  opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; }
+.toast.show { opacity: 1; }
+
+/* ===================== Page regles (visuel repris de Sesame/Slide) ===================== */
+.rules-main { display: flex; justify-content: center; padding: 20px 14px 44px; }
+.card { background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 28px; width: 100%; max-width: 760px; }
+.card h2 { margin: 0 0 8px; font-size: 22px; }
+.subtitle { margin: 0 0 8px; color: var(--gris-texte); font-size: 14px; }
+.rules-tabs { display: flex; gap: 4px; margin: 16px 0 20px; border-bottom: 2px solid var(--beige-fonce); }
+.rules-tab { flex: 1; padding: 10px 12px; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px;
+  font: inherit; font-weight: 600; font-size: 14px; color: var(--gris-texte); cursor: pointer; transition: color 120ms, border-color 120ms; }
+.rules-tab:hover { color: var(--bleu-nuit); }
+.rules-tab.is-active { color: var(--bleu-nuit); border-bottom-color: var(--bleu-nuit); }
+.rules-panel { animation: rules-fade 160ms ease-out; }
+@keyframes rules-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.rules-panel h3 { margin: 18px 0 8px; font-size: 16px; color: var(--bleu-nuit); }
+.rules-panel h3:first-child { margin-top: 0; }
+.rules-panel p { margin: 0 0 12px; line-height: 1.6; }
+.rules-list { margin: 0 0 12px; padding-left: 18px; line-height: 1.7; font-size: 14px; }
+.rules-list li { margin-bottom: 4px; }
+.rules-note { font-size: 12.5px; color: var(--gris-texte); font-style: italic; margin: 4px 0 12px; }
+@media (max-width: 600px) { .card { padding: 20px 18px; } .rules-tab { font-size: 13px; padding: 9px 6px; } }
+
+@media (max-width: 600px) {
+  .entry-card { padding: 22px 18px; }
+  .mm-grid { gap: 2px; padding: 4px; }
+}

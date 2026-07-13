@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Mots mêlés chill</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
+    <h1>Mots mêlés chill</h1>
+    <span class="header-tagline"></span>
+  </header>
+
+  <main class="room-main">
+
+    <section class="entry-card" id="setup">
+      <h2>Options de la partie</h2>
+      <p class="entry-sub">
+        Mode chill : tu vides la grille seul, à ton rythme. Pas de liste de mots
+        affichée, à toi de les repérer. Une fois tous trouvés, les cases restantes
+        forment un mot mystère à deviner grâce à sa définition.
+      </p>
+      <div class="setup-row">
+        <span class="setup-label">Taille de grille</span>
+        <div class="seg" id="sizeSeg">
+          <button data-v="10" class="on">Petite</button>
+          <button data-v="12">Moyenne</button>
+          <button data-v="14">Grande</button>
+        </div>
+      </div>
+      <div class="setup-row">
+        <span class="setup-label">Difficulté</span>
+        <div class="seg" id="diffSeg">
+          <button data-v="facile">Facile</button>
+          <button data-v="moyen" class="on">Moyen</button>
+          <button data-v="difficile">Difficile</button>
+        </div>
+      </div>
+      <p class="rules-note" style="margin:0 0 16px">
+        Facile : horizontal et vertical. Moyen : ajoute les diagonales. Difficile :
+        ajoute les mots à l'envers.
+      </p>
+      <button class="btn btn-primary btn-block" id="launchBtn">Lancer la partie</button>
+    </section>
+
+    <section id="game" hidden>
+      <div class="mm-game">
+        <div class="mm-hud">
+          <div class="box"><div class="lbl">Mots</div><div class="num"><span id="found">0</span>/<span id="total">0</span></div></div>
+          <div class="box"><div class="lbl">Temps</div><div class="num goal" id="timer">0:00</div></div>
+        </div>
+
+        <div class="mm-lenchips" id="lenChips"></div>
+
+        <div class="mm-grid" id="grid"></div>
+
+        <div class="mm-status" id="status"></div>
+
+        <div class="mm-btns">
+          <button class="btn btn-ghost" id="hintBtn">Indice</button>
+          <button class="btn btn-ghost" id="newBtn">Nouvelle grille</button>
+          <button class="btn btn-ghost" id="backBtn">Changer les options</button>
+        </div>
+
+        <section class="mm-mystery" id="mystery" hidden>
+          <h3>Mot mystère</h3>
+          <p class="def" id="mystDef"></p>
+          <p class="hint" id="mystHint"></p>
+          <div class="guess-row">
+            <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
+            <button class="btn btn-primary" id="mystSubmit">Valider</button>
+          </div>
+          <div class="msg" id="mystMsg"></div>
+        </section>
+
+        <section class="mm-win" id="win" hidden>
+          <h2>Bravo !</h2>
+          <p>Grille terminée en</p>
+          <div class="big" id="winTime">0:00</div>
+          <p>Mot mystère : <span class="word" id="winWord"></span></p>
+          <p class="rules-note" id="winMeta"></p>
+          <div class="mm-btns">
+            <button class="btn btn-primary" id="winNew">Nouvelle grille</button>
+            <button class="btn btn-ghost" id="winBack">Changer les options</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script src="js/words.js?v=1"></script>
+  <script src="js/generator.js?v=1"></script>
+  <script src="js/chill.js?v=1"></script>
+</body>
+</html>
