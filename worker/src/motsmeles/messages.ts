@@ -1,15 +1,19 @@
 /**
- * Protocole Mots meles, mode competitif "grille commune" (Compet 1).
+ * Protocole Mots meles competitif, deux modes choisis dans le salon par l'hote :
  *
- * Tout le monde sur la MEME grille en temps reel. Un mot trouve est verrouille
- * a la couleur du premier qui l'a repere et n'est plus disponible. Score =
- * nombre de mots trouves ; departage au chrono (qui a atteint son total en
- * premier). Quand toute la grille est videe, la partie se termine et le
- * classement fait foi. (Pas de mot mystere ici : il est reserve aux modes ou
- * l'on decouvre soi-meme toute la grille, chill et Compet 2.)
+ *  - "commune"  : grille commune interactive. Premier a reperer un mot le
+ *                 verrouille a sa couleur, plus dispo pour les autres. Score =
+ *                 nombre de mots. Fin quand la grille est videe (ou hote). Pas de
+ *                 mot mystere (personne ne decouvre toute la grille seul).
  *
- * La grille (lettres) est diffusee a tous ; les lettres qui ne composent aucun
- * mot a trouver ne sont que du remplissage.
+ *  - "chacun"   : chacun sa grille (identique). On cherche en parallele, sans
+ *                 verrouillage entre joueurs. Minuteur regle par l'hote. Score =
+ *                 nombre de mots ; quand tu vides TA grille, le mot mystere
+ *                 s'ouvre pour toi et le deviner rapporte un bonus. Classement a
+ *                 la fin du minuteur, departage au chrono.
+ *
+ * En "chacun", l'etat de jeu (cases trouvees, mystere) est PROPRE a chaque
+ * joueur : le serveur envoie a chacun son propre game_state / found.
  */
 
 import type { SharedErrorCode } from "../shared/types";
@@ -21,37 +25,45 @@ export type MmErrorCode =
   | "INVALID_MOVE";
 
 export type Phase = "lobby" | "playing" | "finished";
+export type Mode = "commune" | "chacun";
 
 export interface Cell { r: number; c: number; }
 
 export interface MmPlayer {
   pseudo: string;
   isHost: boolean;
-  color: number; // index de palette
-  score: number; // nombre de mots trouves
+  color: number;
+  score: number;          // nombre de mots trouves (+ bonus mystere en "chacun")
+  solvedMystery: boolean; // "chacun" uniquement
   isConnected: boolean;
 }
 
 export interface FoundWord {
   word: string;
   cells: Cell[];
-  color: number; // couleur du joueur qui l'a trouve
+  color: number;
   pseudo: string;
 }
 
 export interface GameStateDTO {
+  mode: Mode;
   gridSize: number;
-  grid: string[][];       // lettres (identiques pour tous)
+  grid: string[][];
   totalWords: number;
-  found: FoundWord[];     // mots deja trouves
   level: string;
+  // "commune" : mots trouves partages. "chacun" : mots trouves DU destinataire.
+  found: FoundWord[];
+  endsAt: number | null;            // "chacun" : fin du minuteur (ms epoch)
+  mysteryOpen: boolean;             // "chacun" : le destinataire a tout trouve
+  mysteryDefinition: string | null;
 }
 
 // -------- Client -> serveur --------
 export type ClientMessage =
   | { type: "join"; pseudo: string }
-  | { type: "start"; gridSize: number; level: string }
+  | { type: "start"; mode: Mode; gridSize: number; level: string; duration: number }
   | { type: "claim"; cells: Cell[] }
+  | { type: "mysteryGuess"; guess: string }
   | { type: "endGame" }
   | { type: "backToLobby" };
 
@@ -64,14 +76,18 @@ export type ServerMessage =
       players: MmPlayer[];
       hostPseudo: string;
       phase: Phase;
-      config: { gridSize: number; level: string } | null;
+      config: { mode: Mode; gridSize: number; level: string; duration: number } | null;
       game: GameStateDTO | null;
     }
   | { type: "room_state"; players: MmPlayer[]; hostPseudo: string; phase: Phase }
   | { type: "game_state"; players: MmPlayer[]; phase: Phase; game: GameStateDTO }
-  // Evenement incremental quand un mot est trouve (coloration + toast live).
+  // Un mot vient d'etre trouve. "commune" : broadcast a tous. "chacun" : prive au trouveur.
   | { type: "found"; players: MmPlayer[]; word: FoundWord; remaining: number }
-  // Retour prive au seul auteur d'une selection : mot plus long, ou refus.
-  | { type: "hint"; kind: "longer" | "nope"; message: string }
-  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string }
+  // "chacun" : mise a jour legere des scores pour tous (sans la grille).
+  | { type: "scores"; players: MmPlayer[] }
+  // "chacun" : le mot mystere s'ouvre pour ce joueur (prive).
+  | { type: "mystery_open"; definition: string; length: number }
+  // Retour prive a l'auteur d'une selection.
+  | { type: "hint"; kind: "longer" | "nope" | "already"; message: string }
+  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string; mode: Mode; mysteryWord: string }
   | { type: "error"; code: MmErrorCode; message: string };

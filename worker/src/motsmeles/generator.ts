@@ -15,10 +15,12 @@ export const MAX_MYST = 12;
 
 export interface Cell { r: number; c: number; }
 export interface PlacedWord { word: string; cells: Cell[]; dir: string; }
+export interface FindableWord { word: string; cells: Cell[]; }
 export interface GeneratedGrid {
   grid: string[][];
   size: number;
   placed: PlacedWord[];
+  findable: FindableWord[];
   mystery: { word: string; definition: string; cells: Cell[] };
   attempts: number;
 }
@@ -181,15 +183,61 @@ function attempt(n: number, dirKeys: string[], pool: TargetWords): AttemptResult
   return { grid, placed, empty: emptyCount };
 }
 
+// Directions canoniques pour scanner les mots presents (le mot inverse est teste aussi).
+const SCAN_DIRS = [{ dr: 0, dc: 1 }, { dr: 1, dc: 0 }, { dr: 1, dc: 1 }, { dr: -1, dc: 1 }];
+
+function keyOf(cells: Cell[]): string { return cells.map((c) => c.r + "," + c.c).join(";"); }
+function isContiguousSub(A: Cell[], B: Cell[]): boolean {
+  if (A.length >= B.length) return false;
+  for (let o = 0; o + A.length <= B.length; o++) {
+    let ok = true;
+    for (let i = 0; i < A.length; i++) { if (A[i].r !== B[o + i].r || A[i].c !== B[o + i].c) { ok = false; break; } }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// Tous les mots du pool presents en ligne droite, maximaux : l'ensemble
+// reellement trouvable (mots poses + mots du dico alignes par hasard).
+function computeFindable(grid: string[][], n: number, poolSet: Set<string>): FindableWord[] {
+  const maxL = Math.min(10, n);
+  const occ: FindableWord[] = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    for (const d of SCAN_DIRS) {
+      for (let len = 4; len <= maxL; len++) {
+        const er = r + d.dr * (len - 1), ec = c + d.dc * (len - 1);
+        if (er < 0 || er >= n || ec < 0 || ec >= n) continue;
+        let s = ""; const cells: Cell[] = [];
+        for (let i = 0; i < len; i++) { const rr = r + d.dr * i, cc = c + d.dc * i; s += grid[rr][cc]; cells.push({ r: rr, c: cc }); }
+        if (poolSet.has(s)) occ.push({ word: s, cells });
+        const rs = s.split("").reverse().join("");
+        if (rs !== s && poolSet.has(rs)) occ.push({ word: rs, cells: cells.slice().reverse() });
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const uniq: FindableWord[] = [];
+  for (const o of occ) {
+    const sorted = o.cells.slice().sort((a, b) => a.r - b.r || a.c - b.c);
+    const k = keyOf(sorted);
+    if (!seen.has(k)) { seen.add(k); uniq.push(o); }
+  }
+  return uniq.filter((A) => !uniq.some((B) =>
+    B !== A && (isContiguousSub(A.cells, B.cells) || isContiguousSub(A.cells, B.cells.slice().reverse()))));
+}
+
 export function generate(opts: {
-  size: number; level?: string; dirKeys?: string[]; maxAttempts?: number;
+  size: number; level?: string; dirKeys?: string[]; maxAttempts?: number; protectMystery?: boolean;
 }): GeneratedGrid | null {
   const n = opts.size;
   const dirKeys = opts.dirKeys || LEVELS[opts.level || "moyen"] || LEVELS.moyen;
   const maxAttempts = opts.maxAttempts || 2000;
+  const protectMystery = opts.protectMystery !== false;
 
   const pool: TargetWords = {};
+  const poolSet = new Set<string>();
   for (const L in TARGET_WORDS) {
+    for (const w of TARGET_WORDS[L]) poolSet.add(w);
     if (parseInt(L, 10) > n) continue;
     pool[L] = TARGET_WORDS[L];
   }
@@ -208,8 +256,17 @@ export function generate(opts: {
     const myst = pick(cand);
     const slots = emptyCellsReadingOrder(res.grid, n);
     for (let si = 0; si < slots.length; si++) res.grid[slots[si].r][slots[si].c] = myst.w[si];
+
+    const findable = computeFindable(res.grid, n, poolSet);
+
+    if (protectMystery) {
+      const slotSet = new Set(slots.map((c) => c.r + "," + c.c));
+      const touches = findable.some((w) => w.cells.some((c) => slotSet.has(c.r + "," + c.c)));
+      if (touches) continue;
+    }
+
     return {
-      grid: res.grid, size: n, placed: res.placed,
+      grid: res.grid, size: n, placed: res.placed, findable,
       mystery: { word: myst.w, definition: myst.d, cells: slots },
       attempts: a + 1,
     };

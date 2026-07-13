@@ -9,44 +9,47 @@ const ACTIVE_KEY = "mm_active";
 
 const $ = (id) => document.getElementById(id);
 
-// Palette de couleurs joueurs (une couleur par joueur, index attribué par le serveur).
 const PALETTE = ["#c84545", "#4a6fa5", "#4a8c5a", "#d4a830", "#8a5fb0", "#2a9d8f",
                  "#e07a3f", "#c05a8f", "#3f7d9a", "#6b8e23", "#5b6bbf", "#b5843a"];
 const colorOf = (i) => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length];
+function tintOf(i) {
+  const h = colorOf(i).replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},0.22)`;
+}
 
 // ---------- Etat ----------
 let isHost = false;
 let players = [];
 let phase = "lobby";
 let config = null;
-let game = null;         // GameStateDTO
-let sel = null;          // { r, c } case de départ sélectionnée
-let startCfg = { gridSize: 12, level: "moyen" };
+let game = null;
+let sel = null;
+let startCfg = { mode: "commune", gridSize: 12, level: "moyen", duration: 300 };
 let toastTimer = null;
+let timerInt = null;
 
-// ---------- Connexion ----------
 const conn = new RoomConnection(CODE, "motsmeles");
 
 function buildInviteUrl(code) {
   const url = new URL(location.href);
   url.pathname = url.pathname.replace(/room\.html$/, "join.html");
-  url.search = "";
-  url.hash = code;
+  url.search = ""; url.hash = code;
   return url.toString();
 }
 const inviteUrl = buildInviteUrl(CODE);
-const inviteUrlEl = $("inviteUrl");
-if (inviteUrlEl) inviteUrlEl.textContent = inviteUrl;
+if ($("inviteUrl")) $("inviteUrl").textContent = inviteUrl;
 
 conn.onStatus((s) => {
   const b = $("conn");
-  if (s === "open") { b.hidden = true; }
+  if (s === "open") b.hidden = true;
   else if (s === "connecting") { b.hidden = false; b.textContent = "Connexion…"; }
-  else if (s === "closed" || s === "error") { b.hidden = false; b.textContent = "Connexion perdue, reconnexion…"; }
+  else { b.hidden = false; b.textContent = "Connexion perdue, reconnexion…"; }
 });
 
 conn.on("joined", (m) => {
   isHost = m.isHost; players = m.players; phase = m.phase; config = m.config; game = m.game;
+  if (config && config.mode) startCfg.mode = config.mode;
   try {
     localStorage.setItem("mm_pseudo", ME);
     localStorage.setItem(ACTIVE_KEY, JSON.stringify({ code: CODE, pseudo: ME, ts: Date.now() }));
@@ -63,11 +66,32 @@ conn.on("found", (m) => {
   const who = m.word.pseudo === ME ? "Toi" : m.word.pseudo;
   toast(`${who} : ${m.word.word}`);
 });
+conn.on("scores", (m) => {
+  players = m.players;
+  updateScoreboard();
+  // Si j'ai résolu le mystère, feedback dans le panneau.
+  const me = players.find((p) => p.pseudo === ME);
+  if (me && me.solvedMystery && $("mystery") && !$("mystery").hidden) {
+    $("mystMsg").textContent = "Bravo, mot mystère trouvé ! +3 points.";
+    $("mystMsg").className = "msg ok";
+    $("mystInput").disabled = true; $("mystSubmit").disabled = true;
+  }
+});
+conn.on("mystery_open", (m) => {
+  if (game) { game.mysteryOpen = true; game.mysteryDefinition = m.definition; }
+  openMystery(m.definition, m.length);
+});
 conn.on("hint", (m) => {
-  setStatus(m.message, m.kind === "longer" ? "warn" : "");
+  const cls = m.kind === "longer" ? "warn" : "";
+  if (m.kind === "nope" && $("mystery") && !$("mystery").hidden && game && game.mysteryOpen) {
+    $("mystMsg").textContent = m.message; $("mystMsg").className = "msg err";
+  } else {
+    setStatus(m.message, cls);
+  }
 });
 conn.on("finished", (m) => {
   players = m.players; phase = "finished"; game = null;
+  stopTimer();
   try { localStorage.removeItem(ACTIVE_KEY); } catch {}
   renderFinished(m);
 });
@@ -86,6 +110,9 @@ function toast(msg) {
   el.textContent = msg; el.classList.add("show");
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 1600);
 }
+function normWord(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, ""); }
+function fmtTime(sec) { sec = Math.max(0, sec); const m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
+function curMode() { return (game && game.mode) || (config && config.mode) || startCfg.mode; }
 
 // ---------- Rendu principal ----------
 function render() {
@@ -94,15 +121,9 @@ function render() {
   $("finished").hidden = phase !== "finished";
   const main = document.querySelector(".room-main");
   if (main) main.classList.toggle("in-game", phase === "playing");
+  if (phase !== "playing") stopTimer();
   if (phase === "lobby") renderLobby();
   else if (phase === "playing") renderGame();
-}
-
-// Version translucide de la couleur d'un joueur (pour le fond des cases trouvees).
-function tintOf(i) {
-  const h = colorOf(i).replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},0.22)`;
 }
 
 function renderLobby() {
@@ -118,12 +139,15 @@ function renderLobby() {
   if (isHost) {
     $("hostControls").hidden = false;
     $("waitNote").hidden = true;
+    wireSeg("modeSeg", (b) => { startCfg.mode = b.dataset.m; $("durationRow").hidden = startCfg.mode !== "chacun"; });
     wireSeg("sizeSeg", (b) => (startCfg.gridSize = +b.dataset.n));
     wireSeg("diffSeg", (b) => (startCfg.level = b.dataset.l));
+    wireSeg("durSeg", (b) => (startCfg.duration = +b.dataset.d));
+    $("durationRow").hidden = startCfg.mode !== "chacun";
     const btn = $("startBtn");
     btn.disabled = connected < 2;
     $("startErr").textContent = connected < 2 ? "Il faut au moins 2 joueurs connectés." : "";
-    btn.onclick = () => conn.send({ type: "start", gridSize: startCfg.gridSize, level: startCfg.level });
+    btn.onclick = () => conn.send({ type: "start", mode: startCfg.mode, gridSize: startCfg.gridSize, level: startCfg.level, duration: startCfg.duration });
   } else {
     $("hostControls").hidden = true;
     $("waitNote").hidden = false;
@@ -131,7 +155,7 @@ function renderLobby() {
 }
 
 function wireSeg(id, apply) {
-  const seg = $(id);
+  const seg = $(id); if (!seg) return;
   seg.querySelectorAll("button").forEach((b) => {
     b.onclick = () => { seg.querySelectorAll("button").forEach((x) => x.classList.remove("on")); b.classList.add("on"); apply(b); };
   });
@@ -150,15 +174,23 @@ function renderGame() {
     eg.hidden = !isHost;
     eg.onclick = () => { if (confirm("Terminer la partie maintenant ? Le joueur en tête l'emporte.")) conn.send({ type: "endGame" }); };
   }
-  setStatus("");
+
+  if (curMode() === "chacun" && game.endsAt) startTimer(); else stopTimer();
+
+  if (curMode() === "chacun" && game.mysteryOpen) openMystery(game.mysteryDefinition, null);
+  else { $("mystery").hidden = true; if (curMode() === "commune") setStatus(""); }
 }
 
 function updateScoreboard() {
   if (!game) return;
-  const foundCount = game.found.length;
+  const chacun = curMode() === "chacun";
+  const mine = game.found.length;
   const ordered = players.slice().sort((a, b) => b.score - a.score);
+  const goal = chacun
+    ? `Ta grille <b>${mine}</b> / ${game.totalWords} <span class="sb-timer" id="sbTimer"></span>`
+    : `Mots trouvés <b>${mine}</b> / ${game.totalWords}`;
   $("scorePanel").innerHTML =
-    `<div class="sb-goal">Mots trouvés <b>${foundCount}</b> / ${game.totalWords}</div>` +
+    `<div class="sb-goal">${goal}</div>` +
     `<div class="sb-players">` +
     ordered.map((p) => {
       const me = p.pseudo === ME;
@@ -166,25 +198,34 @@ function updateScoreboard() {
         `<span class="sb-dot" style="background:${colorOf(p.color)}"></span>` +
         `<span class="sb-name">${me ? "toi" : escapeHtml(p.pseudo)}</span>` +
         `<b>${p.score}</b>` +
+        (p.solvedMystery ? " ⭐" : "") +
         (p.isConnected ? "" : ' <span class="badge off">off</span>') +
         `</div>`;
     }).join("") +
     `</div>`;
+  if (chacun) tickTimer();
 }
 
+// ---------- Minuteur (chacun) ----------
+function startTimer() { if (timerInt) return; timerInt = setInterval(tickTimer, 1000); tickTimer(); }
+function stopTimer() { if (timerInt) { clearInterval(timerInt); timerInt = null; } }
+function tickTimer() {
+  const el = $("sbTimer");
+  if (!el || !game || !game.endsAt) return;
+  const remaining = Math.round((game.endsAt - Date.now()) / 1000);
+  el.textContent = "⏱ " + fmtTime(remaining);
+  el.classList.toggle("low", remaining <= 30);
+}
+
+// ---------- Grille ----------
 let cellEls = {};
-// Pour chaque case : liste des couleurs (index joueur) des mots trouvés qui la
-// traversent, sans doublon. Une seule couleur -> teinte pleine ; deux couleurs
-// (deux joueurs différents sur une lettre partagée) -> case scindée en diagonale,
-// comme une lettre "bien placée mais aussi ailleurs" à Motus.
 let cellOwners = {};
 
 function renderGrid() {
   const n = game.gridSize, g = game.grid;
   const grid = $("grid");
   grid.innerHTML = "";
-  cellEls = {};
-  cellOwners = {};
+  cellEls = {}; cellOwners = {};
   const frag = document.createDocumentFragment();
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
@@ -197,7 +238,6 @@ function renderGrid() {
     }
   }
   grid.appendChild(frag);
-  // Recolore les mots déjà trouvés (reconnexion / arrivée en cours).
   for (const w of game.found) addOwners(w);
   for (const key in cellOwners) paintCell(key);
 }
@@ -209,12 +249,10 @@ function addOwners(w) {
     if (!arr.includes(w.color)) arr.push(w.color);
   }
 }
-
 function applyFound(w) {
   addOwners(w);
   for (const cc of w.cells) paintCell(cc.r + "," + cc.c);
 }
-
 function paintCell(key) {
   const d = cellEls[key];
   if (!d) return;
@@ -225,7 +263,6 @@ function paintCell(key) {
     d.style.background = tintOf(owners[0]);
     d.style.color = colorOf(owners[0]);
   } else {
-    // Case partagée : fond scindé en parts égales entre les couleurs (diagonale).
     const seg = 100 / owners.length;
     const stops = owners.map((cIdx, i) => `${tintOf(cIdx)} ${i * seg}% ${(i + 1) * seg}%`).join(", ");
     d.style.background = `linear-gradient(135deg, ${stops})`;
@@ -233,10 +270,9 @@ function paintCell(key) {
   }
 }
 
-// Sélection : clic case de début puis case de fin.
 $("grid").addEventListener("click", (e) => {
   const cell = e.target.closest(".mm-cell");
-  if (!cell || !game) return;
+  if (!cell || !game || game.mysteryOpen) return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   if (!sel) { sel = { r, c, el: cell }; cell.classList.add("sel-start"); return; }
   if (sel.r === r && sel.c === c) { cell.classList.remove("sel-start"); sel = null; return; }
@@ -259,8 +295,7 @@ function buildPath(r1, c1, r2, c2) {
 
 function sizeGrid() {
   if (!game || $("game").hidden) return;
-  const grid = $("grid");
-  const n = game.gridSize;
+  const grid = $("grid"), n = game.gridSize;
   const avail = Math.min(grid.parentElement.clientWidth || 600, 600);
   const gap = 3, pad = 12;
   let c = Math.floor((avail - pad - gap * (n - 1)) / n);
@@ -271,6 +306,32 @@ function sizeGrid() {
 let _rz;
 window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(sizeGrid, 120); });
 
+// ---------- Mot mystère (chacun) ----------
+function openMystery(def, length) {
+  const panel = $("mystery");
+  $("mystDef").textContent = def || "";
+  $("mystHint").textContent = (length ? length + " lettres. " : "") + "Les cases restantes de ta grille, de gauche à droite puis de haut en bas.";
+  const me = players.find((p) => p.pseudo === ME);
+  if (me && me.solvedMystery) {
+    $("mystMsg").textContent = "Déjà trouvé ! +3 points.";
+    $("mystMsg").className = "msg ok";
+    $("mystInput").disabled = true; $("mystSubmit").disabled = true;
+  } else {
+    $("mystMsg").textContent = ""; $("mystMsg").className = "msg";
+    $("mystInput").disabled = false; $("mystSubmit").disabled = false;
+  }
+  panel.hidden = false;
+  $("mystSubmit").onclick = submitMystery;
+  $("mystInput").onkeydown = (e) => { if (e.key === "Enter") submitMystery(); };
+  setStatus("Grille terminée ! Trouve le mot mystère pour le bonus.");
+}
+function submitMystery() {
+  const guess = normWord($("mystInput").value);
+  if (!guess) return;
+  conn.send({ type: "mysteryGuess", guess });
+  $("mystInput").select();
+}
+
 // ---------- Fin de partie ----------
 function renderFinished(m) {
   $("lobby").hidden = true; $("game").hidden = true; $("finished").hidden = false;
@@ -278,6 +339,11 @@ function renderFinished(m) {
   if (main) main.classList.remove("in-game");
   const won = m.winner === ME;
   $("winTitle").innerHTML = won ? "🏆 Gagné !" : `🏆 ${escapeHtml(m.winner)} l'emporte`;
+  const rev = $("mysteryReveal");
+  if (m.mode === "chacun" && m.mysteryWord) {
+    rev.innerHTML = `Le mot mystère était <b>${escapeHtml(m.mysteryWord)}</b>.`;
+    rev.hidden = false;
+  } else { rev.hidden = true; }
   const medals = ["🥇", "🥈", "🥉"];
   const tiers = ["gold", "silver", "bronze"];
   $("ranking").innerHTML = m.ranking.map((p, i) => {
@@ -286,6 +352,7 @@ function renderFinished(m) {
     return `<div class="rank-row${tier ? " " + tier : ""}">` +
       `<span class="rank-medal">${badge}</span>` +
       `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>` +
+      (p.solvedMystery ? '<span class="myst-badge" title="A trouvé le mot mystère">⭐</span>' : "") +
       `<span class="pscore">${p.score}</span></div>`;
   }).join("");
   const lb = $("lobbyBtn");
@@ -293,7 +360,6 @@ function renderFinished(m) {
   lb.onclick = () => conn.send({ type: "backToLobby" });
 }
 
-// Copier le lien d'invitation
 const copyBtn = $("copyBtn");
 if (copyBtn) copyBtn.onclick = () => {
   navigator.clipboard?.writeText(inviteUrl);

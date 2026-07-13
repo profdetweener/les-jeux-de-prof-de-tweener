@@ -119,8 +119,8 @@
     });
     if (!res) { toast("Grille impossible, reessaie"); return; }
 
-    // Precalcule les cles de cellules de chaque mot (pour matcher une selection).
-    var words = res.placed.map(function (p) {
+    // Ensemble reellement trouvable (mots poses + mots du dico alignes par hasard).
+    var words = res.findable.map(function (p) {
       return { word: p.word, cells: p.cells, key: cellKey(p.cells), rkey: cellKey(p.cells.slice().reverse()), found: false, color: null };
     });
 
@@ -225,7 +225,7 @@
       var wd = state.words[w2];
       if (wd.found) continue;
       if (isSubRun(cells, wd.cells) || isSubRun(cells, wd.cells.slice().reverse())) {
-        el.status.textContent = "Plus long ! le mot ne s'arrête pas là.";
+        el.status.textContent = "Ce mot fait partie d'un mot plus long.";
         el.status.className = "mm-status warn";
         return;
       }

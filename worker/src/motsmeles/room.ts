@@ -1,21 +1,24 @@
 /**
- * MotsMelesRoom, Durable Object du mode competitif "grille commune".
+ * MotsMelesRoom, Durable Object des modes competitifs de Mots meles.
+ * Deux modes choisis par l'hote dans le salon :
  *
- * Une seule grille partagee, generee cote serveur (autoritaire). Chacun cherche
- * les mots caches en meme temps ; le premier a reperer un mot le verrouille a sa
- * couleur, il n'est plus disponible pour les autres. Score = nombre de mots
- * trouves. Quand la grille est videe, le finale mot mystere s'ouvre : premier a
- * le deviner gagne un point bonus et cloture. Departage au chrono (qui a
- * atteint son total le plus tot).
+ *  - "commune" : grille commune interactive, verrouillage aux couleurs, score au
+ *                nombre de mots, fin quand la grille est videe. Pas de mystere.
+ *  - "chacun"  : chacun sa grille (identique), en parallele, minuteur cote
+ *                serveur (alarme DO). Score au nombre de mots + bonus mystere
+ *                quand on vide sa grille. Classement a la fin du minuteur.
  *
- * Comme les autres jeux, seuls `initialized` et `hostPseudo` sont persistes.
+ * En "chacun", l'etat (cases trouvees, mystere) est PROPRE a chaque joueur : le
+ * serveur construit un game_state par destinataire.
+ *
+ * Seuls `initialized` et `hostPseudo` sont persistes.
  */
 
 import { ROOM_CONFIG } from "../shared/types";
 import { validatePseudo, pseudosEqual } from "../shared/moderation";
-import { generate, LEVELS, type Cell, type PlacedWord } from "./generator";
+import { generate, LEVELS, type Cell, type FindableWord } from "./generator";
 import type {
-  ClientMessage, ServerMessage, MmPlayer, GameStateDTO, FoundWord, Phase, MmErrorCode,
+  ClientMessage, ServerMessage, MmPlayer, GameStateDTO, FoundWord, Phase, Mode, MmErrorCode,
 } from "./messages";
 
 interface Session {
@@ -23,22 +26,26 @@ interface Session {
   ws: WebSocket | null;
   color: number;
   score: number;
-  lastFindAt: number; // ms du dernier mot trouve (departage)
+  solvedMystery: boolean;
+  lastFindAt: number;
   joinedAt: number;
+  foundKeys: Set<string>; // "chacun" : cles des mots trouves par CE joueur
 }
 
 interface WordState {
   word: string;
   cells: Cell[];
-  key: string;   // cle canonique des cases (sens direct)
-  rkey: string;  // cle canonique (sens inverse)
-  found: boolean;
+  key: string;
+  rkey: string;
+  found: boolean;       // "commune" : verrouille globalement
   byPseudo: string | null;
   color: number;
 }
 
 const ALLOWED_SIZES = [10, 12, 14];
 const ALLOWED_LEVELS = ["facile", "moyen", "difficile"];
+const ALLOWED_DURATIONS = [180, 300, 420];
+const MYSTERY_BONUS = 3;
 
 function cellKey(cells: Cell[]): string {
   return cells.map((c) => c.r + "," + c.c).join(";");
@@ -51,12 +58,17 @@ export class MotsMelesRoom {
   private hostPseudo: string | null;
 
   private phase: Phase;
+  private mode: Mode;
   private gridSize: number;
   private level: string;
+  private durationSec: number;
+  private endsAt: number | null;
 
-  // Etat de jeu
   private grid: string[][];
   private words: WordState[];
+  private mysteryWord: string;
+  private mysteryDef: string;
+  private mysteryCells: Cell[];
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -64,10 +76,16 @@ export class MotsMelesRoom {
     this.wsToPseudo = new Map();
     this.hostPseudo = null;
     this.phase = "lobby";
+    this.mode = "commune";
     this.gridSize = 12;
     this.level = "moyen";
+    this.durationSec = 300;
+    this.endsAt = null;
     this.grid = [];
     this.words = [];
+    this.mysteryWord = "";
+    this.mysteryDef = "";
+    this.mysteryCells = [];
 
     this.state.blockConcurrencyWhile(async () => {
       try {
@@ -106,6 +124,11 @@ export class MotsMelesRoom {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  // Alarme DO : fin du minuteur en mode "chacun".
+  async alarm(): Promise<void> {
+    if (this.phase === "playing" && this.mode === "chacun") this.finish(this.leader());
+  }
+
   // ========================= Routage =========================
   private onMessage(ws: WebSocket, raw: string): void {
     let msg: ClientMessage;
@@ -113,8 +136,9 @@ export class MotsMelesRoom {
     catch { return this.err(ws, "INVALID_MESSAGE", "Message non JSON."); }
     switch (msg.type) {
       case "join": return this.onJoin(ws, msg.pseudo);
-      case "start": return this.onStart(ws, msg.gridSize, msg.level);
+      case "start": return this.onStart(ws, msg.mode, msg.gridSize, msg.level, msg.duration);
       case "claim": return this.onClaim(ws, msg.cells);
+      case "mysteryGuess": return this.onMysteryGuess(ws, msg.guess);
       case "endGame": return this.onEndGame(ws);
       case "backToLobby": return this.onBackToLobby(ws);
       default: this.err(ws, "INVALID_MESSAGE", "Type inconnu.");
@@ -144,7 +168,8 @@ export class MotsMelesRoom {
     }
 
     const session: Session = {
-      pseudo, ws, color: this.freeColor(), score: 0, lastFindAt: 0, joinedAt: Date.now(),
+      pseudo, ws, color: this.freeColor(), score: 0, solvedMystery: false,
+      lastFindAt: 0, joinedAt: Date.now(), foundKeys: new Set(),
     };
     this.players.set(pseudo, session);
     this.wsToPseudo.set(ws, pseudo);
@@ -165,65 +190,117 @@ export class MotsMelesRoom {
     return 0;
   }
 
-  // ========================= Cycle de jeu =========================
-  private onStart(ws: WebSocket, gridSize: number, level: string): void {
+  // ========================= Lancement =========================
+  private onStart(ws: WebSocket, mode: Mode, gridSize: number, level: string, duration: number): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo || pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote lance.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Deja lancee.");
     if (this.connected().length < ROOM_CONFIG.MIN_PLAYERS)
       return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut au moins 2 joueurs.");
 
+    this.mode = mode === "chacun" ? "chacun" : "commune";
     this.gridSize = ALLOWED_SIZES.includes(gridSize) ? gridSize : 12;
     this.level = ALLOWED_LEVELS.includes(level) ? level : "moyen";
+    this.durationSec = ALLOWED_DURATIONS.includes(duration) ? duration : 300;
 
+    const protectMystery = this.mode === "chacun";
     let gen = null;
-    for (let attempt = 0; attempt < 5 && !gen; attempt++) {
-      gen = generate({ size: this.gridSize, dirKeys: LEVELS[this.level] });
+    for (let attempt = 0; attempt < 6 && !gen; attempt++) {
+      gen = generate({ size: this.gridSize, dirKeys: LEVELS[this.level], protectMystery });
     }
     if (!gen) return this.err(ws, "INVALID_MOVE", "Generation de grille impossible, reessaie.");
 
     this.grid = gen.grid;
-    this.words = gen.placed.map((p: PlacedWord) => ({
+    this.words = gen.findable.map((p: FindableWord) => ({
       word: p.word, cells: p.cells,
       key: cellKey(p.cells), rkey: cellKey([...p.cells].reverse()),
       found: false, byPseudo: null, color: 0,
     }));
+    this.mysteryWord = gen.mystery.word;
+    this.mysteryDef = gen.mystery.definition;
+    this.mysteryCells = gen.mystery.cells;
 
-    for (const p of this.players.values()) { p.score = 0; p.lastFindAt = 0; }
+    for (const p of this.players.values()) {
+      p.score = 0; p.solvedMystery = false; p.lastFindAt = 0; p.foundKeys = new Set();
+    }
 
     this.phase = "playing";
-    this.broadcastGame();
+
+    if (this.mode === "chacun") {
+      this.endsAt = Date.now() + this.durationSec * 1000;
+      void this.state.storage.setAlarm(this.endsAt);
+      this.broadcastGamePerPlayer();
+    } else {
+      this.endsAt = null;
+      this.broadcastGame();
+    }
   }
 
+  // ========================= Recherche =========================
   private onClaim(ws: WebSocket, cells: Cell[]): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo) return;
     if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
     if (!this.validStraight(cells)) return this.err(ws, "INVALID_MOVE", "Selection invalide.");
-
+    const me = this.players.get(pseudo)!;
     const key = cellKey(cells);
-    for (const w of this.words) {
-      if (w.found) continue;
-      if (key === w.key || key === w.rkey) {
-        const me = this.players.get(pseudo)!;
-        w.found = true; w.byPseudo = pseudo; w.color = me.color;
-        me.score++; me.lastFindAt = Date.now();
-        const fw: FoundWord = { word: w.word, cells: w.cells, color: me.color, pseudo };
-        const remaining = this.words.filter((x) => !x.found).length;
-        this.broadcast({ type: "found", players: this.snapshot(), word: fw, remaining });
-        // Grille videe : la partie se termine, le classement fait foi.
-        if (remaining === 0) this.finish(this.leader());
-        return;
+
+    if (this.mode === "commune") {
+      for (const w of this.words) {
+        if (key === w.key || key === w.rkey) {
+          if (w.found) return this.send(ws, { type: "hint", kind: "already", message: "Deja trouve par un autre." });
+          w.found = true; w.byPseudo = pseudo; w.color = me.color;
+          me.score++; me.lastFindAt = Date.now();
+          const fw: FoundWord = { word: w.word, cells: w.cells, color: me.color, pseudo };
+          const remaining = this.words.filter((x) => !x.found).length;
+          this.broadcast({ type: "found", players: this.snapshot(), word: fw, remaining });
+          if (remaining === 0) this.finish(this.leader());
+          return;
+        }
+      }
+    } else {
+      // "chacun" : verrouillage propre au joueur, pas de blocage entre joueurs.
+      for (const w of this.words) {
+        if (key === w.key || key === w.rkey) {
+          if (me.foundKeys.has(w.key)) return this.send(ws, { type: "hint", kind: "already", message: "Tu l'as deja." });
+          me.foundKeys.add(w.key);
+          me.score++; me.lastFindAt = Date.now();
+          const fw: FoundWord = { word: w.word, cells: w.cells, color: me.color, pseudo };
+          const remaining = this.words.length - me.foundKeys.size;
+          this.send(ws, { type: "found", players: this.snapshot(), word: fw, remaining });
+          this.broadcastScores();
+          if (remaining === 0) this.send(ws, { type: "mystery_open", definition: this.mysteryDef, length: this.mysteryWord.length });
+          return;
+        }
       }
     }
-    // Pas un mot attendu : si c'est un segment d'un mot plus long non trouve, on guide.
+
+    // Pas un mot attendu : segment d'un mot plus long non encore trouve -> on guide.
     for (const w of this.words) {
-      if (w.found) continue;
+      const alreadyMine = this.mode === "chacun" ? me.foundKeys.has(w.key) : w.found;
+      if (alreadyMine) continue;
       if (this.isSubRun(cells, w.cells) || this.isSubRun(cells, [...w.cells].reverse())) {
-        return this.send(ws, { type: "hint", kind: "longer", message: "Plus long ! le mot ne s'arrete pas la." });
+        return this.send(ws, { type: "hint", kind: "longer", message: "Ce mot fait partie d'un mot plus long." });
       }
     }
     this.send(ws, { type: "hint", kind: "nope", message: "Pas un mot cache ici." });
+  }
+
+  private onMysteryGuess(ws: WebSocket, guess: string): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (!pseudo) return;
+    if (this.phase !== "playing" || this.mode !== "chacun") return this.err(ws, "WRONG_PHASE", "Indisponible ici.");
+    const me = this.players.get(pseudo)!;
+    if (me.foundKeys.size < this.words.length) return this.err(ws, "WRONG_PHASE", "Termine d'abord ta grille.");
+    if (me.solvedMystery) return;
+    const g = this.norm(String(guess || ""));
+    if (!g) return;
+    if (g === this.mysteryWord) {
+      me.solvedMystery = true; me.score += MYSTERY_BONUS; me.lastFindAt = Date.now();
+      this.broadcastScores();
+    } else {
+      this.send(ws, { type: "hint", kind: "nope", message: "Pas le bon mot mystere." });
+    }
   }
 
   private onEndGame(ws: WebSocket): void {
@@ -237,6 +314,8 @@ export class MotsMelesRoom {
     const pseudo = this.wsToPseudo.get(ws);
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote peut relancer.");
     this.phase = "lobby";
+    this.endsAt = null;
+    void this.state.storage.deleteAlarm();
     this.broadcastRoom();
   }
 
@@ -249,18 +328,21 @@ export class MotsMelesRoom {
       if (b.score !== a.score) return b.score - a.score;
       const la = this.players.get(a.pseudo)?.lastFindAt || Infinity;
       const lb = this.players.get(b.pseudo)?.lastFindAt || Infinity;
-      return la - lb; // a atteint son total plus tot = mieux classe
+      return la - lb;
     });
   }
 
   private finish(winner: string): void {
     this.phase = "finished";
+    this.endsAt = null;
+    void this.state.storage.deleteAlarm();
     this.broadcast({
       type: "finished", players: this.snapshot(), ranking: this.rank(), winner,
+      mode: this.mode, mysteryWord: this.mode === "chacun" ? this.mysteryWord : "",
     });
   }
 
-  // ========================= Validation selection =========================
+  // ========================= Validation =========================
   private validStraight(cells: Cell[]): boolean {
     if (!Array.isArray(cells) || cells.length < 2) return false;
     const n = this.gridSize;
@@ -289,6 +371,10 @@ export class MotsMelesRoom {
     return false;
   }
 
+  private norm(s: string): string {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, "");
+  }
+
   // ========================= Connexions =========================
   private onClose(ws: WebSocket): void {
     const pseudo = this.wsToPseudo.get(ws);
@@ -305,10 +391,7 @@ export class MotsMelesRoom {
         this.hostPseudo = next ? next.pseudo : null;
         void this.persistHost();
       }
-      this.broadcastRoom();
-      return;
     }
-    // En jeu : on garde le joueur (score conserve, reconnexion possible).
     this.broadcastRoom();
   }
 
@@ -321,23 +404,39 @@ export class MotsMelesRoom {
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map((p) => ({
         pseudo: p.pseudo, isHost: p.pseudo === this.hostPseudo, color: p.color,
-        score: p.score, isConnected: p.ws !== null,
+        score: p.score, solvedMystery: p.solvedMystery, isConnected: p.ws !== null,
       }));
   }
 
-  private foundDTO(): FoundWord[] {
+  // Mots trouves partages (commune).
+  private foundShared(): FoundWord[] {
     return this.words.filter((w) => w.found).map((w) => ({
       word: w.word, cells: w.cells, color: w.color, pseudo: w.byPseudo || "",
     }));
   }
+  // Mots trouves d'un joueur (chacun), a sa couleur.
+  private foundForPlayer(p: Session): FoundWord[] {
+    return this.words.filter((w) => p.foundKeys.has(w.key)).map((w) => ({
+      word: w.word, cells: w.cells, color: p.color, pseudo: p.pseudo,
+    }));
+  }
 
-  private gameDTO(): GameStateDTO {
+  private gameDTO(forPseudo: string): GameStateDTO {
+    const base = {
+      mode: this.mode, gridSize: this.gridSize, grid: this.grid.map((row) => row.slice()),
+      totalWords: this.words.length, level: this.level,
+    };
+    if (this.mode === "commune") {
+      return { ...base, found: this.foundShared(), endsAt: null, mysteryOpen: false, mysteryDefinition: null };
+    }
+    const p = this.players.get(forPseudo);
+    const done = p ? p.foundKeys.size >= this.words.length : false;
     return {
-      gridSize: this.gridSize,
-      grid: this.grid.map((row) => row.slice()),
-      totalWords: this.words.length,
-      found: this.foundDTO(),
-      level: this.level,
+      ...base,
+      found: p ? this.foundForPlayer(p) : [],
+      endsAt: this.endsAt,
+      mysteryOpen: done,
+      mysteryDefinition: done ? this.mysteryDef : null,
     };
   }
 
@@ -349,8 +448,8 @@ export class MotsMelesRoom {
       players: this.snapshot(),
       hostPseudo: this.hostPseudo ?? "",
       phase: this.phase,
-      config: { gridSize: this.gridSize, level: this.level },
-      game: this.phase === "lobby" ? null : this.gameDTO(),
+      config: { mode: this.mode, gridSize: this.gridSize, level: this.level, duration: this.durationSec },
+      game: this.phase === "lobby" ? null : this.gameDTO(pseudo),
     });
   }
 
@@ -358,7 +457,19 @@ export class MotsMelesRoom {
     this.broadcast({ type: "room_state", players: this.snapshot(), hostPseudo: this.hostPseudo ?? "", phase: this.phase });
   }
   private broadcastGame(): void {
-    this.broadcast({ type: "game_state", players: this.snapshot(), phase: this.phase, game: this.gameDTO() });
+    // Mode commune : meme etat pour tous.
+    const g = this.gameDTO("");
+    for (const s of this.players.values()) {
+      if (s.ws) this.send(s.ws, { type: "game_state", players: this.snapshot(), phase: this.phase, game: g });
+    }
+  }
+  private broadcastGamePerPlayer(): void {
+    for (const s of this.players.values()) {
+      if (s.ws) this.send(s.ws, { type: "game_state", players: this.snapshot(), phase: this.phase, game: this.gameDTO(s.pseudo) });
+    }
+  }
+  private broadcastScores(): void {
+    this.broadcast({ type: "scores", players: this.snapshot() });
   }
 
   private broadcast(msg: ServerMessage, except?: WebSocket): void {

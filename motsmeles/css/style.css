@@ -227,6 +227,8 @@
 .scoreboard { width: 100%; max-width: 560px; }
 .sb-goal { text-align: center; font-size: 12px; color: var(--gris-texte); margin-bottom: 6px; }
 .sb-goal b { font-family: Georgia, serif; color: var(--bleu-nuit); font-size: 15px; }
+.sb-timer { margin-left: 8px; font-family: Georgia, serif; font-weight: 700; color: var(--bleu-accent); }
+.sb-timer.low { color: var(--rouge); }
 .sb-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .sb-chip {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;

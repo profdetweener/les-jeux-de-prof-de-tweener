@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <header class="landing-header">
@@ -39,6 +39,13 @@
             <h3>Configuration</h3>
             <div id="hostControls" hidden>
               <div class="setup-row">
+                <span class="setup-label">Mode</span>
+                <div class="seg" id="modeSeg">
+                  <button data-m="commune" class="on">Commune</button>
+                  <button data-m="chacun">Chacun</button>
+                </div>
+              </div>
+              <div class="setup-row">
                 <span class="setup-label">Taille de grille</span>
                 <div class="seg" id="sizeSeg">
                   <button data-n="10">Petite</button>
@@ -54,9 +61,18 @@
                   <button data-l="difficile">Difficile</button>
                 </div>
               </div>
-              <p class="rules-note" style="margin:0 0 14px">
-                Facile : horizontal et vertical. Moyen : ajoute les diagonales.
-                Difficile : ajoute les mots à l'envers.
+              <div class="setup-row" id="durationRow" hidden>
+                <span class="setup-label">Durée</span>
+                <div class="seg" id="durSeg">
+                  <button data-d="180">3 min</button>
+                  <button data-d="300" class="on">5 min</button>
+                  <button data-d="420">7 min</button>
+                </div>
+              </div>
+              <p class="rules-note" style="margin:0 0 14px" id="modeNote">
+                Commune : une seule grille partagée, un mot pris n'est plus dispo.
+                Chacun : chacun sa grille identique, en course sur un minuteur, mot
+                mystère bonus quand tu as tout trouvé.
               </p>
               <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
               <p class="setup-err" id="startErr"></p>
@@ -76,6 +92,17 @@
         <div class="mm-btns">
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
         </div>
+
+        <section class="mm-mystery" id="mystery" hidden>
+          <h3>Mot mystère</h3>
+          <p class="def" id="mystDef"></p>
+          <p class="hint" id="mystHint"></p>
+          <div class="guess-row">
+            <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
+            <button class="btn btn-primary" id="mystSubmit">Valider</button>
+          </div>
+          <div class="msg" id="mystMsg"></div>
+        </section>
       </div>
     </section>
 
@@ -83,6 +110,7 @@
     <section id="finished" hidden>
       <div class="setup-card">
         <h2 id="winTitle"></h2>
+        <p class="mystery-reveal" id="mysteryReveal" hidden></p>
         <div class="players" id="ranking"></div>
         <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
       </div>
@@ -101,6 +129,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=3"></script>
+  <script type="module" src="js/room.js?v=4"></script>
 </body>
 </html>
