@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés, règles</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
   <header class="landing-header">
@@ -40,6 +40,13 @@
           <strong>dernière</strong> (ou l'inverse). Si l'alignement correspond à un
           mot caché, il se verrouille et se colore. Sinon, la grille refuse.
         </p>
+        <p class="rules-note">
+          Comme aucune liste n'est affichée, tu peux former un mot juste qui n'est
+          pas celui caché (par exemple TENDRE alors que la grille cache TENDRESSE).
+          Règle : c'est toujours le mot le plus long qui compte. Si ta sélection
+          n'est que le début d'un mot plus long, la grille te répond « Plus long ! » :
+          prolonge jusqu'au bout.
+        </p>
         <h3>Le mot mystère</h3>
         <p>
           Quand tous les mots sont trouvés, il reste quelques cases orphelines. Lues
@@ -58,28 +65,43 @@
           Tu joues seul contre la grille, sans timer imposé (le chrono tourne juste
           pour info). Parfait pour se faire la main ou jouer tranquillement en stream.
         </p>
-        <h3>Les aides</h3>
+        <h3>Le bouton Indice</h3>
+        <p>Deux niveaux d'aide, uniquement si tu le demandes :</p>
         <ul class="rules-list">
-          <li>Le compteur de <strong>longueurs restantes</strong> t'indique combien
-            de mots de chaque taille il reste, sans les révéler.</li>
-          <li>Le bouton <strong>Indice</strong> fait clignoter la case de départ d'un
-            mot que tu n'as pas encore trouvé.</li>
+          <li><strong>1er appui</strong> : affiche la répartition des
+            <strong>longueurs restantes</strong> (par exemple <em>5 ••</em>
+            <em>7 •</em> : deux mots de 5 lettres et un de 7 encore à trouver),
+            sans révéler les mots.</li>
+          <li><strong>Appuis suivants</strong> : font clignoter la case de départ
+            d'un mot que tu n'as pas encore trouvé.</li>
         </ul>
         <p>Trouve tout, devine le mot mystère, et bats ton meilleur temps.</p>
       </section>
 
       <section class="rules-panel" id="panel-comp" hidden>
-        <h3>À venir</h3>
-        <p>Deux formats de compétition sont en préparation :</p>
+        <h3>Grille commune (jouable)</h3>
+        <p>
+          Tout le monde sur la <strong>même grille</strong> en temps réel. Dès que
+          quelqu'un repère un mot, il se verrouille à sa couleur et n'est plus
+          disponible pour les autres. Chacun voit la progression de tous en direct.
+        </p>
         <ul class="rules-list">
-          <li><strong>Grille commune.</strong> Tout le monde sur la même grille en
-            temps réel. Un mot trouvé est verrouillé aux couleurs de celui qui l'a
-            eu en premier et n'est plus disponible. Classement au nombre de mots,
-            départage au chrono.</li>
-          <li><strong>Chacun sa grille.</strong> Même grille pour tous, mais chacun
-            la sienne. Premier à tout trouver et à deviner le mot mystère : victoire.</li>
+          <li><strong>Score</strong> : le nombre de mots que tu as trouvés.</li>
+          <li><strong>Égalité</strong> : départagée au chrono (qui a atteint son
+            total le plus tôt).</li>
+          <li><strong>Sprint final</strong> : quand la grille est vidée, le mot
+            mystère s'ouvre. Le premier à le deviner gagne un point bonus (⭐) et
+            clôture la partie.</li>
         </ul>
-        <p class="rules-note">Le mode chill est déjà jouable, le compétitif arrive juste après.</p>
+        <p class="rules-note">
+          L'hôte règle la taille et la difficulté, puis lance. Il peut aussi
+          terminer la partie à tout moment : le joueur en tête l'emporte.
+        </p>
+        <h3>Chacun sa grille (à venir)</h3>
+        <p>
+          Même grille pour tous, mais chacun la sienne : premier à tout trouver et à
+          deviner le mot mystère. En préparation.
+        </p>
       </section>
     </div>
   </main>

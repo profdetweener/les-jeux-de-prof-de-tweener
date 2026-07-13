@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Mots mêlés compétitif</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
+    <h1>Mots mêlés compétitif</h1>
+    <span class="header-tagline" id="roomCodeTag"></span>
+  </header>
+
+  <main class="room-main">
+    <div class="conn-banner" id="conn" hidden></div>
+
+    <!-- LOBBY -->
+    <section id="lobby" hidden>
+      <div class="lobby-card">
+        <div class="room-code-banner">
+          <span class="label">Lien d'invitation</span>
+          <div class="room-share">
+            <code class="invite-url" id="inviteUrl" title="Lien d'invitation">-</code>
+            <button type="button" class="copy-btn" id="copyBtn">Copier le lien</button>
+          </div>
+        </div>
+
+        <div class="lobby-grid">
+          <div class="lobby-players">
+            <h3><span id="playerCount">0</span> joueurs</h3>
+            <div class="players" id="lobbyPlayers"></div>
+          </div>
+
+          <div class="lobby-config">
+            <h3>Configuration</h3>
+            <div id="hostControls" hidden>
+              <div class="setup-row">
+                <span class="setup-label">Taille de grille</span>
+                <div class="seg" id="sizeSeg">
+                  <button data-n="10">Petite</button>
+                  <button data-n="12" class="on">Moyenne</button>
+                  <button data-n="14">Grande</button>
+                </div>
+              </div>
+              <div class="setup-row">
+                <span class="setup-label">Difficulté</span>
+                <div class="seg" id="diffSeg">
+                  <button data-l="facile">Facile</button>
+                  <button data-l="moyen" class="on">Moyen</button>
+                  <button data-l="difficile">Difficile</button>
+                </div>
+              </div>
+              <p class="rules-note" style="margin:0 0 14px">
+                Facile : horizontal et vertical. Moyen : ajoute les diagonales.
+                Difficile : ajoute les mots à l'envers.
+              </p>
+              <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
+              <p class="setup-err" id="startErr"></p>
+            </div>
+            <p class="wait-note" id="waitNote" hidden>En attente que l'hôte lance la partie…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JEU -->
+    <section id="game" hidden>
+      <div class="mm-game">
+        <div class="scoreboard" id="scorePanel"></div>
+        <div class="mm-grid" id="grid"></div>
+        <div class="mm-status" id="status"></div>
+        <div class="mm-btns">
+          <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
+        </div>
+
+        <section class="mm-mystery" id="mystery" hidden>
+          <h3>Mot mystère</h3>
+          <p class="def" id="mystDef"></p>
+          <p class="hint" id="mystHint"></p>
+          <div class="guess-row">
+            <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
+            <button class="btn btn-primary" id="mystSubmit">Valider</button>
+          </div>
+          <div class="msg" id="mystMsg"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- FIN -->
+    <section id="finished" hidden>
+      <div class="setup-card">
+        <h2 id="winTitle"></h2>
+        <p class="mystery-reveal" id="mysteryReveal"></p>
+        <div class="players" id="ranking"></div>
+        <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script type="module" src="js/room.js?v=1"></script>
+</body>
+</html>

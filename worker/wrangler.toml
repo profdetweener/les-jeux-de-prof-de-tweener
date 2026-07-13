@@ -51,3 +51,11 @@ new_sqlite_classes = ["DefinitionVotes"]
 [[migrations]]
 tag = "v5"
 new_sqlite_classes = ["SlideRoom"]
+
+[[durable_objects.bindings]]
+name = "MOTSMELES_ROOMS"
+class_name = "MotsMelesRoom"
+
+[[migrations]]
+tag = "v6"
+new_sqlite_classes = ["MotsMelesRoom"]

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Mots mêlés compétitif</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Retour au choix du mode">← Modes</a>
+    <h1>Mots mêlés compétitif</h1>
+    <span class="header-tagline" id="server-status">connexion au serveur…</span>
+  </header>
+
+  <main class="entry-main">
+    <div class="entry-card">
+      <h2 id="card-title">Bienvenue !</h2>
+
+      <p class="entry-sub" id="subtitle-create">
+        Choisis un pseudo et crée une partie <strong>grille commune ⚔️</strong> : tout le monde
+        cherche sur la même grille, le premier à repérer un mot le verrouille.
+      </p>
+      <p class="entry-sub" id="subtitle-join" hidden>
+        Tu es invité à rejoindre la partie <strong id="join-code-label">-</strong>. Choisis ton pseudo pour entrer.
+      </p>
+
+      <div class="entry-alert" id="error-box"></div>
+
+      <div class="entry-resume" id="resume-banner" hidden>
+        <p>Tu as une partie Mots mêlés en cours.</p>
+        <div class="entry-resume-actions">
+          <button class="btn btn-primary" id="resumeBtn">Reprendre la partie</button>
+          <button class="btn btn-ghost" id="newBtn">Nouvelle partie</button>
+        </div>
+      </div>
+
+      <div class="entry-field">
+        <label for="pseudo">Ton pseudo</label>
+        <input id="pseudo" type="text" maxlength="20" placeholder="Ex : Max" autocomplete="off">
+      </div>
+
+      <button class="btn btn-primary" id="createBtn">Créer la partie</button>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../petitbac/mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script type="module" src="js/join.js?v=1"></script>
+</body>
+</html>

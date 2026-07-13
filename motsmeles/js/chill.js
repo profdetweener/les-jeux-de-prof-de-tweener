@@ -13,8 +13,8 @@
 (function () {
   "use strict";
 
-  // Palette de couleurs cyclees par mot trouve (memes tokens que le site).
-  var COLORS = ["#4a8c5a", "#4a6fa5", "#d4a830", "#de7ae3", "#c84545", "#2a9d8f", "#8a5fb0", "#c9772e"];
+  // Mode chill : une seule couleur pour les mots trouves (le multicolore est
+  // reserve au competitif, ou chaque couleur = un joueur). Cf. .mm-cell.found.
 
   var el = {
     setup: document.getElementById("setup"),
@@ -65,6 +65,17 @@
   }
   function cellKey(cells) {
     return cells.map(function (c) { return c.r + "," + c.c; }).join(";");
+  }
+  function cellsEqual(a, b) { return a.r === b.r && a.c === b.c; }
+  // Vrai si la selection S est un sous-segment contigu (plus court) de W.
+  function isSubRun(S, W) {
+    if (S.length >= W.length) return false;
+    for (var off = 0; off + S.length <= W.length; off++) {
+      var ok = true;
+      for (var i = 0; i < S.length; i++) { if (!cellsEqual(S[i], W[off + i])) { ok = false; break; } }
+      if (ok) return true;
+    }
+    return false;
   }
   function fmtTime(sec) {
     var m = Math.floor(sec / 60), s = sec % 60;
@@ -125,7 +136,10 @@
     el.total.textContent = words.length;
     el.found.textContent = "0";
     el.status.textContent = "";
-    updateLenChips();
+    el.status.className = "mm-status";
+    state.hintsShown = false;
+    el.lenChips.hidden = true;
+    el.lenChips.innerHTML = "";
 
     el.mystery.hidden = true;
     el.win.hidden = true;
@@ -203,10 +217,25 @@
         return;
       }
     }
+
+    // Selection alignee mais qui n'est pas le mot attendu : si c'est un segment
+    // d'un mot plus long non encore trouve, on guide au lieu de refuser sechement
+    // (regle : c'est toujours le mot le plus long qui compte).
+    for (var w2 = 0; w2 < state.words.length; w2++) {
+      var wd = state.words[w2];
+      if (wd.found) continue;
+      if (isSubRun(cells, wd.cells) || isSubRun(cells, wd.cells.slice().reverse())) {
+        el.status.textContent = "Plus long ! le mot ne s'arrête pas là.";
+        el.status.className = "mm-status warn";
+        return;
+      }
+    }
     flashBad();
   }
 
   function flashBad() {
+    el.status.textContent = "";
+    el.status.className = "mm-status";
     el.grid.classList.remove("bad");
     // reflow pour rejouer l'animation
     void el.grid.offsetWidth;
@@ -215,20 +244,17 @@
 
   function markFound(word) {
     word.found = true;
-    word.color = COLORS[state.foundCount % COLORS.length];
     state.foundCount++;
     for (var i = 0; i < word.cells.length; i++) {
       var cc = word.cells[i];
       var d = state.cellEls[cc.r + "," + cc.c];
-      if (!d.classList.contains("found")) {
-        d.classList.add("found");
-        d.style.background = word.color;
-      }
+      d.classList.add("found");
     }
     el.found.textContent = state.foundCount;
     el.status.textContent = word.word + " !";
+    el.status.className = "mm-status";
     toast(word.word);
-    updateLenChips();
+    if (state.hintsShown) updateLenChips();
 
     if (state.foundCount === state.words.length) revealMystery();
   }
@@ -245,8 +271,17 @@
   }
 
   // Indice : fait clignoter la case de depart d'un mot non trouve.
+  // Indice : 1er clic = affiche la repartition des longueurs restantes.
+  // Clics suivants = fait clignoter le depart d'un mot non trouve.
   el.hintBtn.addEventListener("click", function () {
     if (!state || state.done) return;
+    if (!state.hintsShown) {
+      state.hintsShown = true;
+      el.lenChips.hidden = false;
+      updateLenChips();
+      toast("Longueurs restantes");
+      return;
+    }
     var remaining = state.words.filter(function (w) { return !w.found; });
     if (!remaining.length) return;
     var w = remaining[Math.floor(Math.random() * remaining.length)];

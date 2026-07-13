@@ -76,8 +76,9 @@
   background: var(--bleu-nuit); color: var(--blanc);
   box-shadow: 0 0 0 2px var(--bleu-nuit);
 }
-/* Case appartenant a un mot deja trouve : fond colore (couleur inline par mot). */
-.mm-cell.found { color: var(--blanc); cursor: default; }
+/* Case appartenant a un mot trouve : vert translucide, texte vert (mode chill,
+   une seule couleur ; le multicolore sera pour le competitif = 1 couleur/joueur). */
+.mm-cell.found { background: rgba(74, 140, 90, 0.16); color: #2f7d54; cursor: default; }
 .mm-cell.found:hover { box-shadow: none; }
 /* Flash de refus (selection invalide). */
 .mm-grid.bad { animation: mm-shake .3s; }
@@ -98,6 +99,7 @@
 
 /* Statut sous la grille */
 .mm-status { min-height: 20px; font-size: 14px; font-weight: 600; text-align: center; color: var(--bleu-nuit); }
+.mm-status.warn { color: #a9791c; }
 .mm-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
 /* ===================== Panneau mot mystere ===================== */
@@ -157,3 +159,95 @@
   .entry-card { padding: 22px 18px; }
   .mm-grid { gap: 2px; padding: 4px; }
 }
+
+/* =====================================================================
+   MODE COMPÉTITIF (grille commune), repris des conventions multijoueur
+   du site (Sésame / Slide) : entrée, salon, bandeaux, podium.
+   ===================================================================== */
+
+/* ---- Page d'entrée (join) ---- */
+.entry-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+.entry-field { margin-bottom: 16px; text-align: left; }
+.entry-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--bleu-nuit); }
+.entry-field input {
+  width: 100%; padding: 10px 12px; border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
+  font-size: 16px; background: var(--beige); color: var(--bleu-nuit); font-family: inherit;
+}
+.entry-field input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+.entry-alert {
+  display: none; padding: 12px 16px; border-radius: var(--rayon-sm); margin-bottom: 16px; font-size: 14px;
+  background: rgba(200, 69, 69, 0.1); color: var(--rouge); border: 1px solid rgba(200, 69, 69, 0.3);
+}
+.entry-alert.show { display: block; }
+.entry-resume { background: var(--beige); border: 1px solid var(--beige-fonce); border-radius: var(--rayon-sm); padding: 14px; margin-bottom: 18px; }
+.entry-resume p { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--bleu-nuit); }
+.entry-resume-actions { display: flex; gap: 8px; }
+.entry-resume-actions .btn { flex: 1; padding: 9px 12px; font-size: 14px; }
+.entry-card .btn { width: 100%; padding: 12px 20px; font-size: 15px; }
+
+/* ---- Salon (lobby) ---- */
+.room-main.in-game { justify-content: flex-start; }
+.room-main > section, .room-main > .conn-banner { width: 100%; }
+.lobby-card { background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 28px; width: 100%; max-width: 760px; margin: 0 auto; }
+.room-code-banner { background: var(--bleu-nuit); color: var(--beige); padding: 20px; border-radius: var(--rayon); text-align: center; margin-bottom: 24px; }
+.room-code-banner .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; opacity: .75; margin-bottom: 10px; }
+.room-share { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.room-share .invite-url {
+  font-family: "Menlo", "Consolas", monospace; font-size: 14px; opacity: .9; word-break: break-all;
+  background: rgba(245, 237, 224, .1); padding: 8px 12px; border-radius: var(--rayon-sm); max-width: 100%; color: var(--beige);
+}
+.room-code-banner .copy-btn {
+  background: rgba(245, 237, 224, .15); color: var(--beige); border: 1px solid rgba(245, 237, 224, .3);
+  padding: 6px 14px; border-radius: var(--rayon-sm); cursor: pointer; font-size: 13px; font-family: inherit; transition: background .15s;
+}
+.room-code-banner .copy-btn:hover { background: rgba(245, 237, 224, .25); }
+.lobby-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; align-items: start; }
+.lobby-players h3, .lobby-config h3 { margin: 0 0 12px; font-size: 16px; color: var(--bleu-nuit); }
+.lobby-config .setup-row { margin-bottom: 14px; }
+.wait-note { text-align: center; color: var(--gris-texte); font-size: 14px; margin: 14px 0 0; }
+.setup-err { color: var(--rouge, #c84545); font-size: 13px; text-align: center; min-height: 18px; margin: 8px 0 0; }
+@media (max-width: 640px) { .lobby-grid { grid-template-columns: 1fr; gap: 18px; } .lobby-card { padding: 20px 18px; } }
+
+.conn-banner { width: 100%; max-width: 360px; margin: 0 auto 12px; padding: 8px 12px; border-radius: var(--rayon-sm);
+  background: var(--beige-fonce); color: var(--bleu-nuit); font-size: 13px; text-align: center; }
+
+/* ---- Liste des joueurs ---- */
+.players { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+.player-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--blanc);
+  border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm); font-size: 14px; }
+.swatch { flex: none; width: 16px; height: 16px; border-radius: 4px; }
+.player-row .pname { font-weight: 600; }
+.player-row .pscore { margin-left: auto; font-family: Georgia, serif; font-weight: 700; font-size: 16px; }
+.badge { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; background: var(--beige-fonce); color: var(--bleu-nuit); border-radius: 4px; padding: 1px 6px; }
+.badge.off { background: #f0d8d8; color: #a04040; }
+
+/* ---- Bandeau de score en jeu ---- */
+.scoreboard { width: 100%; max-width: 560px; }
+.sb-goal { text-align: center; font-size: 12px; color: var(--gris-texte); margin-bottom: 6px; }
+.sb-goal b { font-family: Georgia, serif; color: var(--bleu-nuit); font-size: 15px; }
+.sb-players { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.sb-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  background: var(--blanc); border: 1px solid var(--gris-clair); box-shadow: var(--ombre);
+  font-size: 13px; font-weight: 600; color: var(--bleu-nuit);
+}
+.sb-chip .sb-dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.sb-chip b { font-family: Georgia, serif; font-weight: 800; }
+.sb-chip.me { border-color: var(--bleu-nuit); }
+.sb-chip .badge.off { margin-left: 2px; }
+
+/* ---- Podium ---- */
+.setup-card { background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 24px 20px; margin: 20px auto; width: 100%; max-width: 430px; text-align: center; }
+.setup-card h2 { margin: 0 0 8px; font-size: 20px; }
+.mystery-reveal { font-size: 14px; color: var(--gris-texte); margin: 0 0 16px; }
+.mystery-reveal b { font-family: Georgia, serif; color: var(--bleu-nuit); letter-spacing: .04em; }
+.rank-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--rayon-sm); background: var(--blanc); border: 1px solid var(--gris-clair); margin-bottom: 8px; text-align: left; }
+.rank-row .rank-medal { font-size: 20px; width: 26px; text-align: center; flex: none; }
+.rank-row .rank-num { font-family: Georgia, serif; font-weight: 700; color: var(--gris-texte); font-size: 15px; }
+.rank-row .swatch { width: 14px; height: 14px; }
+.rank-row .pname { font-weight: 600; }
+.rank-row .myst-badge { font-size: 14px; }
+.rank-row .pscore { margin-left: auto; font-family: Georgia, serif; font-weight: 800; font-size: 17px; }
+.rank-row.gold { background: linear-gradient(180deg, #fff7e0, #fbe7b6); border-color: #e8c874; }
+.rank-row.silver { background: linear-gradient(180deg, #f8f9fb, #e6e8ec); border-color: #ccd1d7; }
+.rank-row.bronze { background: linear-gradient(180deg, #fbeee2, #efd4bd); border-color: #dcb896; }
