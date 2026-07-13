@@ -173,11 +173,18 @@ function updateScoreboard() {
 }
 
 let cellEls = {};
+// Pour chaque case : liste des couleurs (index joueur) des mots trouvés qui la
+// traversent, sans doublon. Une seule couleur -> teinte pleine ; deux couleurs
+// (deux joueurs différents sur une lettre partagée) -> case scindée en diagonale,
+// comme une lettre "bien placée mais aussi ailleurs" à Motus.
+let cellOwners = {};
+
 function renderGrid() {
   const n = game.gridSize, g = game.grid;
   const grid = $("grid");
   grid.innerHTML = "";
   cellEls = {};
+  cellOwners = {};
   const frag = document.createDocumentFragment();
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
@@ -191,17 +198,38 @@ function renderGrid() {
   }
   grid.appendChild(frag);
   // Recolore les mots déjà trouvés (reconnexion / arrivée en cours).
-  for (const w of game.found) applyFound(w);
+  for (const w of game.found) addOwners(w);
+  for (const key in cellOwners) paintCell(key);
+}
+
+function addOwners(w) {
+  for (const cc of w.cells) {
+    const key = cc.r + "," + cc.c;
+    const arr = cellOwners[key] || (cellOwners[key] = []);
+    if (!arr.includes(w.color)) arr.push(w.color);
+  }
 }
 
 function applyFound(w) {
-  const tint = tintOf(w.color), ink = colorOf(w.color);
-  for (const cc of w.cells) {
-    const d = cellEls[cc.r + "," + cc.c];
-    if (!d) continue;
-    d.classList.add("found");
-    d.style.background = tint;
-    d.style.color = ink;
+  addOwners(w);
+  for (const cc of w.cells) paintCell(cc.r + "," + cc.c);
+}
+
+function paintCell(key) {
+  const d = cellEls[key];
+  if (!d) return;
+  const owners = cellOwners[key];
+  if (!owners || !owners.length) return;
+  d.classList.add("found");
+  if (owners.length === 1) {
+    d.style.background = tintOf(owners[0]);
+    d.style.color = colorOf(owners[0]);
+  } else {
+    // Case partagée : fond scindé en parts égales entre les couleurs (diagonale).
+    const seg = 100 / owners.length;
+    const stops = owners.map((cIdx, i) => `${tintOf(cIdx)} ${i * seg}% ${(i + 1) * seg}%`).join(", ");
+    d.style.background = `linear-gradient(135deg, ${stops})`;
+    d.style.color = "var(--bleu-nuit)";
   }
 }
 
