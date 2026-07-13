@@ -52,14 +52,16 @@
 .mm-hud .num { font-family: Georgia, serif; font-size: 22px; font-weight: 700; }
 .mm-hud .num.goal { color: var(--bleu-accent); }
 
-/* La grille : taille de case pilotee par la variable --c calculee en JS. */
+/* La grille : fond de la MEME couleur beige que la page (les intervalles entre
+   cases laissent voir ce beige), sans panneau ni ombre, pour se fondre dans la
+   page. Taille de case pilotee par --c (calcule en JS). */
 .mm-grid {
   display: grid;
   grid-template-columns: repeat(var(--n, 12), var(--c, 34px));
   grid-template-rows: repeat(var(--n, 12), var(--c, 34px));
   gap: 3px;
-  background: var(--beige-fonce);
-  padding: 6px; border-radius: var(--rayon-sm); box-shadow: var(--ombre);
+  background: var(--beige);
+  padding: 6px; border-radius: var(--rayon-sm);
   touch-action: manipulation;
 }
 .mm-cell {

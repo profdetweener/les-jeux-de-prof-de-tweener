@@ -23,7 +23,6 @@ interface Session {
   ws: WebSocket | null;
   color: number;
   score: number;
-  solvedMystery: boolean;
   lastFindAt: number; // ms du dernier mot trouve (departage)
   joinedAt: number;
 }
@@ -58,11 +57,6 @@ export class MotsMelesRoom {
   // Etat de jeu
   private grid: string[][];
   private words: WordState[];
-  private mysteryWord: string;
-  private mysteryDef: string;
-  private mysteryCells: Cell[];
-  private mysteryOpen: boolean;
-  private mysterySolvedBy: string | null;
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -74,11 +68,6 @@ export class MotsMelesRoom {
     this.level = "moyen";
     this.grid = [];
     this.words = [];
-    this.mysteryWord = "";
-    this.mysteryDef = "";
-    this.mysteryCells = [];
-    this.mysteryOpen = false;
-    this.mysterySolvedBy = null;
 
     this.state.blockConcurrencyWhile(async () => {
       try {
@@ -126,7 +115,6 @@ export class MotsMelesRoom {
       case "join": return this.onJoin(ws, msg.pseudo);
       case "start": return this.onStart(ws, msg.gridSize, msg.level);
       case "claim": return this.onClaim(ws, msg.cells);
-      case "mysteryGuess": return this.onMysteryGuess(ws, msg.guess);
       case "endGame": return this.onEndGame(ws);
       case "backToLobby": return this.onBackToLobby(ws);
       default: this.err(ws, "INVALID_MESSAGE", "Type inconnu.");
@@ -156,7 +144,7 @@ export class MotsMelesRoom {
     }
 
     const session: Session = {
-      pseudo, ws, color: this.freeColor(), score: 0, solvedMystery: false, lastFindAt: 0, joinedAt: Date.now(),
+      pseudo, ws, color: this.freeColor(), score: 0, lastFindAt: 0, joinedAt: Date.now(),
     };
     this.players.set(pseudo, session);
     this.wsToPseudo.set(ws, pseudo);
@@ -200,13 +188,8 @@ export class MotsMelesRoom {
       key: cellKey(p.cells), rkey: cellKey([...p.cells].reverse()),
       found: false, byPseudo: null, color: 0,
     }));
-    this.mysteryWord = gen.mystery.word;
-    this.mysteryDef = gen.mystery.definition;
-    this.mysteryCells = gen.mystery.cells;
-    this.mysteryOpen = false;
-    this.mysterySolvedBy = null;
 
-    for (const p of this.players.values()) { p.score = 0; p.solvedMystery = false; p.lastFindAt = 0; }
+    for (const p of this.players.values()) { p.score = 0; p.lastFindAt = 0; }
 
     this.phase = "playing";
     this.broadcastGame();
@@ -215,7 +198,7 @@ export class MotsMelesRoom {
   private onClaim(ws: WebSocket, cells: Cell[]): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo) return;
-    if (this.phase !== "playing" || this.mysteryOpen) return this.err(ws, "WRONG_PHASE", "Pas en phase de recherche.");
+    if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
     if (!this.validStraight(cells)) return this.err(ws, "INVALID_MOVE", "Selection invalide.");
 
     const key = cellKey(cells);
@@ -228,7 +211,8 @@ export class MotsMelesRoom {
         const fw: FoundWord = { word: w.word, cells: w.cells, color: me.color, pseudo };
         const remaining = this.words.filter((x) => !x.found).length;
         this.broadcast({ type: "found", players: this.snapshot(), word: fw, remaining });
-        if (remaining === 0) this.openMystery();
+        // Grille videe : la partie se termine, le classement fait foi.
+        if (remaining === 0) this.finish(this.leader());
         return;
       }
     }
@@ -242,28 +226,6 @@ export class MotsMelesRoom {
     this.send(ws, { type: "hint", kind: "nope", message: "Pas un mot cache ici." });
   }
 
-  private openMystery(): void {
-    this.mysteryOpen = true;
-    this.broadcast({ type: "mystery_open", definition: this.mysteryDef, length: this.mysteryWord.length });
-  }
-
-  private onMysteryGuess(ws: WebSocket, guess: string): void {
-    const pseudo = this.wsToPseudo.get(ws);
-    if (!pseudo) return;
-    if (this.phase !== "playing" || !this.mysteryOpen) return this.err(ws, "WRONG_PHASE", "Le mot mystere n'est pas ouvert.");
-    if (this.mysterySolvedBy) return;
-    const g = this.norm(String(guess || ""));
-    if (!g) return;
-    if (g === this.mysteryWord) {
-      const me = this.players.get(pseudo)!;
-      me.solvedMystery = true; me.score++; me.lastFindAt = Date.now();
-      this.mysterySolvedBy = pseudo;
-      this.finish(this.leader());
-    } else {
-      this.send(ws, { type: "hint", kind: "nope", message: "Pas le bon mot mystere." });
-    }
-  }
-
   private onEndGame(ws: WebSocket): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote peut terminer.");
@@ -275,7 +237,6 @@ export class MotsMelesRoom {
     const pseudo = this.wsToPseudo.get(ws);
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote peut relancer.");
     this.phase = "lobby";
-    this.mysteryOpen = false;
     this.broadcastRoom();
   }
 
@@ -295,7 +256,7 @@ export class MotsMelesRoom {
   private finish(winner: string): void {
     this.phase = "finished";
     this.broadcast({
-      type: "finished", players: this.snapshot(), ranking: this.rank(), winner, mysteryWord: this.mysteryWord,
+      type: "finished", players: this.snapshot(), ranking: this.rank(), winner,
     });
   }
 
@@ -326,10 +287,6 @@ export class MotsMelesRoom {
       if (ok) return true;
     }
     return false;
-  }
-
-  private norm(s: string): string {
-    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, "");
   }
 
   // ========================= Connexions =========================
@@ -364,7 +321,7 @@ export class MotsMelesRoom {
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map((p) => ({
         pseudo: p.pseudo, isHost: p.pseudo === this.hostPseudo, color: p.color,
-        score: p.score, solvedMystery: p.solvedMystery, isConnected: p.ws !== null,
+        score: p.score, isConnected: p.ws !== null,
       }));
   }
 
@@ -380,9 +337,6 @@ export class MotsMelesRoom {
       grid: this.grid.map((row) => row.slice()),
       totalWords: this.words.length,
       found: this.foundDTO(),
-      mysteryOpen: this.mysteryOpen,
-      mysteryDefinition: this.mysteryOpen ? this.mysteryDef : null,
-      mysterySolvedBy: this.mysterySolvedBy,
       level: this.level,
     };
   }

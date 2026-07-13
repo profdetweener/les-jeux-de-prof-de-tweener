@@ -63,10 +63,6 @@ conn.on("found", (m) => {
   const who = m.word.pseudo === ME ? "Toi" : m.word.pseudo;
   toast(`${who} : ${m.word.word}`);
 });
-conn.on("mystery_open", (m) => {
-  if (game) { game.mysteryOpen = true; game.mysteryDefinition = m.definition; }
-  openMystery(m.definition, m.length);
-});
 conn.on("hint", (m) => {
   setStatus(m.message, m.kind === "longer" ? "warn" : "");
 });
@@ -90,8 +86,6 @@ function toast(msg) {
   el.textContent = msg; el.classList.add("show");
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 1600);
 }
-function stripAccents(s) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-function normWord(s) { return stripAccents(String(s || "")).toUpperCase().replace(/[^A-Z]/g, ""); }
 
 // ---------- Rendu principal ----------
 function render() {
@@ -104,14 +98,19 @@ function render() {
   else if (phase === "playing") renderGame();
 }
 
-function swatch(i) { return `<span class="swatch" style="background:${colorOf(i)}"></span>`; }
+// Version translucide de la couleur d'un joueur (pour le fond des cases trouvees).
+function tintOf(i) {
+  const h = colorOf(i).replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},0.22)`;
+}
 
 function renderLobby() {
   $("lobbyPlayers").innerHTML = players.map((p) => {
     const badges = [];
     if (p.isHost) badges.push('<span class="badge">hôte</span>');
     if (!p.isConnected) badges.push('<span class="badge off">hors ligne</span>');
-    return `<div class="player-row">${swatch(p.color)}<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>${badges.join(" ")}</div>`;
+    return `<div class="player-row"><span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>${badges.join(" ")}</div>`;
   }).join("");
   const pc = $("playerCount"); if (pc) pc.textContent = players.length;
 
@@ -151,9 +150,7 @@ function renderGame() {
     eg.hidden = !isHost;
     eg.onclick = () => { if (confirm("Terminer la partie maintenant ? Le joueur en tête l'emporte.")) conn.send({ type: "endGame" }); };
   }
-
-  if (game.mysteryOpen) openMystery(game.mysteryDefinition, null);
-  else { $("mystery").hidden = true; setStatus(""); }
+  setStatus("");
 }
 
 function updateScoreboard() {
@@ -169,7 +166,6 @@ function updateScoreboard() {
         `<span class="sb-dot" style="background:${colorOf(p.color)}"></span>` +
         `<span class="sb-name">${me ? "toi" : escapeHtml(p.pseudo)}</span>` +
         `<b>${p.score}</b>` +
-        (p.solvedMystery ? " ⭐" : "") +
         (p.isConnected ? "" : ' <span class="badge off">off</span>') +
         `</div>`;
     }).join("") +
@@ -196,32 +192,23 @@ function renderGrid() {
   grid.appendChild(frag);
   // Recolore les mots déjà trouvés (reconnexion / arrivée en cours).
   for (const w of game.found) applyFound(w);
-  if (game.mysteryOpen) highlightMystery();
 }
 
 function applyFound(w) {
+  const tint = tintOf(w.color), ink = colorOf(w.color);
   for (const cc of w.cells) {
     const d = cellEls[cc.r + "," + cc.c];
     if (!d) continue;
     d.classList.add("found");
-    d.style.background = colorOf(w.color);
-    d.style.color = "#fff";
-  }
-}
-
-// Cases non colorées (= mot mystère) mises en avant quand le finale s'ouvre.
-function highlightMystery() {
-  const n = game.gridSize;
-  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
-    const d = cellEls[r + "," + c];
-    if (d && !d.classList.contains("found")) d.classList.add("myst");
+    d.style.background = tint;
+    d.style.color = ink;
   }
 }
 
 // Sélection : clic case de début puis case de fin.
 $("grid").addEventListener("click", (e) => {
   const cell = e.target.closest(".mm-cell");
-  if (!cell || !game || game.mysteryOpen) return;
+  if (!cell || !game) return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   if (!sel) { sel = { r, c, el: cell }; cell.classList.add("sel-start"); return; }
   if (sel.r === r && sel.c === c) { cell.classList.remove("sel-start"); sel = null; return; }
@@ -256,24 +243,6 @@ function sizeGrid() {
 let _rz;
 window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(sizeGrid, 120); });
 
-// ---------- Mot mystère ----------
-function openMystery(def, length) {
-  highlightMystery();
-  const panel = $("mystery");
-  $("mystDef").textContent = def || "";
-  $("mystHint").textContent = (length ? length + " lettres. " : "") + "Cases jaunes, de gauche à droite puis de haut en bas.";
-  panel.hidden = false;
-  setStatus("Grille vidée ! Premier à trouver le mot mystère l'emporte.");
-  $("mystSubmit").onclick = submitMystery;
-  $("mystInput").onkeydown = (e) => { if (e.key === "Enter") submitMystery(); };
-}
-function submitMystery() {
-  const guess = normWord($("mystInput").value);
-  if (!guess) return;
-  conn.send({ type: "mysteryGuess", guess });
-  $("mystInput").select();
-}
-
 // ---------- Fin de partie ----------
 function renderFinished(m) {
   $("lobby").hidden = true; $("game").hidden = true; $("finished").hidden = false;
@@ -281,7 +250,6 @@ function renderFinished(m) {
   if (main) main.classList.remove("in-game");
   const won = m.winner === ME;
   $("winTitle").innerHTML = won ? "🏆 Gagné !" : `🏆 ${escapeHtml(m.winner)} l'emporte`;
-  $("mysteryReveal").innerHTML = `Le mot mystère était <b>${escapeHtml(m.mysteryWord)}</b>.`;
   const medals = ["🥇", "🥈", "🥉"];
   const tiers = ["gold", "silver", "bronze"];
   $("ranking").innerHTML = m.ranking.map((p, i) => {
@@ -289,9 +257,7 @@ function renderFinished(m) {
     const badge = medals[i] || `<span class="rank-num">${i + 1}</span>`;
     return `<div class="rank-row${tier ? " " + tier : ""}">` +
       `<span class="rank-medal">${badge}</span>` +
-      swatch(p.color) +
       `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>` +
-      (p.solvedMystery ? '<span class="myst-badge" title="A trouvé le mot mystère">⭐</span>' : "") +
       `<span class="pscore">${p.score}</span></div>`;
   }).join("");
   const lb = $("lobbyBtn");

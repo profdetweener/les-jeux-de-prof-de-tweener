@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
   <header class="landing-header">
@@ -76,17 +76,6 @@
         <div class="mm-btns">
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
         </div>
-
-        <section class="mm-mystery" id="mystery" hidden>
-          <h3>Mot mystère</h3>
-          <p class="def" id="mystDef"></p>
-          <p class="hint" id="mystHint"></p>
-          <div class="guess-row">
-            <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
-            <button class="btn btn-primary" id="mystSubmit">Valider</button>
-          </div>
-          <div class="msg" id="mystMsg"></div>
-        </section>
       </div>
     </section>
 
@@ -94,7 +83,6 @@
     <section id="finished" hidden>
       <div class="setup-card">
         <h2 id="winTitle"></h2>
-        <p class="mystery-reveal" id="mysteryReveal"></p>
         <div class="players" id="ranking"></div>
         <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
       </div>
@@ -113,6 +101,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=1"></script>
+  <script type="module" src="js/room.js?v=2"></script>
 </body>
 </html>

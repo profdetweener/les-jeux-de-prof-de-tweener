@@ -2,14 +2,14 @@
  * Protocole Mots meles, mode competitif "grille commune" (Compet 1).
  *
  * Tout le monde sur la MEME grille en temps reel. Un mot trouve est verrouille
- * a la couleur du premier qui l'a repere et n'est plus disponible. Score = 
+ * a la couleur du premier qui l'a repere et n'est plus disponible. Score =
  * nombre de mots trouves ; departage au chrono (qui a atteint son total en
- * premier). Quand toute la grille est videe, le mot mystere s'ouvre : premier a
- * le deviner remporte un point bonus et cloture la partie.
+ * premier). Quand toute la grille est videe, la partie se termine et le
+ * classement fait foi. (Pas de mot mystere ici : il est reserve aux modes ou
+ * l'on decouvre soi-meme toute la grille, chill et Compet 2.)
  *
- * La grille (lettres) est diffusee a tous. Le mot mystere lui-meme n'est jamais
- * envoye au client (validation serveur) ; seule sa definition est revelee a
- * l'ouverture du finale.
+ * La grille (lettres) est diffusee a tous ; les lettres qui ne composent aucun
+ * mot a trouver ne sont que du remplissage.
  */
 
 import type { SharedErrorCode } from "../shared/types";
@@ -28,8 +28,7 @@ export interface MmPlayer {
   pseudo: string;
   isHost: boolean;
   color: number; // index de palette
-  score: number; // nombre de mots trouves (+1 si mot mystere)
-  solvedMystery: boolean;
+  score: number; // nombre de mots trouves
   isConnected: boolean;
 }
 
@@ -45,9 +44,6 @@ export interface GameStateDTO {
   grid: string[][];       // lettres (identiques pour tous)
   totalWords: number;
   found: FoundWord[];     // mots deja trouves
-  mysteryOpen: boolean;
-  mysteryDefinition: string | null; // renseigne seulement quand mysteryOpen
-  mysterySolvedBy: string | null;
   level: string;
 }
 
@@ -56,7 +52,6 @@ export type ClientMessage =
   | { type: "join"; pseudo: string }
   | { type: "start"; gridSize: number; level: string }
   | { type: "claim"; cells: Cell[] }
-  | { type: "mysteryGuess"; guess: string }
   | { type: "endGame" }
   | { type: "backToLobby" };
 
@@ -76,9 +71,7 @@ export type ServerMessage =
   | { type: "game_state"; players: MmPlayer[]; phase: Phase; game: GameStateDTO }
   // Evenement incremental quand un mot est trouve (coloration + toast live).
   | { type: "found"; players: MmPlayer[]; word: FoundWord; remaining: number }
-  // Le finale mot mystere s'ouvre (grille videe).
-  | { type: "mystery_open"; definition: string; length: number }
   // Retour prive au seul auteur d'une selection : mot plus long, ou refus.
   | { type: "hint"; kind: "longer" | "nope"; message: string }
-  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string; mysteryWord: string }
+  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string }
   | { type: "error"; code: MmErrorCode; message: string };
