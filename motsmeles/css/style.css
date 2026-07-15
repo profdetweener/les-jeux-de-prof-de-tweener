@@ -104,6 +104,28 @@
 .mm-status.warn { color: #a9791c; }
 .mm-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
+/* ===================== Mode tchat Twitch ===================== */
+.channel-input {
+  flex: 1; min-width: 0; max-width: 220px; padding: 7px 10px;
+  border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
+  font-size: 14px; background: var(--beige); color: var(--bleu-nuit);
+  font-family: inherit;
+}
+.channel-input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+
+/* Etat de la connexion IRC, en jeu. Discret : une pastille et deux mots. */
+.chat-status {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11.5px; color: var(--gris-texte);
+}
+.chat-status .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--gris-clair);
+  flex: none;
+}
+.chat-status.on .dot { background: var(--vert); }
+.chat-status.wait .dot { background: var(--jaune); }
+.chat-status.err .dot { background: var(--rouge); }
+
 /* ===================== Panneau mot mystere (mode CHILL) =====================
    Le chill garde un panneau sous la grille : il n'apparait qu'une fois la
    grille videe, donc la place n'est plus disputee. Le competitif, lui, ouvre

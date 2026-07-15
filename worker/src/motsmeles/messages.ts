@@ -32,7 +32,10 @@ export type MmErrorCode =
   | "INVALID_MOVE";
 
 export type Phase = "lobby" | "playing" | "finished";
-export type Mode = "commune" | "chacun";
+// "chat" : la grille est jouee par le tchat Twitch. L'hote affiche la grille et
+// relaie les messages du tchat au serveur, qui arbitre. Les viewers ne sont pas
+// connectes en WebSocket : voir MmPlayer.isViewer.
+export type Mode = "commune" | "chacun" | "chat";
 
 export interface Cell { r: number; c: number; }
 
@@ -43,7 +46,8 @@ export interface MmPlayer {
   score: number;          // nombre de mots trouves (+ bonus mystere en "chacun")
   solvedMystery: boolean; // "chacun" uniquement
   isConnected: boolean;
-  teamId: number;         // 0 = chacun pour soi ; 1..4 = equipe
+  teamId: number;         // 0 = chacun pour soi ; 1..8 = equipe
+  isViewer?: boolean;     // "chat" : joueur venu du tchat, sans WebSocket
 }
 
 export interface FoundWord {
@@ -77,6 +81,9 @@ export type ClientMessage =
   | { type: "setTeamCount"; n: number }            // hote : nombre d'equipes
   | { type: "setTeamName"; teamId: number; name: string } // hote : renomme une equipe
   | { type: "setTeam"; pseudo: string; teamId: number } // hote : place un joueur dans une equipe
+  // "chat" : l'hote relaie un message du tchat Twitch. Lui seul est cru : c'est
+  // sa page qui est branchee sur l'IRC.
+  | { type: "chatWord"; viewer: string; word: string }
   | { type: "start"; mode: Mode; gridSize: number; level: string; duration: number }
   | { type: "claim"; cells: Cell[] }
   | { type: "mysteryGuess"; guess: string }

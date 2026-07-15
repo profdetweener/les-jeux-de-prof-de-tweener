@@ -1,4 +1,5 @@
 import { RoomConnection } from "../../shared/js/ws.js";
+import { TwitchChat } from "../../shared/js/twitch.js";
 
 // ---------- Contexte ----------
 const params = new URLSearchParams(location.search);
@@ -6,12 +7,44 @@ const CODE = (params.get("code") || "").toUpperCase();
 const ME = (sessionStorage.getItem("mm_pseudo") || localStorage.getItem("mm_pseudo") || "").trim();
 if (!CODE || ME.length < 3) { location.href = "join.html"; }
 const ACTIVE_KEY = "mm_active";
+const CHANNEL_KEY = "mm_channel";   // mode tchat : chaîne Twitch écoutée
 
 const $ = (id) => document.getElementById(id);
 
+// Palette de base : 12 teintes choisies a la main, lisibles en translucide sur
+// le beige de la page.
 const PALETTE = ["#c84545", "#4a6fa5", "#4a8c5a", "#d4a830", "#8a5fb0", "#2a9d8f",
                  "#e07a3f", "#c05a8f", "#3f7d9a", "#6b8e23", "#5b6bbf", "#b5843a"];
-const colorOf = (i) => PALETTE[((i % PALETTE.length) + PALETTE.length) % PALETTE.length];
+
+// Au-dela de 12 joueurs, on genere des teintes en HSL. Les valeurs ci-dessous
+// sont les milieux des plus grands trous laisses par la palette de base sur le
+// cercle chromatique : elles s'intercalent au lieu de doubler une couleur
+// existante. La luminosite alterne pour ecarter les teintes voisines.
+// Cette fonction servira aussi au mode chat Twitch, ou les pseudos (et donc le
+// nombre de couleurs a produire) sont inconnus a l'avance.
+const EXTRA_HUES = [300, 108, 251, 154, 62, 344, 186, 11];
+function hslHex(h, s, l) {
+  const sn = s / 100, ln = l / 100;
+  const a = sn * Math.min(ln, 1 - ln);
+  const k = (n) => (n + h / 30) % 12;
+  const f = (n) => ln - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const to = (x) => Math.round(255 * x).toString(16).padStart(2, "0");
+  return "#" + to(f(0)) + to(f(8)) + to(f(4));
+}
+// Teinte pour un index quelconque, sans limite haute : au-dela des teintes
+// intercalees, on repart sur le cercle par pas d'angle d'or.
+function generatedColor(i) {
+  const k = i - PALETTE.length;
+  const h = k < EXTRA_HUES.length ? EXTRA_HUES[k] : Math.round((k * 137.508) % 360);
+  return hslHex(h, 52, k % 2 ? 38 : 50);
+}
+const COLOR_CACHE = [];
+function colorOf(i) {
+  const n = Math.max(0, Math.floor(i) || 0);
+  if (n < PALETTE.length) return PALETTE[n];
+  if (!COLOR_CACHE[n]) COLOR_CACHE[n] = generatedColor(n);
+  return COLOR_CACHE[n];
+}
 function tintOf(i) {
   const h = colorOf(i).replace("#", "");
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
@@ -72,7 +105,9 @@ conn.on("found", (m) => {
   // En "chacun", grille vidée : il ne reste que les lettres du mystère.
   if (curMode() === "chacun" && m.remaining === 0) {
     const me = players.find((p) => p.pseudo === ME);
-    if (me && !me.solvedMystery) setStatus("Grille terminée ! Il ne reste que le mot mystère.");
+    if (me && !me.solvedMystery) {
+      setStatus((teamsOn ? "Grille de l'équipe terminée !" : "Grille terminée !") + " Il ne reste que le mot mystère.");
+    }
   }
 });
 conn.on("scores", (m) => { players = m.players; updateScoreboard(); });
@@ -152,7 +187,7 @@ function lobbyPlayerRow(p) {
 function renderTeamConfig() {
   const box = $("teamConfig");
   if (!box) return;
-  if (!isHost || !teamsOn || startCfg.mode !== "commune") { box.innerHTML = ""; box.hidden = true; return; }
+  if (!isHost || !teamsOn) { box.innerHTML = ""; box.hidden = true; return; }
   box.hidden = false;
   let html = `<div class="setup-row"><span class="setup-label">Nombre d'équipes</span>` +
     `<span class="stepper"><button id="teamMinus">−</button><b id="teamNb">${teamCount}</b><button id="teamPlus">+</button></span></div>`;
@@ -197,25 +232,38 @@ function renderLobby() {
     renderTeamConfig();
 
     const teamsFilled = new Set(players.filter((p) => p.teamId >= 1).map((p) => p.teamId));
+    const chatMode = startCfg.mode === "chat";
     let err = "";
-    if (connected < 2) err = "Il faut au moins 2 joueurs connectés.";
-    else if (teamsOn && teamsFilled.size < 2) err = "Répartis les joueurs dans au moins 2 équipes.";
+    // En mode tchat, les joueurs sont les viewers : l'hôte lance seul.
+    if (chatMode && !channelName()) err = "Indique la chaîne Twitch à écouter.";
+    else if (!chatMode && connected < 2) err = "Il faut au moins 2 joueurs connectés.";
+    else if (!chatMode && teamsOn && teamsFilled.size < 2) err = "Répartis les joueurs dans au moins 2 équipes.";
     $("startBtn").disabled = !!err;
     $("startErr").textContent = err;
-    $("startBtn").onclick = () => conn.send({ type: "start", mode: startCfg.mode, gridSize: startCfg.gridSize, level: startCfg.level, duration: startCfg.duration });
+    $("startBtn").onclick = () => {
+      if (startCfg.mode === "chat") localStorage.setItem(CHANNEL_KEY, channelName());
+      conn.send({ type: "start", mode: startCfg.mode, gridSize: startCfg.gridSize, level: startCfg.level, duration: startCfg.duration });
+    };
   } else {
     $("hostControls").hidden = true;
     $("waitNote").hidden = false;
   }
 }
 
-// Les equipes ne concernent que la grille commune ; la duree, que "chacun".
+// La durée ne concerne que "chacun". Les équipes valent pour les deux modes :
+// en commune elles partagent la grille unique, en chacun chaque équipe a sa
+// grille, partagée entre coéquipiers.
 function applyModeUI() {
   const chacun = startCfg.mode === "chacun";
+  const chatMode = startCfg.mode === "chat";
   if ($("durationRow")) $("durationRow").hidden = !chacun;
-  if ($("teamsRow")) $("teamsRow").hidden = chacun;
-  if ($("teamConfig")) $("teamConfig").hidden = chacun || !teamsOn;
-  if (chacun && teamsOn) conn.send({ type: "setTeamsMode", on: false });
+  // Les équipes du tchat viendront plus tard : pour l'instant chacun pour soi.
+  if ($("teamsRow")) $("teamsRow").hidden = chatMode;
+  if ($("teamConfig")) $("teamConfig").hidden = chatMode || !teamsOn;
+  if ($("channelRow")) $("channelRow").hidden = !chatMode;
+  if ($("chatNote")) $("chatNote").hidden = !chatMode;
+  if (chatMode && teamsOn) conn.send({ type: "setTeamsMode", on: false });
+  renderTeamConfig();
 }
 
 function wireSeg(id, apply) {
@@ -244,16 +292,26 @@ function renderGame() {
   // La modale mystère ne s'ouvre plus toute seule : elle est à un clic de la
   // pastille du bandeau, quand le joueur le décide.
   closeMystery();
-  if (curMode() === "commune") setStatus("");
+  if (curMode() === "chat") {
+    // Seul l'hôte est branché sur l'IRC ; les autres écrans suivent la partie.
+    if (isHost) startChatRelay();
+    setStatus("Les viewers écrivent les mots dans le tchat.");
+  } else {
+    stopChatRelay();
+    if (curMode() === "commune") setStatus("");
+  }
 }
 
 function updateScoreboard() {
   if (!game) return;
   const chacun = curMode() === "chacun";
   const mine = game.found.length;
+  // En équipes, la grille est celle de l'équipe : les coéquipiers y barrent les
+  // mêmes mots, la progression est donc commune.
+  const label = chacun ? (teamsOn ? "Grille de l'équipe" : "Ta grille") : "Mots trouvés";
   const goal = chacun
-    ? `Ta grille <b>${mine}</b> / ${game.totalWords} <span class="sb-timer" id="sbTimer"></span>${mysteryChip()}`
-    : `Mots trouvés <b>${mine}</b> / ${game.totalWords}`;
+    ? `${label} <b>${mine}</b> / ${game.totalWords} <span class="sb-timer" id="sbTimer"></span>${mysteryChip()}`
+    : `${label} <b>${mine}</b> / ${game.totalWords}`;
 
   let chips;
   if (teamsOn) {
@@ -356,7 +414,8 @@ $("grid").addEventListener("click", (e) => {
   const cell = e.target.closest(".mm-cell");
   // Plus de garde sur game.mysteryOpen : le mystère est ouvert dès le
   // lancement, la grille reste jouable pendant toute la partie.
-  if (!cell || !game) return;
+  // En mode tchat en revanche, c'est le tchat qui joue, pas la souris.
+  if (!cell || !game || curMode() === "chat") return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   if (!sel) { sel = { r, c, el: cell }; cell.classList.add("sel-start"); return; }
   if (sel.r === r && sel.c === c) { cell.classList.remove("sel-start"); sel = null; return; }
@@ -389,6 +448,62 @@ function sizeGrid() {
 }
 let _rz;
 window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(sizeGrid, 120); });
+
+// ---------- Mode tchat Twitch ----------
+// La page de l'hôte lit le tchat en IRC anonyme et relaie au Worker, qui reste
+// l'arbitre. Seul l'hôte relaie : le serveur n'accepte "chatWord" que de lui.
+
+let chat = null;
+
+// Pré-remplit le champ avec la dernière chaîne écoutée.
+if ($("channelInput")) {
+  const saved = (localStorage.getItem(CHANNEL_KEY) || "").trim();
+  if (saved) $("channelInput").value = saved;
+}
+
+function channelName() {
+  const el = $("channelInput");
+  const v = el ? el.value.toLowerCase().replace(/^#/, "").trim() : "";
+  return v || (localStorage.getItem(CHANNEL_KEY) || "").trim();
+}
+
+// On ne relaie que ce qui peut être un mot de la grille. Sur un gros tchat, tout
+// envoyer noierait le Durable Object sous des messages sans rapport.
+function looksLikeWord(text) {
+  const t = text.trim();
+  if (!t || t.startsWith("!")) return false;      // commandes du bot
+  if (/\s/.test(t)) return false;                 // une phrase n'est pas un mot
+  if (t.length < 3 || t.length > 20) return false;
+  return /^[\p{L}'-]+$/u.test(t);
+}
+
+function setChatStatus(state, text) {
+  const box = $("chatStatus");
+  if (!box) return;
+  box.hidden = false;
+  box.className = "chat-status " + (state || "");
+  $("chatStatusText").textContent = text;
+}
+
+function startChatRelay() {
+  const ch = channelName();
+  if (!ch || !isHost) return;
+  stopChatRelay();
+  chat = new TwitchChat(ch);
+  chat.on("status", (s) => setChatStatus(s.state, s.text));
+  chat.on("message", (m) => {
+    if (!game || phase !== "playing") return;
+    if (!looksLikeWord(m.text)) return;
+    conn.send({ type: "chatWord", viewer: m.name, word: m.text.trim() });
+  });
+  chat.connect();
+}
+
+function stopChatRelay() {
+  if (chat) { chat.close(); chat = null; }
+  const box = $("chatStatus");
+  if (box) box.hidden = true;
+}
 
 // ---------- Mot mystère (chacun) ----------
 // Le mystère est ouvert dès le lancement. Il n'occupe pas la page : une
@@ -454,16 +569,18 @@ function refreshMystery() {
 
   // Au lancement, la chaîne vaut toute la grille : les lettres du mystère sont
   // noyées dans celles des mots pas encore trouvés. Elle se dégage à mesure.
+  const poss = teamsOn ? "Vos" : "Tes";
   $("mystLettersLbl").textContent = target > 0 && letters.length === target
     ? "Il ne reste que le mystère."
     : `${letters.length} lettres restantes, dans l'ordre de lecture. Les ${target} du mystère sont dedans.`;
+  $("mystLetters").setAttribute("aria-label", poss + " lettres restantes");
 
   const left = triesLeft();
   const done = solved || left <= 0;
   $("mystInput").disabled = done;
   $("mystSubmit").disabled = done;
   $("mystTries").textContent = solved
-    ? "Bonus +3 empoché."
+    ? (teamsOn ? "Bonus +3 empoché par l'équipe." : "Bonus +3 empoché.")
     : (left > 0 ? left + (left > 1 ? " essais restants." : " essai restant.") : "Plus d'essais.");
   if (solved && !$("mystMsg").textContent) {
     $("mystMsg").textContent = "Déjà trouvé ! +3 points.";

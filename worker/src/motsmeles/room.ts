@@ -25,17 +25,41 @@ import type {
   ClientMessage, ServerMessage, MmPlayer, GameStateDTO, FoundWord, Phase, Mode, MmErrorCode,
 } from "./messages";
 
+// Etat du mot mystere. Objet a part (et non des champs de Session) pour pouvoir
+// etre PARTAGE par reference entre coequipiers en "chacun sa grille" : une
+// equipe = un mystere, 3 essais, un bonus.
+interface MysteryState {
+  solved: boolean;
+  tries: number;
+}
+
+// Un spectateur qui joue via le tchat Twitch. Ce n'est pas une Session : pas de
+// WebSocket, pas de reconnexion, pas d'exclusion, et le pseudo vient de Twitch
+// (validatePseudo n'a pas a s'appliquer). L'entree nait au premier message (pour
+// le garde-fou anti-spam) mais la couleur n'est attribuee qu'au premier point,
+// et seuls ceux qui ont marque apparaissent au tableau.
+interface Viewer {
+  name: string;       // display-name Twitch, tel qu'affiche
+  color: number;      // -1 tant qu'aucun point
+  score: number;
+  lastFindAt: number;
+  tokens: number;     // seau a jetons anti-spam
+  lastRefill: number;
+}
+
 interface Session {
   pseudo: string;
   ws: WebSocket | null;
   color: number;
   score: number;
-  solvedMystery: boolean;
-  mysteryTries: number;   // essais de mot mystere deja consommes
+  // Partage par reference avec les coequipiers en "chacun" + equipes.
+  myst: MysteryState;
   lastFindAt: number;
   joinedAt: number;
-  foundKeys: Set<string>; // "chacun" : cles des mots trouves par CE joueur
-  teamId: number;         // 0 = sans equipe ; 1..4 = equipe
+  // "chacun" : mots trouves sur MA grille, ou sur celle de mon equipe (Set
+  // partage par reference entre coequipiers).
+  foundKeys: Set<string>;
+  teamId: number;         // 0 = sans equipe ; 1..8 = equipe
 }
 
 interface WordState {
@@ -51,7 +75,26 @@ interface WordState {
 const ALLOWED_SIZES = [10, 12, 14];
 const ALLOWED_LEVELS = ["facile", "moyen", "difficile"];
 const ALLOWED_DURATIONS = [180, 300, 420];
+// Capacite propre a Mots meles, dependante du mode d'equipe. Sans equipes,
+// 20 joueurs saturent le bandeau de score et la grille commune part en
+// quelques secondes : on reste a 12. Avec equipes, 20 tient (5 equipes de 4).
+// On ne touche pas a ROOM_CONFIG.MAX_PLAYERS, partage avec les autres jeux.
+const MM_MAX_INDIV = 12;
+const MM_MAX_TEAMS = 20;
 const MYSTERY_BONUS = 3;
+// "chat" : seau a jetons par viewer. Chaque essai coute un jeton, on en regagne
+// un par seconde, et on peut en avoir 5 d'avance.
+//
+// Un simple delai fixe ne marchait pas : un tchat crache des emotes en continu
+// ("LUL", "KEKW"), que le relais ne peut pas distinguer d'un mot sans embarquer
+// le dictionnaire. Avec un delai, l'emote armait le compteur et le viewer perdait
+// le vrai mot qu'il ecrivait juste apres. Le burst absorbe ca.
+// Exempter les reussites du quota ne marchait pas non plus : un viewer scripte
+// aurait deroule le dictionnaire et vide la grille, ses trouvailles n'etant
+// jamais freinees. D'ou : tout essai coute, mais on a de l'avance.
+// A 5 minutes de partie, cela plafonne un bot a ~305 essais.
+const CHAT_BURST = 5;
+const CHAT_REFILL_MS = 1000;
 // Essais de mot mystere par joueur. Le mystere etant ouvert des le lancement, la
 // limite est ce qui empeche de mitrailler des mots plausibles jusqu'a tomber
 // juste : tenter tot devient un pari. Passera par equipe en "chacun" + equipes.
@@ -70,6 +113,9 @@ export class MotsMelesRoom {
 
   private phase: Phase;
   private mode: Mode;
+  // "chat" : cle = display-name normalise, pour retrouver un viewer d'un message
+  // a l'autre malgre la casse.
+  private viewers: Map<string, Viewer>;
   private teamsOn: boolean;
   private teamCount: number;
   private teamNames: Record<number, string>; // noms personnalises par l'hote (sinon defaut)
@@ -91,6 +137,7 @@ export class MotsMelesRoom {
     this.hostPseudo = null;
     this.phase = "lobby";
     this.mode = "commune";
+    this.viewers = new Map();
     this.teamsOn = false;
     this.teamCount = 2;
     this.teamNames = {};
@@ -158,6 +205,7 @@ export class MotsMelesRoom {
       case "setTeamName": return this.onSetTeamName(ws, msg.teamId, msg.name);
       case "setTeam": return this.onSetTeam(ws, msg.pseudo, msg.teamId);
       case "start": return this.onStart(ws, msg.mode, msg.gridSize, msg.level, msg.duration);
+      case "chatWord": return this.onChatWord(ws, msg.viewer, msg.word);
       case "claim": return this.onClaim(ws, msg.cells);
       case "mysteryGuess": return this.onMysteryGuess(ws, msg.guess);
       case "endGame": return this.onEndGame(ws);
@@ -190,7 +238,7 @@ export class MotsMelesRoom {
       return;
     }
 
-    if (this.players.size >= ROOM_CONFIG.MAX_PLAYERS) {
+    if (this.players.size >= this.capacity()) {
       this.err(ws, "ROOM_FULL", "Room pleine."); ws.close(); return;
     }
     if (this.phase !== "lobby") {
@@ -198,8 +246,9 @@ export class MotsMelesRoom {
     }
 
     const session: Session = {
-      pseudo, ws, color: this.freeColor(), score: 0, solvedMystery: false,
-      mysteryTries: 0, lastFindAt: 0, joinedAt: Date.now(), foundKeys: new Set(),
+      pseudo, ws, color: this.freeColor(), score: 0,
+      myst: { solved: false, tries: 0 },
+      lastFindAt: 0, joinedAt: Date.now(), foundKeys: new Set(),
       teamId: this.teamsOn ? this.smallestTeam() : 0,
     };
     this.players.set(pseudo, session);
@@ -215,9 +264,11 @@ export class MotsMelesRoom {
     this.broadcastRoom();
   }
 
+  private capacity(): number { return this.teamsOn ? MM_MAX_TEAMS : MM_MAX_INDIV; }
+
   private freeColor(): number {
     const used = new Set([...this.players.values()].map((p) => p.color));
-    for (let i = 0; i < ROOM_CONFIG.MAX_PLAYERS; i++) if (!used.has(i)) return i;
+    for (let i = 0; i < MM_MAX_TEAMS; i++) if (!used.has(i)) return i;
     return 0;
   }
 
@@ -255,6 +306,13 @@ export class MotsMelesRoom {
     const pseudo = this.wsToPseudo.get(ws);
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote regle les equipes.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    // La capacite depend de ce reglage : on ne peut pas revenir en individuel
+    // avec plus de monde que le mode n'en autorise. Plutot que d'ejecter des
+    // joueurs, on refuse la bascule et on laisse l'hote decider.
+    if (!on && this.players.size > MM_MAX_INDIV) {
+      return this.err(ws, "ROOM_FULL",
+        "Trop de joueurs pour l'individuel (" + MM_MAX_INDIV + " max, " + this.players.size + " connectes). Reste en equipes ou exclus des joueurs.");
+    }
     this.teamsOn = !!on;
     if (this.teamsOn) {
       // Repartition de depart : alternance sur teamCount equipes (l'hote ajuste ensuite).
@@ -302,21 +360,41 @@ export class MotsMelesRoom {
 
   private teamColor(teamId: number): number { return Math.max(0, teamId - 1); }
 
+  // Vrai si le joueur joue en equipe (et non chacun pour soi).
+  private inTeam(p: Session): boolean { return this.teamsOn && p.teamId >= 1; }
+
+  // Les joueurs qui partagent la grille de `p`, lui compris. Hors equipes, c'est
+  // lui seul : les envois "prives" du mode chacun passent naturellement par la.
+  private mates(p: Session): Session[] {
+    if (!this.inTeam(p)) return [p];
+    return [...this.players.values()].filter((x) => x.teamId === p.teamId);
+  }
+
   // ========================= Lancement =========================
   private onStart(ws: WebSocket, mode: Mode, gridSize: number, level: string, duration: number): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo || pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote lance.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Deja lancee.");
-    if (this.connected().length < ROOM_CONFIG.MIN_PLAYERS)
+
+    this.mode = mode === "chacun" ? "chacun" : mode === "chat" ? "chat" : "commune";
+
+    // En "chat", les joueurs sont les viewers Twitch : l'hote est seul devant sa
+    // grille et arbitre. La regle des 2 joueurs connectes n'a donc pas de sens.
+    if (this.mode !== "chat" && this.connected().length < ROOM_CONFIG.MIN_PLAYERS)
       return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut au moins 2 joueurs.");
 
-    this.mode = mode === "chacun" ? "chacun" : "commune";
+    // Les equipes du tchat viendront plus tard : pour l'instant chacun pour soi.
+    if (this.mode === "chat") this.teamsOn = false;
+    this.viewers = new Map();
+
+
     this.gridSize = ALLOWED_SIZES.includes(gridSize) ? gridSize : 12;
     this.level = ALLOWED_LEVELS.includes(level) ? level : "moyen";
     this.durationSec = ALLOWED_DURATIONS.includes(duration) ? duration : 300;
 
-    // Les equipes ne sont gerees qu'en grille commune pour l'instant.
-    if (this.mode !== "commune") this.teamsOn = false;
+    // Les equipes valent pour les deux modes. En "commune" elles se partagent
+    // la grille unique ; en "chacun" chaque equipe a SA grille, partagee entre
+    // coequipiers et independante de celle des autres equipes.
     if (this.teamsOn && this.nonEmptyTeams().length < 2) {
       return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut au moins 2 equipes non vides.");
     }
@@ -338,11 +416,30 @@ export class MotsMelesRoom {
     this.mysteryDef = gen.mystery.definition;
     this.mysteryCells = gen.mystery.cells;
 
+    // Etat de jeu remis a zero. En equipes, les coequipiers pointent vers le
+    // MEME Set de mots trouves et le MEME etat de mystere : c'est ce partage par
+    // reference qui fait la grille commune a l'equipe, sans dupliquer d'etat.
+    // Le score, lui, reste individuel (celui qui trouve marque) et s'additionne
+    // par equipe au classement : un mot ne peut etre trouve qu'une fois par
+    // equipe, donc la somme vaut bien le nombre de mots de l'equipe.
+    const teamKeys = new Map<number, Set<string>>();
+    const teamMyst = new Map<number, MysteryState>();
     for (const p of this.players.values()) {
-      p.score = 0; p.solvedMystery = false; p.mysteryTries = 0;
-      p.lastFindAt = 0; p.foundKeys = new Set();
-      // En equipes, la couleur represente l'equipe (coequipiers = meme couleur).
-      if (this.teamsOn) p.color = this.teamColor(p.teamId);
+      p.score = 0;
+      p.lastFindAt = 0;
+      if (this.teamsOn && p.teamId >= 1) {
+        // En equipes, la couleur represente l'equipe (coequipiers = meme couleur).
+        p.color = this.teamColor(p.teamId);
+        if (!teamKeys.has(p.teamId)) {
+          teamKeys.set(p.teamId, new Set());
+          teamMyst.set(p.teamId, { solved: false, tries: 0 });
+        }
+        p.foundKeys = teamKeys.get(p.teamId)!;
+        p.myst = teamMyst.get(p.teamId)!;
+      } else {
+        p.foundKeys = new Set();
+        p.myst = { solved: false, tries: 0 };
+      }
     }
 
     this.phase = "playing";
@@ -358,10 +455,70 @@ export class MotsMelesRoom {
   }
 
   // ========================= Recherche =========================
+  // ========================= Tchat Twitch =========================
+  // Un viewer ne clique pas des cases : il ecrit un mot. On valide donc par le
+  // TEXTE, contre les mots pas encore trouves. Si le meme mot figure deux fois
+  // dans la grille, la premiere occurrence libre est prise.
+  private onChatWord(ws: WebSocket, viewer: string, word: string): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    // Seul l'hote relaie : c'est sa page qui est branchee sur l'IRC. Sinon
+    // n'importe quel client pourrait s'inventer des points au nom d'un viewer.
+    if (!pseudo || pseudo !== this.hostPseudo) return;
+    if (this.phase !== "playing" || this.mode !== "chat") return;
+
+    const name = String(viewer || "").slice(0, 30).trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    const g = this.norm(String(word || ""));
+    if (!g || g.length < 2) return;
+
+    const now = Date.now();
+    let v = this.viewers.get(key);
+    if (!v) {
+      v = { name, color: -1, score: 0, lastFindAt: 0, tokens: CHAT_BURST, lastRefill: now };
+      this.viewers.set(key, v);
+    } else {
+      v.name = name;
+    }
+
+    // Recharge du seau au prorata du temps ecoule, puis paiement de l'essai.
+    const gained = (now - v.lastRefill) / CHAT_REFILL_MS;
+    if (gained > 0) {
+      v.tokens = Math.min(CHAT_BURST, v.tokens + gained);
+      v.lastRefill = now;
+    }
+    if (v.tokens < 1) return;
+    v.tokens -= 1;
+
+    const w = this.words.find((x) => !x.found && x.word === g);
+    if (!w) return;
+
+    // Premier point : le viewer recoit sa couleur et entre au tableau.
+    if (v.color < 0) v.color = this.freeViewerColor();
+    w.found = true; w.byPseudo = v.name; w.color = v.color;
+    v.score++; v.lastFindAt = now;
+
+    const fw: FoundWord = { word: w.word, cells: w.cells, color: v.color, pseudo: v.name };
+    const remaining = this.words.filter((x) => !x.found).length;
+    this.broadcast({ type: "found", players: this.snapshot(), word: fw, remaining });
+    if (remaining === 0) this.finish(this.leader());
+  }
+
+  // Les viewers puisent dans les memes index que les joueurs. Au-dela de la
+  // palette de base, le front genere la teinte a la volee : pas de plafond.
+  private freeViewerColor(): number {
+    const used = new Set<number>();
+    for (const p of this.players.values()) used.add(p.color);
+    for (const v of this.viewers.values()) if (v.color >= 0) used.add(v.color);
+    for (let i = 0; ; i++) if (!used.has(i)) return i;
+  }
+
   private onClaim(ws: WebSocket, cells: Cell[]): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo) return;
     if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
+    // En "chat", seul le tchat marque : l'hote affiche la grille, il ne joue pas.
+    if (this.mode === "chat") return this.err(ws, "WRONG_PHASE", "C'est le tchat qui joue.");
     if (!this.validStraight(cells)) return this.err(ws, "INVALID_MOVE", "Selection invalide.");
     const me = this.players.get(pseudo)!;
     const key = cellKey(cells);
@@ -380,15 +537,23 @@ export class MotsMelesRoom {
         }
       }
     } else {
-      // "chacun" : verrouillage propre au joueur, pas de blocage entre joueurs.
+      // "chacun" : verrouillage propre au joueur (ou a son equipe), pas de
+      // blocage entre joueurs ou equipes adverses.
       for (const w of this.words) {
         if (key === w.key || key === w.rkey) {
-          if (me.foundKeys.has(w.key)) return this.send(ws, { type: "hint", kind: "already", message: "Tu l'as deja." });
+          if (me.foundKeys.has(w.key)) {
+            return this.send(ws, { type: "hint", kind: "already",
+              message: this.inTeam(me) ? "Ton equipe l'a deja." : "Tu l'as deja." });
+          }
           me.foundKeys.add(w.key);
           me.score++; me.lastFindAt = Date.now();
           const fw: FoundWord = { word: w.word, cells: w.cells, color: me.color, pseudo };
           const remaining = this.words.length - me.foundKeys.size;
-          this.send(ws, { type: "found", players: this.snapshot(), word: fw, remaining });
+          // La grille est partagee au sein de l'equipe : les coequipiers voient
+          // le mot se barrer chez eux aussi.
+          for (const m of this.mates(me)) {
+            if (m.ws) this.send(m.ws, { type: "found", players: this.snapshot(), word: fw, remaining });
+          }
           this.broadcastScores();
           return;
         }
@@ -407,14 +572,17 @@ export class MotsMelesRoom {
   }
 
   // Le mystere est ouvert des le lancement : plus de verrou sur la completion de
-  // la grille. Ce qui borne, c'est le nombre d'essais.
+  // la grille. Ce qui borne, c'est le nombre d'essais. En equipes, l'etat est
+  // partage : 3 essais pour l'equipe, et le bonus ne tombe qu'une fois (sinon
+  // une equipe de 4 encaisserait +12 face a un solo a +3).
   private onMysteryGuess(ws: WebSocket, guess: string): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo) return;
     if (this.phase !== "playing" || this.mode !== "chacun") return this.err(ws, "WRONG_PHASE", "Indisponible ici.");
     const me = this.players.get(pseudo)!;
-    if (me.solvedMystery) return;
-    if (me.mysteryTries >= MYSTERY_TRIES) {
+    const myst = me.myst;
+    if (myst.solved) return;
+    if (myst.tries >= MYSTERY_TRIES) {
       return this.send(ws, { type: "mystery_result", ok: false, triesLeft: 0, message: "Plus d'essais." });
     }
     const g = this.norm(String(guess || ""));
@@ -422,25 +590,39 @@ export class MotsMelesRoom {
 
     if (g === this.mysteryWord) {
       // Un essai reussi ne consomme rien : seuls les ratages coutent.
-      me.solvedMystery = true;
+      myst.solved = true;
+      // Le bonus va au joueur qui devine ; par sommation, l'equipe le touche une
+      // seule fois.
       me.score += MYSTERY_BONUS;
       me.lastFindAt = Date.now();
-      this.send(ws, {
-        type: "mystery_result", ok: true, triesLeft: MYSTERY_TRIES - me.mysteryTries,
-        message: "Mot mystere trouve ! +" + MYSTERY_BONUS + " points.",
-      });
+      const left = MYSTERY_TRIES - myst.tries;
+      for (const m of this.mates(me)) {
+        if (!m.ws) continue;
+        this.send(m.ws, {
+          type: "mystery_result", ok: true, triesLeft: left,
+          message: m.pseudo === pseudo
+            ? "Mot mystere trouve ! +" + MYSTERY_BONUS + " points."
+            : pseudo + " a trouve le mot mystere ! +" + MYSTERY_BONUS + " pour l'equipe.",
+        });
+      }
       this.broadcastScores();
       return;
     }
 
-    me.mysteryTries++;
-    const left = MYSTERY_TRIES - me.mysteryTries;
-    this.send(ws, {
-      type: "mystery_result", ok: false, triesLeft: left,
-      message: left > 0
-        ? "Pas le bon mot. " + left + (left > 1 ? " essais restants." : " essai restant.")
-        : "Pas le bon mot. Plus d'essais.",
-    });
+    myst.tries++;
+    const left = MYSTERY_TRIES - myst.tries;
+    const tail = left > 0
+      ? left + (left > 1 ? " essais restants." : " essai restant.")
+      : "Plus d'essais.";
+    for (const m of this.mates(me)) {
+      if (!m.ws) continue;
+      this.send(m.ws, {
+        type: "mystery_result", ok: false, triesLeft: left,
+        message: m.pseudo === pseudo
+          ? "Pas le bon mot. " + tail
+          : pseudo + " a tente " + g + ". " + tail,
+      });
+    }
   }
 
   private onEndGame(ws: WebSocket): void {
@@ -470,9 +652,7 @@ export class MotsMelesRoom {
   private rank(): MmPlayer[] {
     return this.snapshot().sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      const la = this.players.get(a.pseudo)?.lastFindAt || Infinity;
-      const lb = this.players.get(b.pseudo)?.lastFindAt || Infinity;
-      return la - lb;
+      return this.lastFindOf(a.pseudo) - this.lastFindOf(b.pseudo);
     });
   }
   // Classement par equipe : score cumule desc, puis equipe ayant atteint son
@@ -557,13 +737,37 @@ export class MotsMelesRoom {
   }
 
   private snapshot(): MmPlayer[] {
+    // En "chat", les joueurs sont les viewers : l'hote n'est qu'un afficheur et
+    // n'a pas sa place au tableau. Dans le salon en revanche, on montre les
+    // connectes comme partout ailleurs (l'hote doit se voir avant de lancer).
+    if (this.mode === "chat" && this.phase !== "lobby") return this.viewerSnapshot();
     return [...this.players.values()]
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map((p) => ({
         pseudo: p.pseudo, isHost: p.pseudo === this.hostPseudo, color: p.color,
-        score: p.score, solvedMystery: p.solvedMystery, isConnected: p.ws !== null,
+        score: p.score, solvedMystery: p.myst.solved, isConnected: p.ws !== null,
         teamId: p.teamId,
       }));
+  }
+
+  // Seuls les viewers ayant marque entrent au tableau : sinon le moindre message
+  // de tchat y ferait apparaitre son auteur a zero point.
+  private viewerSnapshot(): MmPlayer[] {
+    return [...this.viewers.values()]
+      .filter((v) => v.score > 0)
+      .sort((a, b) => (b.score - a.score) || (a.lastFindAt - b.lastFindAt))
+      .map((v) => ({
+        pseudo: v.name, isHost: false, color: v.color, score: v.score,
+        solvedMystery: false, isConnected: true, teamId: 0, isViewer: true,
+      }));
+  }
+
+  // Chrono de departage, que le pseudo soit un joueur connecte ou un viewer.
+  private lastFindOf(pseudo: string): number {
+    const p = this.players.get(pseudo);
+    if (p) return p.lastFindAt || Infinity;
+    const v = this.viewers.get(pseudo.toLowerCase());
+    return v ? (v.lastFindAt || Infinity) : Infinity;
   }
 
   // Mots trouves partages (commune).
@@ -585,7 +789,9 @@ export class MotsMelesRoom {
       gridSize: this.gridSize, grid: this.grid.map((row) => row.slice()),
       totalWords: this.words.length, level: this.level,
     };
-    if (this.mode === "commune") {
+    // "commune" et "chat" partagent une grille unique et n'ont pas de mystere :
+    // personne n'y decouvre la grille entiere seul, donc personne ne le merite.
+    if (this.mode === "commune" || this.mode === "chat") {
       return {
         ...base, found: this.foundShared(), endsAt: null,
         mysteryOpen: false, mysteryDefinition: null, mysteryLength: null, mysteryTriesLeft: 0,
@@ -602,7 +808,7 @@ export class MotsMelesRoom {
       mysteryOpen: open,
       mysteryDefinition: open ? this.mysteryDef : null,
       mysteryLength: open ? this.mysteryWord.length : null,
-      mysteryTriesLeft: p ? Math.max(0, MYSTERY_TRIES - p.mysteryTries) : MYSTERY_TRIES,
+      mysteryTriesLeft: p ? Math.max(0, MYSTERY_TRIES - p.myst.tries) : MYSTERY_TRIES,
     };
   }
 
