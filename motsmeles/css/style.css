@@ -267,3 +267,20 @@
 .badge.team { margin-left: auto; background: var(--blanc); border: 1px solid; font-weight: 700; }
 .player-row { flex-wrap: wrap; }
 .rank-members { font-size: 12px; color: var(--gris-texte); margin-left: 4px; flex: 1; }
+
+/* Nombre d'équipes (stepper) + noms d'équipe */
+.stepper { display: inline-flex; align-items: center; gap: 8px; }
+.stepper button {
+  width: 28px; height: 28px; border: 1px solid var(--gris-clair); background: var(--blanc);
+  border-radius: 6px; font: inherit; font-size: 18px; line-height: 1; cursor: pointer; color: var(--bleu-nuit);
+}
+.stepper button:hover { border-color: var(--bleu-nuit); }
+.stepper b { font-family: Georgia, serif; font-size: 16px; min-width: 18px; text-align: center; }
+.team-names { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+.team-name-row { display: flex; align-items: center; gap: 8px; }
+.team-name-input {
+  flex: 1; padding: 6px 10px; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm);
+  font: inherit; font-size: 14px; background: var(--beige); color: var(--bleu-nuit);
+}
+.team-name-input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+#teamConfig { margin-bottom: 4px; }

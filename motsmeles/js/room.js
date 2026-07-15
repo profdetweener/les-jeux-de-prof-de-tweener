@@ -27,6 +27,8 @@ let game = null;
 let sel = null;
 let startCfg = { mode: "commune", gridSize: 12, level: "moyen", duration: 300 };
 let teamsOn = false;
+let teamCount = 2;
+let teamNames = [];
 let toastTimer = null;
 let timerInt = null;
 
@@ -51,15 +53,15 @@ conn.onStatus((s) => {
 conn.on("joined", (m) => {
   isHost = m.isHost; players = m.players; phase = m.phase; config = m.config; game = m.game;
   if (config && config.mode) startCfg.mode = config.mode;
-  if (config) teamsOn = !!config.teamsOn;
+  if (config) { teamsOn = !!config.teamsOn; teamCount = config.teamCount || 2; teamNames = config.teamNames || []; }
   try {
     localStorage.setItem("mm_pseudo", ME);
     localStorage.setItem(ACTIVE_KEY, JSON.stringify({ code: CODE, pseudo: ME, ts: Date.now() }));
   } catch {}
   render();
 });
-conn.on("room_state", (m) => { players = m.players; phase = m.phase; teamsOn = !!m.teamsOn; render(); });
-conn.on("game_state", (m) => { players = m.players; phase = m.phase; game = m.game; if (game) teamsOn = !!game.teamsOn; sel = null; render(); });
+conn.on("room_state", (m) => { players = m.players; phase = m.phase; teamsOn = !!m.teamsOn; teamCount = m.teamCount || 2; teamNames = m.teamNames || []; render(); });
+conn.on("game_state", (m) => { players = m.players; phase = m.phase; game = m.game; if (game) { teamsOn = !!game.teamsOn; teamNames = game.teamNames || []; } sel = null; render(); });
 conn.on("found", (m) => {
   players = m.players;
   if (game) game.found.push(m.word);
@@ -128,6 +130,8 @@ function render() {
   else if (phase === "playing") renderGame();
 }
 
+function teamNameOf(t) { return (teamNames && teamNames[t - 1]) || ("Équipe " + t); }
+
 function lobbyPlayerRow(p) {
   const badges = [];
   if (p.isHost) badges.push('<span class="badge">hôte</span>');
@@ -136,17 +140,44 @@ function lobbyPlayerRow(p) {
   let team = "";
   if (teamsOn) {
     if (isHost) {
-      team = '<span class="team-pick">' + [1, 2, 3, 4].map((t) => {
+      const btns = [];
+      for (let t = 1; t <= teamCount; t++) {
         const on = p.teamId === t;
         const style = on ? `background:${colorOf(t - 1)};border-color:${colorOf(t - 1)};color:#fff` : "";
-        return `<button class="team-btn${on ? " on" : ""}" style="${style}" data-p="${encodeURIComponent(p.pseudo)}" data-t="${t}">${t}</button>`;
-      }).join("") + "</span>";
+        btns.push(`<button class="team-btn${on ? " on" : ""}" style="${style}" data-p="${encodeURIComponent(p.pseudo)}" data-t="${t}">${t}</button>`);
+      }
+      team = '<span class="team-pick">' + btns.join("") + "</span>";
     } else {
       const col = colorOf((p.teamId || 1) - 1);
-      team = `<span class="badge team" style="border-color:${col};color:${col}">Éq. ${p.teamId || "?"}</span>`;
+      team = `<span class="badge team" style="border-color:${col};color:${col}">${escapeHtml(teamNameOf(p.teamId || 1))}</span>`;
     }
   }
   return `<div class="player-row">${name}${badges.join(" ")}${team}</div>`;
+}
+
+// Panneau hote : nombre d'equipes + noms.
+function renderTeamConfig() {
+  const box = $("teamConfig");
+  if (!box) return;
+  if (!isHost || !teamsOn || startCfg.mode !== "commune") { box.innerHTML = ""; box.hidden = true; return; }
+  box.hidden = false;
+  let html = `<div class="setup-row"><span class="setup-label">Nombre d'équipes</span>` +
+    `<span class="stepper"><button id="teamMinus">−</button><b id="teamNb">${teamCount}</b><button id="teamPlus">+</button></span></div>`;
+  html += '<div class="team-names">';
+  for (let t = 1; t <= teamCount; t++) {
+    html += `<div class="team-name-row"><span class="sb-dot" style="background:${colorOf(t - 1)}"></span>` +
+      `<input class="team-name-input" data-t="${t}" maxlength="18" value="${escapeHtml(teamNameOf(t))}" placeholder="Équipe ${t}"></div>`;
+  }
+  html += "</div>";
+  box.innerHTML = html;
+
+  $("teamMinus").onclick = () => { if (teamCount > 2) conn.send({ type: "setTeamCount", n: teamCount - 1 }); };
+  $("teamPlus").onclick = () => { if (teamCount < 8) conn.send({ type: "setTeamCount", n: teamCount + 1 }); };
+  box.querySelectorAll(".team-name-input").forEach((inp) => {
+    const send = () => conn.send({ type: "setTeamName", teamId: +inp.dataset.t, name: inp.value });
+    inp.onchange = send;
+    inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); };
+  });
 }
 
 function renderLobby() {
@@ -164,15 +195,14 @@ function renderLobby() {
     wireSeg("sizeSeg", (b) => (startCfg.gridSize = +b.dataset.n));
     wireSeg("diffSeg", (b) => (startCfg.level = b.dataset.l));
     wireSeg("durSeg", (b) => (startCfg.duration = +b.dataset.d));
-    // Le toggle equipes est un etat serveur : on l'envoie, le serveur diffuse.
     const tseg = $("teamsSeg");
     if (tseg) tseg.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("on", (b.dataset.teams === "on") === teamsOn);
       b.onclick = () => conn.send({ type: "setTeamsMode", on: b.dataset.teams === "on" });
     });
     applyModeUI();
+    renderTeamConfig();
 
-    // Validation du lancement (2 joueurs, et si equipes, 2 equipes non vides).
     const teamsFilled = new Set(players.filter((p) => p.teamId >= 1).map((p) => p.teamId));
     let err = "";
     if (connected < 2) err = "Il faut au moins 2 joueurs connectés.";
@@ -191,6 +221,7 @@ function applyModeUI() {
   const chacun = startCfg.mode === "chacun";
   if ($("durationRow")) $("durationRow").hidden = !chacun;
   if ($("teamsRow")) $("teamsRow").hidden = chacun;
+  if ($("teamConfig")) $("teamConfig").hidden = chacun || !teamsOn;
   if (chacun && teamsOn) conn.send({ type: "setTeamsMode", on: false });
 }
 
@@ -243,7 +274,7 @@ function updateScoreboard() {
       const me = t.teamId === myTeam;
       return `<div class="sb-chip${me ? " me" : ""}">` +
         `<span class="sb-dot" style="background:${colorOf(t.teamId - 1)}"></span>` +
-        `<span class="sb-name">Éq. ${t.teamId}</span><b>${t.score}</b></div>`;
+        `<span class="sb-name">${escapeHtml(teamNameOf(t.teamId))}</span><b>${t.score}</b></div>`;
     }).join("");
   } else {
     chips = players.slice().sort((a, b) => b.score - a.score).map((p) => {
@@ -394,7 +425,9 @@ function renderFinished(m) {
   const main = document.querySelector(".room-main");
   if (main) main.classList.remove("in-game");
   const myTeam = (m.players.find((p) => p.pseudo === ME) || {}).teamId;
-  const won = m.teamsOn ? (m.winner === "Équipe " + myTeam) : (m.winner === ME);
+  const names = m.teamNames || [];
+  const nameOf = (t) => names[t - 1] || ("Équipe " + t);
+  const won = m.teamsOn ? (m.winner === nameOf(myTeam)) : (m.winner === ME);
   $("winTitle").innerHTML = won ? "🏆 Gagné !" : `🏆 ${escapeHtml(m.winner)} l'emporte`;
   const rev = $("mysteryReveal");
   if (m.mode === "chacun" && m.mysteryWord) {
@@ -418,7 +451,7 @@ function renderFinished(m) {
       return `<div class="rank-row${tier ? " " + tier : ""}">` +
         `<span class="rank-medal">${badge}</span>` +
         `<span class="sb-dot" style="background:${colorOf(t.teamId - 1)}"></span>` +
-        `<span class="pname">Équipe ${t.teamId}</span>` +
+        `<span class="pname">${escapeHtml(nameOf(t.teamId))}</span>` +
         `<span class="rank-members">${t.members.map(escapeHtml).join(", ")}</span>` +
         `<span class="pscore">${t.score}</span></div>`;
     }).join("");

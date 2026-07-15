@@ -49,6 +49,7 @@ export interface FoundWord {
 export interface GameStateDTO {
   mode: Mode;
   teamsOn: boolean;
+  teamNames: string[];   // index 0 = equipe 1, etc.
   gridSize: number;
   grid: string[][];
   totalWords: number;
@@ -63,7 +64,9 @@ export interface GameStateDTO {
 // -------- Client -> serveur --------
 export type ClientMessage =
   | { type: "join"; pseudo: string }
-  | { type: "setTeamsMode"; on: boolean }          // hote : bascule chacun pour soi / equipes
+  | { type: "setTeamsMode"; on: boolean }          // hote : bascule individuel / equipes
+  | { type: "setTeamCount"; n: number }            // hote : nombre d'equipes
+  | { type: "setTeamName"; teamId: number; name: string } // hote : renomme une equipe
   | { type: "setTeam"; pseudo: string; teamId: number } // hote : place un joueur dans une equipe
   | { type: "start"; mode: Mode; gridSize: number; level: string; duration: number }
   | { type: "claim"; cells: Cell[] }
@@ -80,10 +83,10 @@ export type ServerMessage =
       players: MmPlayer[];
       hostPseudo: string;
       phase: Phase;
-      config: { mode: Mode; teamsOn: boolean; gridSize: number; level: string; duration: number } | null;
+      config: { mode: Mode; teamsOn: boolean; teamCount: number; teamNames: string[]; gridSize: number; level: string; duration: number } | null;
       game: GameStateDTO | null;
     }
-  | { type: "room_state"; players: MmPlayer[]; hostPseudo: string; phase: Phase; teamsOn: boolean }
+  | { type: "room_state"; players: MmPlayer[]; hostPseudo: string; phase: Phase; teamsOn: boolean; teamCount: number; teamNames: string[] }
   | { type: "game_state"; players: MmPlayer[]; phase: Phase; game: GameStateDTO }
   // Un mot vient d'etre trouve. "commune" : broadcast a tous. "chacun" : prive au trouveur.
   | { type: "found"; players: MmPlayer[]; word: FoundWord; remaining: number }
@@ -93,5 +96,5 @@ export type ServerMessage =
   | { type: "mystery_open"; definition: string; length: number }
   // Retour prive a l'auteur d'une selection.
   | { type: "hint"; kind: "longer" | "nope" | "already"; message: string }
-  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string; mode: Mode; teamsOn: boolean; mysteryWord: string }
+  | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string; mode: Mode; teamsOn: boolean; teamNames: string[]; mysteryWord: string }
   | { type: "error"; code: MmErrorCode; message: string };

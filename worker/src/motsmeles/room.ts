@@ -47,7 +47,7 @@ const ALLOWED_SIZES = [10, 12, 14];
 const ALLOWED_LEVELS = ["facile", "moyen", "difficile"];
 const ALLOWED_DURATIONS = [180, 300, 420];
 const MYSTERY_BONUS = 3;
-const MAX_TEAMS = 4;
+const MAX_TEAMS = 8;
 
 function cellKey(cells: Cell[]): string {
   return cells.map((c) => c.r + "," + c.c).join(";");
@@ -62,6 +62,8 @@ export class MotsMelesRoom {
   private phase: Phase;
   private mode: Mode;
   private teamsOn: boolean;
+  private teamCount: number;
+  private teamNames: Record<number, string>; // noms personnalises par l'hote (sinon defaut)
   private gridSize: number;
   private level: string;
   private durationSec: number;
@@ -81,6 +83,8 @@ export class MotsMelesRoom {
     this.phase = "lobby";
     this.mode = "commune";
     this.teamsOn = false;
+    this.teamCount = 2;
+    this.teamNames = {};
     this.gridSize = 12;
     this.level = "moyen";
     this.durationSec = 300;
@@ -141,6 +145,8 @@ export class MotsMelesRoom {
     switch (msg.type) {
       case "join": return this.onJoin(ws, msg.pseudo);
       case "setTeamsMode": return this.onSetTeamsMode(ws, msg.on);
+      case "setTeamCount": return this.onSetTeamCount(ws, msg.n);
+      case "setTeamName": return this.onSetTeamName(ws, msg.teamId, msg.name);
       case "setTeam": return this.onSetTeam(ws, msg.pseudo, msg.teamId);
       case "start": return this.onStart(ws, msg.mode, msg.gridSize, msg.level, msg.duration);
       case "claim": return this.onClaim(ws, msg.cells);
@@ -212,12 +218,11 @@ export class MotsMelesRoom {
     for (const p of this.players.values()) c[p.teamId] = (c[p.teamId] || 0) + 1;
     return c;
   }
-  // Renvoie l'equipe (1..2 par defaut) la moins peuplee, pour une repartition
-  // de depart equilibree quand on active le mode equipes ou qu'un joueur arrive.
+  // Equipe la moins peuplee (parmi 1..teamCount), pour une repartition de depart.
   private smallestTeam(): number {
     const c = this.teamCounts();
     let best = 1, bestN = Infinity;
-    for (let t = 1; t <= 2; t++) {
+    for (let t = 1; t <= this.teamCount; t++) {
       const n = c[t] || 0;
       if (n < bestN) { bestN = n; best = t; }
     }
@@ -227,6 +232,15 @@ export class MotsMelesRoom {
     const c = this.teamCounts();
     return Object.keys(c).map(Number).filter((t) => t >= 1 && c[t] > 0);
   }
+  private teamNameOf(t: number): string {
+    const n = this.teamNames[t];
+    return n && n.length ? n : "Équipe " + t;
+  }
+  private teamNamesArr(): string[] {
+    const out: string[] = [];
+    for (let t = 1; t <= this.teamCount; t++) out.push(this.teamNameOf(t));
+    return out;
+  }
 
   private onSetTeamsMode(ws: WebSocket, on: boolean): void {
     const pseudo = this.wsToPseudo.get(ws);
@@ -234,12 +248,34 @@ export class MotsMelesRoom {
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
     this.teamsOn = !!on;
     if (this.teamsOn) {
-      // Repartition de depart : alternance sur 2 equipes (l'hote ajuste ensuite).
+      // Repartition de depart : alternance sur teamCount equipes (l'hote ajuste ensuite).
       let i = 0;
-      for (const p of this.players.values()) { p.teamId = (i % 2) + 1; i++; }
+      for (const p of this.players.values()) { p.teamId = (i % this.teamCount) + 1; i++; }
     } else {
       for (const p of this.players.values()) p.teamId = 0;
     }
+    this.broadcastRoom();
+  }
+
+  private onSetTeamCount(ws: WebSocket, n: number): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote regle les equipes.");
+    if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    this.teamCount = Math.max(2, Math.min(MAX_TEAMS, Math.floor(n) || 2));
+    // Les joueurs dans une equipe devenue hors limite reviennent en equipe 1.
+    for (const p of this.players.values()) if (p.teamId > this.teamCount) p.teamId = 1;
+    this.broadcastRoom();
+  }
+
+  private onSetTeamName(ws: WebSocket, teamId: number, name: string): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote nomme les equipes.");
+    if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    const t = Math.floor(teamId);
+    if (t < 1 || t > MAX_TEAMS) return;
+    const clean = String(name || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 18);
+    if (clean) this.teamNames[t] = clean;
+    else delete this.teamNames[t];
     this.broadcastRoom();
   }
 
@@ -248,8 +284,7 @@ export class MotsMelesRoom {
     if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote compose les equipes.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
     if (!this.teamsOn) return;
-    const t = Math.max(1, Math.min(MAX_TEAMS, Math.floor(teamId)));
-    // Retrouve le joueur (comparaison insensible comme ailleurs).
+    const t = Math.max(1, Math.min(this.teamCount, Math.floor(teamId)));
     for (const [p, s] of this.players.entries()) {
       if (p === target || pseudosEqual(p, target)) { s.teamId = t; break; }
     }
@@ -398,7 +433,7 @@ export class MotsMelesRoom {
   private leader(): string {
     if (this.teamsOn) {
       const t = this.teamRanking();
-      return t.length ? ("Équipe " + t[0].teamId) : "";
+      return t.length ? this.teamNameOf(t[0].teamId) : "";
     }
     const r = this.rank();
     return r.length ? r[0].pseudo : "";
@@ -430,7 +465,8 @@ export class MotsMelesRoom {
     void this.state.storage.deleteAlarm();
     this.broadcast({
       type: "finished", players: this.snapshot(), ranking: this.rank(), winner,
-      mode: this.mode, teamsOn: this.teamsOn, mysteryWord: this.mode === "chacun" ? this.mysteryWord : "",
+      mode: this.mode, teamsOn: this.teamsOn, teamNames: this.teamNamesArr(),
+      mysteryWord: this.mode === "chacun" ? this.mysteryWord : "",
     });
   }
 
@@ -516,7 +552,8 @@ export class MotsMelesRoom {
 
   private gameDTO(forPseudo: string): GameStateDTO {
     const base = {
-      mode: this.mode, teamsOn: this.teamsOn, gridSize: this.gridSize, grid: this.grid.map((row) => row.slice()),
+      mode: this.mode, teamsOn: this.teamsOn, teamNames: this.teamNamesArr(),
+      gridSize: this.gridSize, grid: this.grid.map((row) => row.slice()),
       totalWords: this.words.length, level: this.level,
     };
     if (this.mode === "commune") {
@@ -541,13 +578,16 @@ export class MotsMelesRoom {
       players: this.snapshot(),
       hostPseudo: this.hostPseudo ?? "",
       phase: this.phase,
-      config: { mode: this.mode, teamsOn: this.teamsOn, gridSize: this.gridSize, level: this.level, duration: this.durationSec },
+      config: { mode: this.mode, teamsOn: this.teamsOn, teamCount: this.teamCount, teamNames: this.teamNamesArr(), gridSize: this.gridSize, level: this.level, duration: this.durationSec },
       game: this.phase === "lobby" ? null : this.gameDTO(pseudo),
     });
   }
 
   private broadcastRoom(): void {
-    this.broadcast({ type: "room_state", players: this.snapshot(), hostPseudo: this.hostPseudo ?? "", phase: this.phase, teamsOn: this.teamsOn });
+    this.broadcast({
+      type: "room_state", players: this.snapshot(), hostPseudo: this.hostPseudo ?? "",
+      phase: this.phase, teamsOn: this.teamsOn, teamCount: this.teamCount, teamNames: this.teamNamesArr(),
+    });
   }
   private broadcastGame(): void {
     // Mode commune : meme etat pour tous.
