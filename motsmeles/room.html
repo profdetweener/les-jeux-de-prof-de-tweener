@@ -6,13 +6,16 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
   <header class="landing-header">
     <a href="index.html" class="app-header-home" title="Retour au choix du mode">←</a>
     <h1>Mots mêlés compétitif</h1>
-    <span class="header-tagline" id="roomCodeTag"></span>
+    <span class="connection-status" id="chatStatus" hidden>
+      <span class="dot"></span>
+      <span class="text" id="chatStatusText"></span>
+    </span>
   </header>
 
   <main class="room-main">
@@ -87,7 +90,8 @@
                 Commune : une seule grille partagée, un mot pris n'est plus dispo.
                 Chacun : une grille identique par joueur (ou par équipe), en course
                 sur un minuteur, mot mystère ouvert dès le départ (3 essais, bonus
-                de 3 points). Équipes possibles dans les deux modes.
+                de 3 points). Tchat : tu affiches la grille, ce sont les viewers
+                qui jouent. Équipes possibles dans les trois modes.
               </p>
               <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
               <p class="setup-err" id="startErr"></p>
@@ -102,7 +106,6 @@
     <section id="game" hidden>
       <div class="mm-game">
         <div class="scoreboard" id="scorePanel"></div>
-        <div class="chat-status" id="chatStatus" hidden><span class="dot"></span><span id="chatStatusText"></span></div>
         <div class="mm-grid" id="grid"></div>
         <div class="mm-status" id="status"></div>
         <div class="mm-btns">
@@ -156,6 +159,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=10"></script>
+  <script type="module" src="js/room.js?v=11"></script>
 </body>
 </html>

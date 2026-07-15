@@ -149,7 +149,10 @@ function toast(msg) {
 }
 function normWord(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, ""); }
 function fmtTime(sec) { sec = Math.max(0, sec); const m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
-function curMode() { return (game && game.mode) || (config && config.mode) || startCfg.mode; }
+// En jeu, le mode est celui de la partie. Dans le salon, c'est celui que l'hôte
+// vient de choisir : startCfg.mode est tenu à jour par room_state (et initialisé
+// depuis config au "joined"), alors que config.mode reste figé à l'arrivée.
+function curMode() { return (game && game.mode) || startCfg.mode; }
 
 // ---------- Rendu principal ----------
 function render() {
@@ -247,8 +250,11 @@ function renderLobby() {
     applyModeUI();
     renderTeamConfig();
 
-    const teamsFilled = new Set(players.filter((p) => p.teamId >= 1).map((p) => p.teamId));
     const chatMode = startCfg.mode === "chat";
+    // En tchat, l'hôte n'est pas dans une équipe : ne comptent que les inscrits.
+    const teamsFilled = new Set(
+      players.filter((p) => p.teamId >= 1 && (!chatMode || p.isViewer)).map((p) => p.teamId)
+    );
     let err = "";
     // En mode tchat, les joueurs sont les viewers : l'hôte lance seul.
     if (chatMode && !channelName()) err = "Indique la chaîne Twitch à écouter.";
@@ -504,11 +510,14 @@ function looksLikeWord(text) {
   return /^[\p{L}'-]+$/u.test(t);
 }
 
+// Le module TwitchChat parle en wait/on/err ; le bandeau, lui, utilise les
+// classes de Sésame pour que la pastille soit la même d'un jeu à l'autre.
+const DOT_CLASS = { wait: "connecting", on: "open", err: "error" };
 function setChatStatus(state, text) {
   const box = $("chatStatus");
   if (!box) return;
   box.hidden = false;
-  box.className = "chat-status " + (state || "");
+  box.querySelector(".dot").className = "dot " + (DOT_CLASS[state] || "");
   $("chatStatusText").textContent = text;
 }
 

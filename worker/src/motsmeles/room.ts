@@ -334,9 +334,26 @@ export class MotsMelesRoom {
     }
     this.teamsOn = !!on;
     if (this.teamsOn) {
-      // Repartition de depart : alternance sur teamCount equipes (l'hote ajuste ensuite).
+      // Repartition de depart : alternance sur teamCount equipes (l'hote ajuste
+      // ensuite). En "chat", ce sont les viewers inscrits qu'on repartit : les
+      // connectes (donc l'hote) n'entrent dans aucune equipe, ils affichent la
+      // grille. Sans ce cas particulier, l'hote se retrouvait en equipe 1 et
+      // faisait croire a une equipe garnie de plus qu'en realite.
       let i = 0;
-      for (const p of this.players.values()) { p.teamId = (i % this.teamCount) + 1; i++; }
+      if (this.mode === "chat") {
+        for (const p of this.players.values()) p.teamId = 0;
+        for (const v of this.viewers.values()) {
+          if (!v.joined) continue;
+          // Un viewer qui a deja demande une equipe la garde.
+          if (v.teamId < 1 || v.teamId > this.teamCount) {
+            v.teamId = (i % this.teamCount) + 1;
+            i++;
+          }
+          v.color = this.teamColor(v.teamId);
+        }
+      } else {
+        for (const p of this.players.values()) { p.teamId = (i % this.teamCount) + 1; i++; }
+      }
     } else {
       for (const p of this.players.values()) p.teamId = 0;
     }
@@ -430,16 +447,21 @@ export class MotsMelesRoom {
     }
     v.name = name;
 
+    const t = Math.floor(team);
+    // Le viewer choisit son equipe ; a defaut on equilibre. Sur une demande hors
+    // plage, on traite comme s'il n'avait rien demande.
+    const wanted = t >= 1 && t <= this.teamCount ? t : 0;
     if (this.teamsOn) {
-      const t = Math.floor(team);
-      // Le viewer choisit son equipe ; a defaut on equilibre. Sur une demande
-      // hors plage, on traite comme s'il n'avait rien demande.
-      const wanted = t >= 1 && t <= this.teamCount ? t : 0;
       if (!v.joined) v.teamId = wanted || this.smallestTeam();
       else if (wanted) v.teamId = wanted;   // changement d'equipe assume
       // En equipes, la couleur est celle de l'equipe : elle est connue des
       // l'inscription, pas au premier point comme en chacun pour soi.
       v.color = this.teamColor(v.teamId);
+    } else if (wanted) {
+      // Les equipes ne sont pas encore actives : on retient quand meme le choix,
+      // sinon un viewer qui s'inscrit tot le verrait ecrase par la repartition
+      // de depart.
+      v.teamId = wanted;
     }
     v.joined = true;
     this.broadcastRoom();
@@ -782,7 +804,12 @@ export class MotsMelesRoom {
   // total le plus tot (dernier mot le plus ancien).
   private teamRanking(): Array<{ teamId: number; score: number; last: number }> {
     const agg: Record<number, { teamId: number; score: number; last: number }> = {};
-    for (const p of this.players.values()) {
+    // En "chat", les equipes sont composees de viewers, pas de connectes.
+    const rows: Array<{ teamId: number; score: number; lastFindAt: number }> =
+      this.mode === "chat"
+        ? [...this.viewers.values()].filter((v) => v.joined)
+        : [...this.players.values()];
+    for (const p of rows) {
       if (p.teamId < 1) continue;
       const a = agg[p.teamId] || (agg[p.teamId] = { teamId: p.teamId, score: 0, last: 0 });
       a.score += p.score;
