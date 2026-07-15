@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés compétitif</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
   <header class="landing-header">
@@ -80,7 +80,7 @@
               <p class="rules-note" style="margin:0 0 14px" id="modeNote">
                 Commune : une seule grille partagée, un mot pris n'est plus dispo.
                 Chacun : chacun sa grille identique, en course sur un minuteur, mot
-                mystère bonus quand tu as tout trouvé.
+                mystère ouvert à tous dès le départ (3 essais, bonus de 3 points).
               </p>
               <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
               <p class="setup-err" id="startErr"></p>
@@ -100,17 +100,6 @@
         <div class="mm-btns">
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
         </div>
-
-        <section class="mm-mystery" id="mystery" hidden>
-          <h3>Mot mystère</h3>
-          <p class="def" id="mystDef"></p>
-          <p class="hint" id="mystHint"></p>
-          <div class="guess-row">
-            <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
-            <button class="btn btn-primary" id="mystSubmit">Valider</button>
-          </div>
-          <div class="msg" id="mystMsg"></div>
-        </section>
       </div>
     </section>
 
@@ -125,6 +114,28 @@
     </section>
   </main>
 
+  <!-- Modale du mot mystère (mode chacun). Ouverte depuis la pastille du
+       bandeau de score : rien ne reste à l'écran en jeu, la grille garde
+       toute la place. Les lettres restantes sont extraites de la grille du
+       joueur, dans l'ordre de lecture. -->
+  <div class="myst-overlay" id="mystOverlay" hidden>
+    <div class="myst-modal" role="dialog" aria-modal="true" aria-labelledby="mystTitle">
+      <div class="myst-head">
+        <h3 id="mystTitle">Mot mystère</h3>
+        <button type="button" class="myst-close" id="mystClose" aria-label="Fermer">×</button>
+      </div>
+      <p class="def" id="mystDef"></p>
+      <p class="letters-lbl" id="mystLettersLbl"></p>
+      <div class="letters" id="mystLetters"></div>
+      <div class="guess-row">
+        <input type="text" id="mystInput" autocomplete="off" spellcheck="false" placeholder="Ta réponse">
+        <button class="btn btn-primary" id="mystSubmit">Valider</button>
+      </div>
+      <div class="msg" id="mystMsg"></div>
+      <p class="tries" id="mystTries"></p>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <footer class="app-footer">
@@ -137,6 +148,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=6"></script>
+  <script type="module" src="js/room.js?v=7"></script>
 </body>
 </html>

@@ -69,30 +69,23 @@ conn.on("found", (m) => {
   updateScoreboard();
   const who = m.word.pseudo === ME ? "Toi" : m.word.pseudo;
   toast(`${who} : ${m.word.word}`);
+  // En "chacun", grille vidée : il ne reste que les lettres du mystère.
+  if (curMode() === "chacun" && m.remaining === 0) {
+    const me = players.find((p) => p.pseudo === ME);
+    if (me && !me.solvedMystery) setStatus("Grille terminée ! Il ne reste que le mot mystère.");
+  }
 });
-conn.on("scores", (m) => {
-  players = m.players;
+conn.on("scores", (m) => { players = m.players; updateScoreboard(); });
+// Résultat d'une tentative de mot mystère : la modale est forcément ouverte.
+conn.on("mystery_result", (m) => {
+  if (game) game.mysteryTriesLeft = m.triesLeft;
+  $("mystMsg").textContent = m.message;
+  $("mystMsg").className = "msg " + (m.ok ? "ok" : "err");
+  if (m.ok) { toast("Mot mystère trouvé ! +3"); }
+  refreshMystery();
   updateScoreboard();
-  // Si j'ai résolu le mystère, feedback dans le panneau.
-  const me = players.find((p) => p.pseudo === ME);
-  if (me && me.solvedMystery && $("mystery") && !$("mystery").hidden) {
-    $("mystMsg").textContent = "Bravo, mot mystère trouvé ! +3 points.";
-    $("mystMsg").className = "msg ok";
-    $("mystInput").disabled = true; $("mystSubmit").disabled = true;
-  }
 });
-conn.on("mystery_open", (m) => {
-  if (game) { game.mysteryOpen = true; game.mysteryDefinition = m.definition; }
-  openMystery(m.definition, m.length);
-});
-conn.on("hint", (m) => {
-  const cls = m.kind === "longer" ? "warn" : "";
-  if (m.kind === "nope" && $("mystery") && !$("mystery").hidden && game && game.mysteryOpen) {
-    $("mystMsg").textContent = m.message; $("mystMsg").className = "msg err";
-  } else {
-    setStatus(m.message, cls);
-  }
-});
+conn.on("hint", (m) => setStatus(m.message, m.kind === "longer" ? "warn" : ""));
 conn.on("finished", (m) => {
   players = m.players; phase = "finished"; game = null;
   stopTimer();
@@ -248,8 +241,10 @@ function renderGame() {
 
   if (curMode() === "chacun" && game.endsAt) startTimer(); else stopTimer();
 
-  if (curMode() === "chacun" && game.mysteryOpen) openMystery(game.mysteryDefinition, null);
-  else { $("mystery").hidden = true; if (curMode() === "commune") setStatus(""); }
+  // La modale mystère ne s'ouvre plus toute seule : elle est à un clic de la
+  // pastille du bandeau, quand le joueur le décide.
+  closeMystery();
+  if (curMode() === "commune") setStatus("");
 }
 
 function updateScoreboard() {
@@ -257,7 +252,7 @@ function updateScoreboard() {
   const chacun = curMode() === "chacun";
   const mine = game.found.length;
   const goal = chacun
-    ? `Ta grille <b>${mine}</b> / ${game.totalWords} <span class="sb-timer" id="sbTimer"></span>`
+    ? `Ta grille <b>${mine}</b> / ${game.totalWords} <span class="sb-timer" id="sbTimer"></span>${mysteryChip()}`
     : `Mots trouvés <b>${mine}</b> / ${game.totalWords}`;
 
   let chips;
@@ -359,7 +354,9 @@ function paintCell(key) {
 
 $("grid").addEventListener("click", (e) => {
   const cell = e.target.closest(".mm-cell");
-  if (!cell || !game || game.mysteryOpen) return;
+  // Plus de garde sur game.mysteryOpen : le mystère est ouvert dès le
+  // lancement, la grille reste jouable pendant toute la partie.
+  if (!cell || !game) return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   if (!sel) { sel = { r, c, el: cell }; cell.classList.add("sel-start"); return; }
   if (sel.r === r && sel.c === c) { cell.classList.remove("sel-start"); sel = null; return; }
@@ -394,30 +391,106 @@ let _rz;
 window.addEventListener("resize", () => { clearTimeout(_rz); _rz = setTimeout(sizeGrid, 120); });
 
 // ---------- Mot mystère (chacun) ----------
-function openMystery(def, length) {
-  const panel = $("mystery");
-  $("mystDef").textContent = def || "";
-  $("mystHint").textContent = (length ? length + " lettres. " : "") + "Les cases restantes de ta grille, de gauche à droite puis de haut en bas.";
+// Le mystère est ouvert dès le lancement. Il n'occupe pas la page : une
+// pastille dans le bandeau, et une modale à la demande.
+
+function iSolvedMystery() {
   const me = players.find((p) => p.pseudo === ME);
-  if (me && me.solvedMystery) {
+  return !!(me && me.solvedMystery);
+}
+function triesLeft() {
+  return game && typeof game.mysteryTriesLeft === "number" ? game.mysteryTriesLeft : 0;
+}
+
+function mysteryChip() {
+  if (!game || !game.mysteryOpen) return "";
+  if (iSolvedMystery()) return ` <button type="button" class="myst-chip done" id="mystChip">⭐ Mystère trouvé</button>`;
+  const left = triesLeft();
+  const len = game.mysteryLength ? game.mysteryLength + " lettres" : "";
+  const cls = left > 0 ? "" : " spent";
+  const essais = left > 0 ? left + (left > 1 ? " essais" : " essai") : "0 essai";
+  return ` <button type="button" class="myst-chip${cls}" id="mystChip">⭐ Mystère · ${len} · ${essais}</button>`;
+}
+
+// Les lettres non barrées de MA grille, dans l'ordre de lecture (gauche à
+// droite puis haut en bas). Le générateur garantit qu'aucun mot trouvable ne
+// traverse le mystère : à grille vidée, cette chaîne EST le mot mystère.
+function remainingLetters() {
+  if (!game || !game.grid) return "";
+  const taken = new Set();
+  for (const w of game.found) for (const cc of w.cells) taken.add(cc.r + "," + cc.c);
+  let out = "";
+  for (let r = 0; r < game.gridSize; r++) {
+    for (let c = 0; c < game.gridSize; c++) {
+      if (!taken.has(r + "," + c)) out += game.grid[r][c];
+    }
+  }
+  return out;
+}
+
+function openMystery() {
+  if (!game || !game.mysteryOpen) return;
+  $("mystDef").textContent = game.mysteryDefinition || "";
+  refreshMystery();
+  $("mystOverlay").hidden = false;
+  const inp = $("mystInput");
+  if (!inp.disabled) { inp.value = ""; inp.focus(); }
+}
+function closeMystery() {
+  const o = $("mystOverlay");
+  if (o) o.hidden = true;
+}
+
+// Rafraîchit le contenu de la modale (lettres, essais, état résolu).
+function refreshMystery() {
+  if (!game) return;
+  const letters = remainingLetters();
+  const solved = iSolvedMystery();
+  const target = game.mysteryLength || 0;
+
+  const box = $("mystLetters");
+  box.textContent = letters;
+  box.classList.toggle("solved", target > 0 && letters.length === target);
+
+  // Au lancement, la chaîne vaut toute la grille : les lettres du mystère sont
+  // noyées dans celles des mots pas encore trouvés. Elle se dégage à mesure.
+  $("mystLettersLbl").textContent = target > 0 && letters.length === target
+    ? "Il ne reste que le mystère."
+    : `${letters.length} lettres restantes, dans l'ordre de lecture. Les ${target} du mystère sont dedans.`;
+
+  const left = triesLeft();
+  const done = solved || left <= 0;
+  $("mystInput").disabled = done;
+  $("mystSubmit").disabled = done;
+  $("mystTries").textContent = solved
+    ? "Bonus +3 empoché."
+    : (left > 0 ? left + (left > 1 ? " essais restants." : " essai restant.") : "Plus d'essais.");
+  if (solved && !$("mystMsg").textContent) {
     $("mystMsg").textContent = "Déjà trouvé ! +3 points.";
     $("mystMsg").className = "msg ok";
-    $("mystInput").disabled = true; $("mystSubmit").disabled = true;
-  } else {
-    $("mystMsg").textContent = ""; $("mystMsg").className = "msg";
-    $("mystInput").disabled = false; $("mystSubmit").disabled = false;
   }
-  panel.hidden = false;
-  $("mystSubmit").onclick = submitMystery;
-  $("mystInput").onkeydown = (e) => { if (e.key === "Enter") submitMystery(); };
-  setStatus("Grille terminée ! Trouve le mot mystère pour le bonus.");
 }
+
 function submitMystery() {
   const guess = normWord($("mystInput").value);
   if (!guess) return;
   conn.send({ type: "mysteryGuess", guess });
   $("mystInput").select();
 }
+
+// Le bandeau est re-rendu en innerHTML : on délègue le clic au conteneur.
+$("scorePanel").addEventListener("click", (e) => {
+  if (!e.target.closest("#mystChip")) return;
+  $("mystMsg").textContent = ""; $("mystMsg").className = "msg";
+  openMystery();
+});
+$("mystClose").onclick = closeMystery;
+$("mystOverlay").addEventListener("click", (e) => { if (e.target === $("mystOverlay")) closeMystery(); });
+$("mystSubmit").onclick = submitMystery;
+$("mystInput").onkeydown = (e) => { if (e.key === "Enter") submitMystery(); };
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("mystOverlay") && !$("mystOverlay").hidden) closeMystery();
+});
 
 // ---------- Fin de partie ----------
 function renderFinished(m) {

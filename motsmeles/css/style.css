@@ -104,7 +104,10 @@
 .mm-status.warn { color: #a9791c; }
 .mm-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
-/* ===================== Panneau mot mystere ===================== */
+/* ===================== Panneau mot mystere (mode CHILL) =====================
+   Le chill garde un panneau sous la grille : il n'apparait qu'une fois la
+   grille videe, donc la place n'est plus disputee. Le competitif, lui, ouvre
+   le mystere des le lancement et passe par une modale (plus bas). */
 .mm-mystery {
   width: 100%; max-width: 440px; background: var(--blanc);
   border-radius: var(--rayon); box-shadow: var(--ombre-forte);
@@ -123,6 +126,66 @@
 .mm-mystery .msg { min-height: 18px; font-size: 13px; font-weight: 600; margin-top: 10px; }
 .mm-mystery .msg.err { color: var(--rouge); }
 .mm-mystery .msg.ok { color: var(--vert); }
+
+/* ===================== Mot mystere (mode chacun) =====================
+   Le mystere est ouvert des le lancement, mais il ne prend aucune place en
+   jeu : une pastille dans le bandeau de score l'ouvre en modale. La grille
+   reste entiere, y compris sur mobile. */
+
+/* Pastille dans la ligne .sb-goal */
+.myst-chip {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+  background: var(--blanc); border: 1px solid var(--jaune); border-radius: 999px;
+  padding: 2px 9px; margin-left: 6px; font-size: 11.5px; font-weight: 600;
+  color: var(--bleu-nuit); cursor: pointer; font-family: inherit;
+  transition: background .12s;
+}
+.myst-chip:hover { background: var(--beige); }
+.myst-chip.done { border-color: var(--vert); color: var(--vert); cursor: default; }
+.myst-chip.spent { border-color: var(--gris-clair); color: var(--gris-texte); }
+
+/* Modale, calquee sur .definition-overlay de Sesame */
+.myst-overlay {
+  position: fixed; inset: 0; background: rgba(26, 37, 64, .55); z-index: 1100;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  animation: myst-fade .15s ease-out;
+}
+@keyframes myst-fade { from { opacity: 0; } to { opacity: 1; } }
+.myst-modal {
+  background: var(--blanc); border-radius: var(--rayon); border: 2px solid var(--jaune);
+  box-shadow: var(--ombre-forte); padding: 18px; width: 100%; max-width: 440px;
+  max-height: 86vh; overflow-y: auto; text-align: center;
+}
+.myst-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.myst-head h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--bleu-nuit); }
+.myst-close {
+  width: 30px; height: 30px; border: none; background: transparent; font-size: 22px;
+  line-height: 1; color: var(--gris-texte); cursor: pointer; border-radius: 50%; font-family: inherit;
+}
+.myst-close:hover { background: var(--beige); color: var(--bleu-nuit); }
+.myst-modal .def { font-style: italic; color: var(--gris-texte); margin: 8px 0 12px; line-height: 1.5; font-size: 14px; }
+.myst-modal .letters-lbl { font-size: 11.5px; color: var(--gris-texte); margin: 0 0 4px; }
+/* Les lettres restantes de TA grille, dans l'ordre de lecture. Elles se
+   reduisent a mesure que tu trouves des mots, jusqu'a valoir le mystere. */
+.myst-modal .letters {
+  background: var(--beige); border-radius: var(--rayon-sm); padding: 8px 10px;
+  font-family: Georgia, serif; font-size: 13px; letter-spacing: 2px; line-height: 1.7;
+  color: var(--bleu-nuit); word-break: break-all; margin-bottom: 12px; min-height: 20px;
+}
+.myst-modal .letters.solved { background: rgba(74, 140, 90, .16); color: #2f7d54; font-weight: 700; }
+.myst-modal .guess-row { display: flex; gap: 8px; }
+.myst-modal input {
+  flex: 1; min-width: 0; padding: 10px 12px; border: 2px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm); font-size: 16px; background: var(--beige);
+  color: var(--bleu-nuit); font-family: inherit; text-transform: uppercase; letter-spacing: .06em;
+}
+.myst-modal input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
+.myst-modal input:disabled { opacity: .6; }
+.myst-modal .msg { min-height: 18px; font-size: 13px; font-weight: 600; margin-top: 10px; }
+.myst-modal .msg.err { color: var(--rouge); }
+.myst-modal .msg.ok { color: var(--vert); }
+.myst-modal .tries { font-size: 11.5px; color: var(--gris-texte); margin: 6px 0 0; }
+@media (max-width: 600px) { .myst-modal { padding: 14px; } }
 
 /* ===================== Ecran de victoire ===================== */
 .mm-win { width: 100%; max-width: 440px; background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 26px 22px; text-align: center; }

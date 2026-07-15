@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés, règles</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
   <header class="landing-header">
@@ -49,9 +49,15 @@
         </p>
         <h3>Le mot mystère</h3>
         <p>
-          Quand tous les mots sont trouvés, il reste quelques cases orphelines. Lues
-          de gauche à droite puis de haut en bas, elles forment un mot mystère. Une
-          définition s'affiche pour t'aider à le deviner et boucler la grille.
+          Les mots cachés ne remplissent pas toute la grille : il reste des cases
+          orphelines. Lues de gauche à droite puis de haut en bas, elles forment
+          un mot mystère, et aucun mot à trouver ne le traverse. Une définition
+          t'aide à le deviner. Autrement dit, plus tu barres de mots, plus les
+          lettres qui restent se rapprochent du mystère.
+        </p>
+        <p class="rules-note">
+          Le moment où il s'ouvre dépend du mode : à la fin de la grille en chill,
+          dès le lancement en « chacun sa grille ». Voir les onglets.
         </p>
         <h3>Taille et difficulté</h3>
         <p>Trois tailles de grille (Petite 10×10, Moyenne 12×12, Grande 14×14) et trois niveaux, valables en chill comme en compétitif :</p>
@@ -110,10 +116,17 @@
         </p>
         <ul class="rules-list">
           <li><strong>Score</strong> : le nombre de mots que tu trouves.</li>
-          <li><strong>Mot mystère</strong> : quand tu as vidé ta grille, sa
-            définition s'ouvre pour toi. Le deviner rapporte un bonus de 3 points.</li>
+          <li><strong>Mot mystère</strong> : ouvert pour tout le monde dès le
+            lancement, via la pastille ⭐ du bandeau. La modale te donne la
+            définition et tes lettres restantes, dans l'ordre de lecture. Au
+            début elles valent toute la grille, donc le mystère y est illisible ;
+            plus tu trouves de mots, plus la chaîne se réduit, jusqu'à ne plus
+            contenir que le mystère quand tu as vidé ta grille. Le deviner
+            rapporte 3 points, et tu as droit à 3 essais : tenter tôt est un
+            pari, attendre coûte du temps.</li>
           <li><strong>Fin</strong> : à la fin du minuteur, le plus de points gagne
-            (départage au chrono).</li>
+            (départage au chrono, c'est-à-dire au temps mis pour atteindre ton
+            score final).</li>
         </ul>
         <h3>Déconnexion</h3>
         <p>

@@ -5,8 +5,12 @@
  *  - "commune" : grille commune interactive, verrouillage aux couleurs, score au
  *                nombre de mots, fin quand la grille est videe. Pas de mystere.
  *  - "chacun"  : chacun sa grille (identique), en parallele, minuteur cote
- *                serveur (alarme DO). Score au nombre de mots + bonus mystere
- *                quand on vide sa grille. Classement a la fin du minuteur.
+ *                serveur (alarme DO). Score au nombre de mots + bonus mystere.
+ *                Le mystere est ouvert a tous des le lancement, avec un nombre
+ *                d'essais limite : plus on a trouve de mots, plus les cases
+ *                restantes de sa grille sont lisibles, donc le mystere se
+ *                merite sans jamais etre hors d'atteinte. Classement a la fin
+ *                du minuteur, departage au chrono (lastFindAt).
  *
  * En "chacun", l'etat (cases trouvees, mystere) est PROPRE a chaque joueur : le
  * serveur construit un game_state par destinataire.
@@ -27,6 +31,7 @@ interface Session {
   color: number;
   score: number;
   solvedMystery: boolean;
+  mysteryTries: number;   // essais de mot mystere deja consommes
   lastFindAt: number;
   joinedAt: number;
   foundKeys: Set<string>; // "chacun" : cles des mots trouves par CE joueur
@@ -47,6 +52,10 @@ const ALLOWED_SIZES = [10, 12, 14];
 const ALLOWED_LEVELS = ["facile", "moyen", "difficile"];
 const ALLOWED_DURATIONS = [180, 300, 420];
 const MYSTERY_BONUS = 3;
+// Essais de mot mystere par joueur. Le mystere etant ouvert des le lancement, la
+// limite est ce qui empeche de mitrailler des mots plausibles jusqu'a tomber
+// juste : tenter tot devient un pari. Passera par equipe en "chacun" + equipes.
+const MYSTERY_TRIES = 3;
 const MAX_TEAMS = 8;
 
 function cellKey(cells: Cell[]): string {
@@ -190,7 +199,7 @@ export class MotsMelesRoom {
 
     const session: Session = {
       pseudo, ws, color: this.freeColor(), score: 0, solvedMystery: false,
-      lastFindAt: 0, joinedAt: Date.now(), foundKeys: new Set(),
+      mysteryTries: 0, lastFindAt: 0, joinedAt: Date.now(), foundKeys: new Set(),
       teamId: this.teamsOn ? this.smallestTeam() : 0,
     };
     this.players.set(pseudo, session);
@@ -330,7 +339,8 @@ export class MotsMelesRoom {
     this.mysteryCells = gen.mystery.cells;
 
     for (const p of this.players.values()) {
-      p.score = 0; p.solvedMystery = false; p.lastFindAt = 0; p.foundKeys = new Set();
+      p.score = 0; p.solvedMystery = false; p.mysteryTries = 0;
+      p.lastFindAt = 0; p.foundKeys = new Set();
       // En equipes, la couleur represente l'equipe (coequipiers = meme couleur).
       if (this.teamsOn) p.color = this.teamColor(p.teamId);
     }
@@ -380,7 +390,6 @@ export class MotsMelesRoom {
           const remaining = this.words.length - me.foundKeys.size;
           this.send(ws, { type: "found", players: this.snapshot(), word: fw, remaining });
           this.broadcastScores();
-          if (remaining === 0) this.send(ws, { type: "mystery_open", definition: this.mysteryDef, length: this.mysteryWord.length });
           return;
         }
       }
@@ -397,21 +406,41 @@ export class MotsMelesRoom {
     this.send(ws, { type: "hint", kind: "nope", message: "Pas un mot cache ici." });
   }
 
+  // Le mystere est ouvert des le lancement : plus de verrou sur la completion de
+  // la grille. Ce qui borne, c'est le nombre d'essais.
   private onMysteryGuess(ws: WebSocket, guess: string): void {
     const pseudo = this.wsToPseudo.get(ws);
     if (!pseudo) return;
     if (this.phase !== "playing" || this.mode !== "chacun") return this.err(ws, "WRONG_PHASE", "Indisponible ici.");
     const me = this.players.get(pseudo)!;
-    if (me.foundKeys.size < this.words.length) return this.err(ws, "WRONG_PHASE", "Termine d'abord ta grille.");
     if (me.solvedMystery) return;
+    if (me.mysteryTries >= MYSTERY_TRIES) {
+      return this.send(ws, { type: "mystery_result", ok: false, triesLeft: 0, message: "Plus d'essais." });
+    }
     const g = this.norm(String(guess || ""));
     if (!g) return;
+
     if (g === this.mysteryWord) {
-      me.solvedMystery = true; me.score += MYSTERY_BONUS; me.lastFindAt = Date.now();
+      // Un essai reussi ne consomme rien : seuls les ratages coutent.
+      me.solvedMystery = true;
+      me.score += MYSTERY_BONUS;
+      me.lastFindAt = Date.now();
+      this.send(ws, {
+        type: "mystery_result", ok: true, triesLeft: MYSTERY_TRIES - me.mysteryTries,
+        message: "Mot mystere trouve ! +" + MYSTERY_BONUS + " points.",
+      });
       this.broadcastScores();
-    } else {
-      this.send(ws, { type: "hint", kind: "nope", message: "Pas le bon mot mystere." });
+      return;
     }
+
+    me.mysteryTries++;
+    const left = MYSTERY_TRIES - me.mysteryTries;
+    this.send(ws, {
+      type: "mystery_result", ok: false, triesLeft: left,
+      message: left > 0
+        ? "Pas le bon mot. " + left + (left > 1 ? " essais restants." : " essai restant.")
+        : "Pas le bon mot. Plus d'essais.",
+    });
   }
 
   private onEndGame(ws: WebSocket): void {
@@ -557,16 +586,23 @@ export class MotsMelesRoom {
       totalWords: this.words.length, level: this.level,
     };
     if (this.mode === "commune") {
-      return { ...base, found: this.foundShared(), endsAt: null, mysteryOpen: false, mysteryDefinition: null };
+      return {
+        ...base, found: this.foundShared(), endsAt: null,
+        mysteryOpen: false, mysteryDefinition: null, mysteryLength: null, mysteryTriesLeft: 0,
+      };
     }
+    // "chacun" : le mystere est ouvert a tous des que la partie tourne. Ce sont
+    // les cases restantes de chacun qui font la difficulte, pas un verrou.
     const p = this.players.get(forPseudo);
-    const done = p ? p.foundKeys.size >= this.words.length : false;
+    const open = this.phase === "playing";
     return {
       ...base,
       found: p ? this.foundForPlayer(p) : [],
       endsAt: this.endsAt,
-      mysteryOpen: done,
-      mysteryDefinition: done ? this.mysteryDef : null,
+      mysteryOpen: open,
+      mysteryDefinition: open ? this.mysteryDef : null,
+      mysteryLength: open ? this.mysteryWord.length : null,
+      mysteryTriesLeft: p ? Math.max(0, MYSTERY_TRIES - p.mysteryTries) : MYSTERY_TRIES,
     };
   }
 

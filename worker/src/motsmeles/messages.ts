@@ -8,9 +8,16 @@
  *
  *  - "chacun"   : chacun sa grille (identique). On cherche en parallele, sans
  *                 verrouillage entre joueurs. Minuteur regle par l'hote. Score =
- *                 nombre de mots ; quand tu vides TA grille, le mot mystere
- *                 s'ouvre pour toi et le deviner rapporte un bonus. Classement a
- *                 la fin du minuteur, departage au chrono.
+ *                 nombre de mots ; le mot mystere est ouvert a tous des le
+ *                 lancement, avec un nombre d'essais limite. Le deviner rapporte
+ *                 un bonus. Classement a la fin du minuteur, departage au chrono.
+ *
+ *                 Le mystere est composee des cases NON couvertes par les mots
+ *                 trouvables (protectMystery garantit qu'aucun mot ne le
+ *                 traverse). Le client lit donc ses cases restantes dans l'ordre
+ *                 et affiche la chaine : plus tu trouves de mots, plus elle se
+ *                 reduit, jusqu'a valoir exactement le mystere. Aucun calcul
+ *                 serveur la-dedans, le client a la grille et ses mots trouves.
  *
  * En "chacun", l'etat de jeu (cases trouvees, mystere) est PROPRE a chaque
  * joueur : le serveur envoie a chacun son propre game_state / found.
@@ -57,8 +64,10 @@ export interface GameStateDTO {
   // "commune" : mots trouves partages. "chacun" : mots trouves DU destinataire.
   found: FoundWord[];
   endsAt: number | null;            // "chacun" : fin du minuteur (ms epoch)
-  mysteryOpen: boolean;             // "chacun" : le destinataire a tout trouve
+  mysteryOpen: boolean;             // "chacun" : vrai des le lancement, pour tous
   mysteryDefinition: string | null;
+  mysteryLength: number | null;     // "chacun" : nombre de lettres du mystere
+  mysteryTriesLeft: number;         // "chacun" : essais restants DU destinataire
 }
 
 // -------- Client -> serveur --------
@@ -92,8 +101,10 @@ export type ServerMessage =
   | { type: "found"; players: MmPlayer[]; word: FoundWord; remaining: number }
   // "chacun" : mise a jour legere des scores pour tous (sans la grille).
   | { type: "scores"; players: MmPlayer[] }
-  // "chacun" : le mot mystere s'ouvre pour ce joueur (prive).
-  | { type: "mystery_open"; definition: string; length: number }
+  // "chacun" : retour prive sur une tentative de mot mystere. Le mystere etant
+  // ouvert des le lancement (via game_state), il n'y a plus de message
+  // d'ouverture : seul le resultat d'un essai circule.
+  | { type: "mystery_result"; ok: boolean; triesLeft: number; message: string }
   // Retour prive a l'auteur d'une selection.
   | { type: "hint"; kind: "longer" | "nope" | "already"; message: string }
   | { type: "finished"; players: MmPlayer[]; ranking: MmPlayer[]; winner: string; mode: Mode; teamsOn: boolean; teamNames: string[]; mysteryWord: string }
