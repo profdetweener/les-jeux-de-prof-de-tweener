@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Mots mêlés, règles</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=3">
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <header class="landing-header">
@@ -44,8 +44,8 @@
           Comme aucune liste n'est affichée, tu peux former un mot juste qui n'est
           pas celui caché (par exemple TENDRE alors que la grille cache TENDRESSE).
           Règle : c'est toujours le mot le plus long qui compte. Si ta sélection
-          n'est que le début d'un mot plus long, la grille te répond « Plus long ! » :
-          prolonge jusqu'au bout.
+          n'est qu'une partie du mot attendu, le jeu te répondra que le mot attendu
+          est plus long.
         </p>
         <h3>Le mot mystère</h3>
         <p>
@@ -57,7 +57,8 @@
         </p>
         <p class="rules-note">
           Le moment où il s'ouvre dépend du mode : à la fin de la grille en chill,
-          dès le lancement en « chacun sa grille ». Voir les onglets.
+          dès le lancement en « chacun sa grille ». Regarde les autres onglets dans
+          les règles.
         </p>
         <h3>Taille et difficulté</h3>
         <p>Trois tailles de grille (Petite 10×10, Moyenne 12×12, Grande 14×14) et trois niveaux, valables en chill comme en compétitif :</p>
@@ -130,9 +131,10 @@
         </ul>
         <h3>Tchat Twitch</h3>
         <p>
-          L'hôte affiche la grille sur son stream et n'y touche pas : ce sont les
-          viewers qui jouent, en écrivant les mots dans le tchat. Pas besoin
-          d'être connecté au site, ni d'avoir un compte : il suffit d'écrire.
+          L'hôte affiche la grille sur son stream : ce sont les viewers qui jouent,
+          en écrivant les mots dans le tchat (la personne qui stream peut également
+          jouer dans le tchat évidemment). Pas besoin d'être connecté au site, ni
+          d'avoir un compte : il suffit d'écrire.
         </p>
         <ul class="rules-list">
           <li><strong>Comment jouer</strong> : écris juste le mot dans le tchat.
@@ -145,6 +147,11 @@
             freiner, mais pas de quoi dérouler un dictionnaire.</li>
           <li><strong>Fin</strong> : quand la grille est vidée, ou quand l'hôte
             termine. Pas de mot mystère, comme en grille commune.</li>
+          <li><strong>En équipes</strong> : là, il faut s'inscrire avant, en
+            écrivant <b>!join</b> dans le tchat. Tu peux choisir ton équipe avec
+            <b>!join 2</b>, sinon tu es placé dans la moins remplie, et l'hôte
+            peut corriger. Un retardataire peut encore s'inscrire une fois la
+            partie lancée. Sans inscription, tes mots ne comptent pas.</li>
         </ul>
 
         <h3>Équipes</h3>
@@ -152,16 +159,20 @@
           L'hôte peut basculer le salon en équipes (2 à 8) et composer lui-même
           les groupes, quitte à les déséquilibrer. Les coéquipiers partagent une
           couleur, et le score de l'équipe est la somme de ses membres. Les
-          équipes marchent dans les deux modes, mais pas de la même façon.
+          équipes marchent dans les trois modes, mais pas de la même façon.
         </p>
         <ul class="rules-list">
           <li><strong>Grille commune</strong> : tout le monde sur la même grille,
             un mot verrouillé à la couleur de l'équipe qui le prend.</li>
-          <li><strong>Chacun sa grille</strong> : chaque équipe a sa grille,
-            partagée entre ses membres. Un mot trouvé par un coéquipier se barre
-            chez les autres et ne rapporte qu'une fois : à vous de ne pas
-            chercher tous au même endroit. Les équipes adverses ne vous bloquent
-            pas, elles ont leur propre grille.</li>
+          <li><strong>Chacun sa grille</strong> : votre équipe a une grille pour
+            elle, et vous êtes plusieurs dessus en même temps. Dès qu'un
+            coéquipier trouve un mot, celui-ci se colore aussi sur ton écran et
+            ne rapporte plus rien à personne : inutile de le chercher à ton tour.
+            Tout l'intérêt est de ne pas fouiller les mêmes coins. Les équipes
+            adverses, elles, ne vous gênent pas : chacune a sa propre grille.</li>
+          <li><strong>Tchat</strong> : une seule grille, verrouillée à la couleur
+            de l'équipe qui prend le mot. Les viewers s'inscrivent avec !join
+            (voir l'onglet Tchat Twitch).</li>
           <li><strong>Mot mystère en équipes</strong> : un seul par équipe, avec
             3 essais et un bonus de 3 points pour l'équipe, quel que soit le
             nombre de coéquipiers.</li>

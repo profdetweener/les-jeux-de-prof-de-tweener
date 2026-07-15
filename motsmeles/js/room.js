@@ -93,7 +93,12 @@ conn.on("joined", (m) => {
   } catch {}
   render();
 });
-conn.on("room_state", (m) => { players = m.players; phase = m.phase; teamsOn = !!m.teamsOn; teamCount = m.teamCount || 2; teamNames = m.teamNames || []; render(); });
+conn.on("room_state", (m) => {
+  players = m.players; phase = m.phase; teamsOn = !!m.teamsOn;
+  teamCount = m.teamCount || 2; teamNames = m.teamNames || [];
+  if (m.mode) startCfg.mode = m.mode;
+  render();
+});
 conn.on("game_state", (m) => { players = m.players; phase = m.phase; game = m.game; if (game) { teamsOn = !!game.teamsOn; teamNames = game.teamNames || []; } sel = null; render(); });
 conn.on("found", (m) => {
   players = m.players;
@@ -161,12 +166,15 @@ function render() {
 function teamNameOf(t) { return (teamNames && teamNames[t - 1]) || ("Équipe " + t); }
 
 function lobbyPlayerRow(p) {
+  const chatMode = curMode() === "chat";
   const badges = [];
   if (p.isHost) badges.push('<span class="badge">hôte</span>');
+  if (p.isViewer) badges.push('<span class="badge">tchat</span>');
   if (!p.isConnected) badges.push('<span class="badge off">hors ligne</span>');
   const name = `<span class="pname">${p.pseudo === ME ? "toi" : escapeHtml(p.pseudo)}</span>`;
   let team = "";
-  if (teamsOn) {
+  // En mode tchat, l'hôte affiche la grille : il n'entre pas dans une équipe.
+  if (teamsOn && !(chatMode && p.isHost)) {
     if (isHost) {
       const btns = [];
       for (let t = 1; t <= teamCount; t++) {
@@ -189,7 +197,12 @@ function renderTeamConfig() {
   if (!box) return;
   if (!isHost || !teamsOn) { box.innerHTML = ""; box.hidden = true; return; }
   box.hidden = false;
-  let html = `<div class="setup-row"><span class="setup-label">Nombre d'équipes</span>` +
+  let html = "";
+  if (curMode() === "chat") {
+    html += `<p class="rules-note" style="margin:0 0 10px">Les viewers s'inscrivent avec ` +
+      `<b>!join</b> (ou <b>!join 2</b> pour choisir leur équipe). Tu peux corriger ensuite.</p>`;
+  }
+  html += `<div class="setup-row"><span class="setup-label">Nombre d'équipes</span>` +
     `<span class="stepper"><button id="teamMinus">−</button><b id="teamNb">${teamCount}</b><button id="teamPlus">+</button></span></div>`;
   html += '<div class="team-names">';
   for (let t = 1; t <= teamCount; t++) {
@@ -197,8 +210,11 @@ function renderTeamConfig() {
       `<input class="team-name-input" data-t="${t}" maxlength="18" value="${escapeHtml(teamNameOf(t))}" placeholder="Équipe ${t}"></div>`;
   }
   html += "</div>";
+  html += `<div class="setup-row"><span class="setup-label"></span>` +
+    `<button class="btn btn-ghost btn-sm" id="shuffleBtn">Répartir au hasard</button></div>`;
   box.innerHTML = html;
 
+  $("shuffleBtn").onclick = () => conn.send({ type: "shuffleTeams" });
   $("teamMinus").onclick = () => { if (teamCount > 2) conn.send({ type: "setTeamCount", n: teamCount - 1 }); };
   $("teamPlus").onclick = () => { if (teamCount < 8) conn.send({ type: "setTeamCount", n: teamCount + 1 }); };
   box.querySelectorAll(".team-name-input").forEach((inp) => {
@@ -219,7 +235,7 @@ function renderLobby() {
   if (isHost) {
     $("hostControls").hidden = false;
     $("waitNote").hidden = true;
-    wireSeg("modeSeg", (b) => { startCfg.mode = b.dataset.m; applyModeUI(); });
+    wireSeg("modeSeg", (b) => { startCfg.mode = b.dataset.m; conn.send({ type: "setMode", mode: b.dataset.m }); applyModeUI(); });
     wireSeg("sizeSeg", (b) => (startCfg.gridSize = +b.dataset.n));
     wireSeg("diffSeg", (b) => (startCfg.level = b.dataset.l));
     wireSeg("durSeg", (b) => (startCfg.duration = +b.dataset.d));
@@ -237,6 +253,7 @@ function renderLobby() {
     // En mode tchat, les joueurs sont les viewers : l'hôte lance seul.
     if (chatMode && !channelName()) err = "Indique la chaîne Twitch à écouter.";
     else if (!chatMode && connected < 2) err = "Il faut au moins 2 joueurs connectés.";
+    else if (chatMode && teamsOn && teamsFilled.size < 2) err = "Il faut des inscrits dans au moins 2 équipes (!join).";
     else if (!chatMode && teamsOn && teamsFilled.size < 2) err = "Répartis les joueurs dans au moins 2 équipes.";
     $("startBtn").disabled = !!err;
     $("startErr").textContent = err;
@@ -257,12 +274,14 @@ function applyModeUI() {
   const chacun = startCfg.mode === "chacun";
   const chatMode = startCfg.mode === "chat";
   if ($("durationRow")) $("durationRow").hidden = !chacun;
-  // Les équipes du tchat viendront plus tard : pour l'instant chacun pour soi.
-  if ($("teamsRow")) $("teamsRow").hidden = chatMode;
-  if ($("teamConfig")) $("teamConfig").hidden = chatMode || !teamsOn;
+  if ($("teamsRow")) $("teamsRow").hidden = false;
+  if ($("teamConfig")) $("teamConfig").hidden = !teamsOn;
   if ($("channelRow")) $("channelRow").hidden = !chatMode;
-  if ($("chatNote")) $("chatNote").hidden = !chatMode;
-  if (chatMode && teamsOn) conn.send({ type: "setTeamsMode", on: false });
+  // En mode tchat, on écoute l'IRC dès le salon : c'est ce qui permet aux
+  // viewers de s'inscrire avant le lancement, et à l'hôte de vérifier que la
+  // connexion tient avant de se lancer en direct.
+  if (chatMode && isHost) startChatRelay();
+  else if (!chatMode) stopChatRelay();
   renderTeamConfig();
 }
 
@@ -469,6 +488,14 @@ function channelName() {
 
 // On ne relaie que ce qui peut être un mot de la grille. Sur un gros tchat, tout
 // envoyer noierait le Durable Object sous des messages sans rapport.
+// "!join", "!join 2", "!JOIN  3" : inscription, avec équipe facultative.
+const JOIN_RE = /^!join(?:\s+(\d+))?\s*$/i;
+function parseJoin(text) {
+  const m = JOIN_RE.exec(text.trim());
+  if (!m) return null;
+  return { team: m[1] ? parseInt(m[1], 10) : 0 };
+}
+
 function looksLikeWord(text) {
   const t = text.trim();
   if (!t || t.startsWith("!")) return false;      // commandes du bot
@@ -492,7 +519,10 @@ function startChatRelay() {
   chat = new TwitchChat(ch);
   chat.on("status", (s) => setChatStatus(s.state, s.text));
   chat.on("message", (m) => {
-    if (!game || phase !== "playing") return;
+    // Les inscriptions sont acceptées dans le salon comme en cours de partie.
+    const j = parseJoin(m.text);
+    if (j) { conn.send({ type: "chatJoin", viewer: m.name, team: j.team }); return; }
+    if (phase !== "playing") return;
     if (!looksLikeWord(m.text)) return;
     conn.send({ type: "chatWord", viewer: m.name, word: m.text.trim() });
   });

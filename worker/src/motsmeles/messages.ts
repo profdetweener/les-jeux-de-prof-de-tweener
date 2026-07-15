@@ -81,9 +81,18 @@ export type ClientMessage =
   | { type: "setTeamCount"; n: number }            // hote : nombre d'equipes
   | { type: "setTeamName"; teamId: number; name: string } // hote : renomme une equipe
   | { type: "setTeam"; pseudo: string; teamId: number } // hote : place un joueur dans une equipe
+  // Hote : mode choisi dans le salon. Envoye avant le lancement, pour que le
+  // serveur sache s'il doit ecouter le tchat et que les autres voient le choix.
+  | { type: "setMode"; mode: Mode }
+  // Hote : repartit au hasard les joueurs (ou les viewers inscrits en "chat")
+  // sur les equipes, a une unite pres.
+  | { type: "shuffleTeams" }
   // "chat" : l'hote relaie un message du tchat Twitch. Lui seul est cru : c'est
   // sa page qui est branchee sur l'IRC.
   | { type: "chatWord"; viewer: string; word: string }
+  // "chat" + equipes : un viewer s'inscrit via !join (team = 0 s'il n'a pas
+  // precise de numero, auquel cas il ira dans l'equipe la moins peuplee).
+  | { type: "chatJoin"; viewer: string; team: number }
   | { type: "start"; mode: Mode; gridSize: number; level: string; duration: number }
   | { type: "claim"; cells: Cell[] }
   | { type: "mysteryGuess"; guess: string }
@@ -102,7 +111,7 @@ export type ServerMessage =
       config: { mode: Mode; teamsOn: boolean; teamCount: number; teamNames: string[]; gridSize: number; level: string; duration: number } | null;
       game: GameStateDTO | null;
     }
-  | { type: "room_state"; players: MmPlayer[]; hostPseudo: string; phase: Phase; teamsOn: boolean; teamCount: number; teamNames: string[] }
+  | { type: "room_state"; players: MmPlayer[]; hostPseudo: string; phase: Phase; mode: Mode; teamsOn: boolean; teamCount: number; teamNames: string[] }
   | { type: "game_state"; players: MmPlayer[]; phase: Phase; game: GameStateDTO }
   // Un mot vient d'etre trouve. "commune" : broadcast a tous. "chacun" : prive au trouveur.
   | { type: "found"; players: MmPlayer[]; word: FoundWord; remaining: number }

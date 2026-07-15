@@ -45,6 +45,8 @@ interface Viewer {
   lastFindAt: number;
   tokens: number;     // seau a jetons anti-spam
   lastRefill: number;
+  joined: boolean;    // a fait !join (obligatoire seulement en equipes)
+  teamId: number;     // 0 = sans equipe
 }
 
 interface Session {
@@ -95,6 +97,14 @@ const MYSTERY_BONUS = 3;
 // A 5 minutes de partie, cela plafonne un bot a ~305 essais.
 const CHAT_BURST = 5;
 const CHAT_REFILL_MS = 1000;
+
+// Melange de Fisher-Yates, en place.
+function shuffleInPlace<T>(a: T[]): void {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+}
 // Essais de mot mystere par joueur. Le mystere etant ouvert des le lancement, la
 // limite est ce qui empeche de mitrailler des mots plausibles jusqu'a tomber
 // juste : tenter tot devient un pari. Passera par equipe en "chacun" + equipes.
@@ -205,7 +215,10 @@ export class MotsMelesRoom {
       case "setTeamName": return this.onSetTeamName(ws, msg.teamId, msg.name);
       case "setTeam": return this.onSetTeam(ws, msg.pseudo, msg.teamId);
       case "start": return this.onStart(ws, msg.mode, msg.gridSize, msg.level, msg.duration);
+      case "setMode": return this.onSetMode(ws, msg.mode);
+      case "shuffleTeams": return this.onShuffleTeams(ws);
       case "chatWord": return this.onChatWord(ws, msg.viewer, msg.word);
+      case "chatJoin": return this.onChatJoin(ws, msg.viewer, msg.team);
       case "claim": return this.onClaim(ws, msg.cells);
       case "mysteryGuess": return this.onMysteryGuess(ws, msg.guess);
       case "endGame": return this.onEndGame(ws);
@@ -275,6 +288,12 @@ export class MotsMelesRoom {
   // ========================= Equipes (salon) =========================
   private teamCounts(): Record<number, number> {
     const c: Record<number, number> = {};
+    // En "chat", ce sont les viewers inscrits qui composent les equipes, pas les
+    // connectes : l'hote est seul devant sa grille.
+    if (this.mode === "chat") {
+      for (const v of this.viewers.values()) if (v.joined) c[v.teamId] = (c[v.teamId] || 0) + 1;
+      return c;
+    }
     for (const p of this.players.values()) c[p.teamId] = (c[p.teamId] || 0) + 1;
     return c;
   }
@@ -352,8 +371,100 @@ export class MotsMelesRoom {
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
     if (!this.teamsOn) return;
     const t = Math.max(1, Math.min(this.teamCount, Math.floor(teamId)));
+    if (this.mode === "chat") {
+      // En "chat", ce sont des viewers inscrits que l'hote repartit.
+      const v = this.viewers.get(String(target || "").toLowerCase());
+      if (v && v.joined) { v.teamId = t; v.color = this.teamColor(t); }
+      this.broadcastRoom();
+      return;
+    }
     for (const [p, s] of this.players.entries()) {
       if (p === target || pseudosEqual(p, target)) { s.teamId = t; break; }
+    }
+    this.broadcastRoom();
+  }
+
+  private onSetMode(ws: WebSocket, mode: Mode): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote regle le mode.");
+    if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    const m: Mode = mode === "chacun" ? "chacun" : mode === "chat" ? "chat" : "commune";
+    if (m === this.mode) return;
+    this.mode = m;
+    // Les equipes du tchat se composent d'inscrits, celles des joueurs de
+    // connectes : en changeant de mode on change de population, donc on repart
+    // d'une repartition propre.
+    if (m === "chat") {
+      for (const p of this.players.values()) p.teamId = 0;
+    } else {
+      this.viewers = new Map();
+      if (this.teamsOn) {
+        let i = 0;
+        for (const p of this.players.values()) { p.teamId = (i % this.teamCount) + 1; i++; }
+      }
+    }
+    this.broadcastRoom();
+  }
+
+  // "chat" + equipes : inscription d'un viewer via !join. team = 0 quand il n'a
+  // pas donne de numero (ou un numero hors plage) : on le met alors dans
+  // l'equipe la moins peuplee. L'hote peut corriger ensuite.
+  // On accepte aussi en cours de partie : un viewer qui arrive en retard peut
+  // entrer, sinon il ne lui resterait qu'a regarder.
+  private onChatJoin(ws: WebSocket, viewer: string, team: number): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (!pseudo || pseudo !== this.hostPseudo) return;
+    if (this.mode !== "chat" || this.phase === "finished") return;
+
+    const name = String(viewer || "").slice(0, 30).trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+
+    let v = this.viewers.get(key);
+    if (!v) {
+      v = {
+        name, color: -1, score: 0, lastFindAt: 0,
+        tokens: CHAT_BURST, lastRefill: Date.now(), joined: false, teamId: 0,
+      };
+      this.viewers.set(key, v);
+    }
+    v.name = name;
+
+    if (this.teamsOn) {
+      const t = Math.floor(team);
+      // Le viewer choisit son equipe ; a defaut on equilibre. Sur une demande
+      // hors plage, on traite comme s'il n'avait rien demande.
+      const wanted = t >= 1 && t <= this.teamCount ? t : 0;
+      if (!v.joined) v.teamId = wanted || this.smallestTeam();
+      else if (wanted) v.teamId = wanted;   // changement d'equipe assume
+      // En equipes, la couleur est celle de l'equipe : elle est connue des
+      // l'inscription, pas au premier point comme en chacun pour soi.
+      v.color = this.teamColor(v.teamId);
+    }
+    v.joined = true;
+    this.broadcastRoom();
+  }
+
+  // Repartition au hasard, en tourniquet apres melange : les effectifs ne
+  // different jamais de plus d'un. Indispensable des qu'il y a du monde, ou que
+  // les inscrits arrivent du tchat sans qu'on les connaisse a l'avance.
+  private onShuffleTeams(ws: WebSocket): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (pseudo !== this.hostPseudo) return this.err(ws, "NOT_HOST", "Seul l'hote compose les equipes.");
+    if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    if (!this.teamsOn) return;
+
+    if (this.mode === "chat") {
+      const list = [...this.viewers.values()].filter((v) => v.joined);
+      shuffleInPlace(list);
+      list.forEach((v, i) => {
+        v.teamId = (i % this.teamCount) + 1;
+        v.color = this.teamColor(v.teamId);
+      });
+    } else {
+      const list = [...this.players.values()];
+      shuffleInPlace(list);
+      list.forEach((p, i) => { p.teamId = (i % this.teamCount) + 1; });
     }
     this.broadcastRoom();
   }
@@ -383,10 +494,18 @@ export class MotsMelesRoom {
     if (this.mode !== "chat" && this.connected().length < ROOM_CONFIG.MIN_PLAYERS)
       return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut au moins 2 joueurs.");
 
-    // Les equipes du tchat viendront plus tard : pour l'instant chacun pour soi.
-    if (this.mode === "chat") this.teamsOn = false;
-    this.viewers = new Map();
-
+    if (this.mode === "chat") {
+      // Les inscriptions (!join) survivent au lancement : c'est tout l'interet
+      // de composer les equipes avant. On ne remet a zero que le jeu.
+      for (const v of this.viewers.values()) {
+        v.score = 0; v.lastFindAt = 0;
+        v.tokens = CHAT_BURST; v.lastRefill = Date.now();
+        if (!this.teamsOn) { v.color = -1; v.joined = false; }
+      }
+      if (!this.teamsOn) this.viewers = new Map();
+    } else {
+      this.viewers = new Map();
+    }
 
     this.gridSize = ALLOWED_SIZES.includes(gridSize) ? gridSize : 12;
     this.level = ALLOWED_LEVELS.includes(level) ? level : "moyen";
@@ -474,8 +593,11 @@ export class MotsMelesRoom {
 
     const now = Date.now();
     let v = this.viewers.get(key);
+    // En equipes, seuls les inscrits marquent : sinon on ne saurait pas a quelle
+    // equipe attribuer le point. Sans equipes, ecrire suffit.
+    if (this.teamsOn && (!v || !v.joined)) return;
     if (!v) {
-      v = { name, color: -1, score: 0, lastFindAt: 0, tokens: CHAT_BURST, lastRefill: now };
+      v = { name, color: -1, score: 0, lastFindAt: 0, tokens: CHAT_BURST, lastRefill: now, joined: false, teamId: 0 };
       this.viewers.set(key, v);
     } else {
       v.name = name;
@@ -493,7 +615,8 @@ export class MotsMelesRoom {
     const w = this.words.find((x) => !x.found && x.word === g);
     if (!w) return;
 
-    // Premier point : le viewer recoit sa couleur et entre au tableau.
+    // Premier point : le viewer recoit sa couleur et entre au tableau. En
+    // equipes il a deja celle de son equipe, recue a l'inscription.
     if (v.color < 0) v.color = this.freeViewerColor();
     w.found = true; w.byPseudo = v.name; w.color = v.color;
     v.score++; v.lastFindAt = now;
@@ -738,27 +861,31 @@ export class MotsMelesRoom {
 
   private snapshot(): MmPlayer[] {
     // En "chat", les joueurs sont les viewers : l'hote n'est qu'un afficheur et
-    // n'a pas sa place au tableau. Dans le salon en revanche, on montre les
-    // connectes comme partout ailleurs (l'hote doit se voir avant de lancer).
+    // n'a pas sa place au tableau une fois la partie lancee.
     if (this.mode === "chat" && this.phase !== "lobby") return this.viewerSnapshot();
-    return [...this.players.values()]
+    // Dans le salon, on montre les connectes (l'hote doit se voir), et en mode
+    // "chat" on y ajoute les viewers inscrits pour qu'il puisse les repartir.
+    const base = this.mode === "chat" ? this.viewerSnapshot() : [];
+    return base.concat([...this.players.values()]
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map((p) => ({
         pseudo: p.pseudo, isHost: p.pseudo === this.hostPseudo, color: p.color,
         score: p.score, solvedMystery: p.myst.solved, isConnected: p.ws !== null,
         teamId: p.teamId,
-      }));
+      })));
   }
 
-  // Seuls les viewers ayant marque entrent au tableau : sinon le moindre message
-  // de tchat y ferait apparaitre son auteur a zero point.
+  // Hors equipes, seuls les viewers ayant marque entrent au tableau : sinon le
+  // moindre message de tchat y ferait apparaitre son auteur a zero point. En
+  // equipes, on montre tous les inscrits : ce sont eux qu'on repartit, et il
+  // faut voir les effectifs avant de lancer.
   private viewerSnapshot(): MmPlayer[] {
     return [...this.viewers.values()]
-      .filter((v) => v.score > 0)
+      .filter((v) => (this.teamsOn ? v.joined : v.score > 0))
       .sort((a, b) => (b.score - a.score) || (a.lastFindAt - b.lastFindAt))
       .map((v) => ({
         pseudo: v.name, isHost: false, color: v.color, score: v.score,
-        solvedMystery: false, isConnected: true, teamId: 0, isViewer: true,
+        solvedMystery: false, isConnected: true, teamId: v.teamId, isViewer: true,
       }));
   }
 
@@ -828,7 +955,8 @@ export class MotsMelesRoom {
   private broadcastRoom(): void {
     this.broadcast({
       type: "room_state", players: this.snapshot(), hostPseudo: this.hostPseudo ?? "",
-      phase: this.phase, teamsOn: this.teamsOn, teamCount: this.teamCount, teamNames: this.teamNamesArr(),
+      phase: this.phase, mode: this.mode, teamsOn: this.teamsOn,
+      teamCount: this.teamCount, teamNames: this.teamNamesArr(),
     });
   }
   private broadcastGame(): void {

@@ -41,6 +41,7 @@
 .btn-ghost { background: var(--beige-fonce); color: var(--bleu-nuit); }
 .btn-ghost:hover { background: var(--gris-clair); }
 .btn-block { width: 100%; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
 #launchBtn { margin-top: 6px; }
 
 /* ===================== Vue de jeu ===================== */
