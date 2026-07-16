@@ -4,171 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
-  <title>Mentions légales, Petit Bac</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Mentions légales, Les jeux de Prof de Tweener</title>
+  <!-- Les mentions légales valent pour tout le site : elles ont quitté le dossier
+       du Petit Bac pour la racine. Cette page ne reste que pour ne pas casser
+       l'ancienne adresse, qui a circulé et peut être en favori. GitHub Pages ne
+       permet pas de redirection HTTP 301 : on la fait côté navigateur. -->
+  <link rel="canonical" href="../mentions.html">
+  <meta http-equiv="refresh" content="0; url=../mentions.html">
+  <link rel="stylesheet" href="../shared/css/landing.css?v=4">
 </head>
 <body>
-  <header class="app-header">
-    <h1>Petit Bac multijoueur</h1>
-    <a href="index.html" class="header-info" style="color: var(--beige); text-decoration: none;">← Retour</a>
+  <header class="landing-header">
+    <h1>🎲 Les jeux de Prof de Tweener</h1>
+    <span class="header-tagline">mentions légales</span>
   </header>
 
-  <main>
-    <div class="card legal-page">
-      <h2>Mentions légales</h2>
-
-      <section>
-        <h3>Éditeur du site</h3>
-        <p>
-          Ce site est édité à titre personnel et non commercial par un particulier
-          publiant sous le pseudonyme <strong>Prof_De_Tweener</strong>. Il s'agit
-          d'un projet amateur, gratuit, sans publicité ni monétisation, mis à
-          disposition à des fins ludiques.
-        </p>
-        <p>
-          Pour tout contact, demande de retrait ou question juridique :
-          <a href="mailto:profdetweener@proton.me">profdetweener@proton.me</a>.
-          L'éditeur s'engage à répondre dans les meilleurs délais à toute
-          sollicitation légitime.
-        </p>
-      </section>
-
-      <section>
-        <h3>Hébergement du site (frontend)</h3>
-        <p>
-          Le site est hébergé par <strong>GitHub, Inc.</strong> via le service
-          GitHub Pages.<br>
-          Adresse : 88 Colin P Kelly Jr St, San Francisco, CA 94107, États-Unis.<br>
-          Site : <a href="https://github.com" target="_blank" rel="noopener">github.com</a>
-        </p>
-      </section>
-
-      <section>
-        <h3>Hébergement du backend</h3>
-        <p>
-          Le serveur de jeu (gestion des parties en temps réel) est hébergé par
-          <strong>Cloudflare, Inc.</strong> via les services Cloudflare Workers
-          et Durable Objects.<br>
-          Adresse : 101 Townsend St, San Francisco, CA 94107, États-Unis.<br>
-          Site : <a href="https://www.cloudflare.com" target="_blank" rel="noopener">cloudflare.com</a>
-        </p>
-      </section>
-
-      <section>
-        <h3>Propriété intellectuelle</h3>
-        <p>
-          Le code source de ce site est la propriété de son auteur. Le concept du jeu
-          du Petit Bac est libre de droits (jeu traditionnel). Le site n'utilise aucune
-          marque, logo ou contenu protégé appartenant à des tiers.
-        </p>
-      </section>
-
-      <h2 style="margin-top: 32px;">Politique de confidentialité</h2>
-
-      <section>
-        <h3>Données collectées</h3>
-        <p>Pour faire fonctionner le jeu, le site collecte temporairement :</p>
-        <ul>
-          <li>
-            <strong>Le pseudo</strong> que tu choisis librement (aucune obligation
-            d'utiliser ton vrai nom).
-          </li>
-          <li>
-            <strong>Le code de la partie</strong> à laquelle tu participes.
-          </li>
-          <li>
-            <strong>Tes réponses</strong> aux manches en cours, transmises aux
-            autres joueurs de ta partie pour validation collaborative.
-          </li>
-          <li>
-            <strong>Données techniques</strong> nécessaires au fonctionnement de la
-            connexion temps réel (adresse IP côté hébergeur Cloudflare, traitée
-            automatiquement, non conservée par le site).
-          </li>
-        </ul>
-        <p>
-          <strong>Aucun compte utilisateur n'est créé.</strong> Le site ne demande
-          jamais de mot de passe, d'adresse e-mail ou d'information personnelle.
-        </p>
-      </section>
-
-      <section>
-        <h3>Stockage local (localStorage)</h3>
-        <p>
-          Le site utilise <code>localStorage</code> dans ton navigateur pour stocker :
-        </p>
-        <ul>
-          <li>Ton pseudo (afin de te le pré-remplir si tu reviens).</li>
-          <li>
-            Le code de la dernière partie rejointe (afin de te proposer une
-            reprise rapide après fermeture accidentelle de l'onglet).
-          </li>
-        </ul>
-        <p>
-          Ces données sont stockées <strong>uniquement sur ton appareil</strong>
-          et ne sont pas transmises à des serveurs tiers à des fins publicitaires
-          ou statistiques. Tu peux les effacer à tout moment via les paramètres
-          de ton navigateur (effacer les données du site).
-        </p>
-        <p>
-          Cet usage relève des cookies/stockages strictement nécessaires au
-          service demandé par l'utilisateur, et ne nécessite pas de consentement
-          préalable au sens de la directive ePrivacy et de l'article 82 de la
-          loi Informatique et Libertés.
-        </p>
-      </section>
-
-      <section>
-        <h3>Durée de conservation</h3>
-        <p>
-          Les données de partie (réponses, scores, pseudos) sont conservées
-          uniquement le temps de la partie. Lorsque tous les joueurs se sont
-          déconnectés d'une partie, l'ensemble des données associées à cette
-          partie est immédiatement supprimé du serveur.
-        </p>
-      </section>
-
-      <section>
-        <h3>Tes droits</h3>
-        <p>
-          Conformément au RGPD, tu disposes d'un droit d'accès, de rectification,
-          d'effacement et de portabilité de tes données. Comme aucune donnée
-          n'est conservée au-delà de la durée de la partie et qu'aucun compte
-          n'existe, ces droits sont en pratique automatiquement satisfaits dès
-          que tu fermes la partie.
-        </p>
-        <p>
-          Pour toute question, tu peux contacter
-          <a href="mailto:profdetweener@proton.me">profdetweener@proton.me</a>.
-        </p>
-      </section>
-
-      <section>
-        <h3>Cookies tiers</h3>
-        <p>
-          Le site n'utilise <strong>aucun cookie de mesure d'audience, de
-          publicité ou de réseau social</strong>. Aucun service tiers de tracking
-          (Google Analytics, Meta Pixel, etc.) n'est intégré.
-        </p>
-      </section>
-
-      <p class="legal-note" style="margin-top: 32px; text-align: center;">
-        Dernière mise à jour : mai 2026.
+  <main class="landing-main">
+    <div class="legal-page">
+      <h2>Cette page a déménagé</h2>
+      <p>
+        Les mentions légales valent pour tous les jeux : elles sont désormais à la
+        racine du site. Tu vas y être redirigé automatiquement.
       </p>
-
+      <p>
+        Si rien ne se passe, suis ce lien :
+        <a href="../mentions.html">mentions légales</a>.
+      </p>
       <div style="margin-top: 24px; text-align: center;">
-        <a href="index.html" class="btn btn-secondary btn-sm">← Retour à l'accueil</a>
+        <a href="../mentions.html" class="legal-back">Aller aux mentions légales</a>
       </div>
     </div>
   </main>
 
-  <footer class="app-footer">
+  <footer class="landing-footer">
     <a href="../index.html">Accueil</a>
-    <span class="footer-sep">·</span>
-    <a href="mentions.html" class="footer-current">Mentions légales</a>
-    <span class="footer-sep">·</span>
+    <span class="footer-sep" style="opacity: 0.4;">·</span>
     <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
-    <span class="footer-sep">·</span>
+    <span class="footer-sep" style="opacity: 0.4;">·</span>
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 </body>
