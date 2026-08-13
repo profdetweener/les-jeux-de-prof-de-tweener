@@ -1428,3 +1428,31 @@ input.code-input::placeholder {
 
 /* Banniere de verrouillage : fond un peu plus soutenu sur sombre. */
 [data-theme="dark"] .vote-lock-banner { background: rgba(134, 169, 224, 0.16); }
+
+/* --------------------------------------------------------------------------
+   Mode sombre : fonds pastel codes en dur.
+   Ces surfaces avaient un fond clair fixe + un texte qui, une fois la palette
+   basculee, devient clair : illisible clair-sur-clair. On leur donne un fond
+   sombre teinte conservant le sens (bleu = info, rouge = erreur, vert/jaune/
+   orange = statuts de score, or/argent/bronze = podium).
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] .alert-info,
+[data-theme="dark"] .player-item.is-self,
+[data-theme="dark"] .resume-banner { background: #1c2740; }
+
+[data-theme="dark"] .alert-error { background: #2e1a1a; }
+
+[data-theme="dark"] .cheater-panel,
+[data-theme="dark"] .cheater-applied-note,
+[data-theme="dark"] .scores-table .score-cell.duplicate { background: #2b2212; }
+/* Texte ambre fonce -> ambre clair pour rester lisible sur le fond sombre. */
+[data-theme="dark"] .cheater-panel-info strong,
+[data-theme="dark"] .cheater-applied-note { color: #e0b85c; }
+
+[data-theme="dark"] .scores-table .score-cell.alone,
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(1) { background: #2e2a12; }
+
+[data-theme="dark"] .scores-table .score-cell.unique { background: #16281c; }
+
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(2) { background: #2b2b2f; }
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(3) { background: #2c2119; }

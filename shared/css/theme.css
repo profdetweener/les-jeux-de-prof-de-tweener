@@ -65,6 +65,15 @@
   }
 }
 
+/* Sur la page d'accueil, quand le bouton "Buy me a coffee" (en bas a droite)
+   remonte au-dessus du bandeau footer, on remonte le bouton de theme (en bas a
+   gauche) a la meme hauteur pour les aligner. Sur les pages sans ce bouton,
+   rien ne change. */
+body:has(.coffee-fab.above-footer) .theme-toggle { bottom: 78px; }
+@media (max-width: 600px) {
+  body:has(.coffee-fab.above-footer) .theme-toggle { bottom: 68px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle { transition: none; }
 }

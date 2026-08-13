@@ -1905,3 +1905,53 @@ input.code-input::placeholder {
 [data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
 [data-theme="dark"] .btn-secondary:hover:not(:disabled) { background: #343a45; }
 /* .toast conserve ses variantes .error / .success : laisse suivre la palette. */
+
+/* --------------------------------------------------------------------------
+   Mode sombre : fonds pastel codes en dur (memes cas qu'au Petit Bac + les
+   surfaces propres a Definitions : matrice de votes, pastilles de mode,
+   barre host-override, encadre de reveal). On preserve la teinte tout en
+   passant sur un fond sombre pour que le texte (devenu clair) reste lisible.
+   -------------------------------------------------------------------------- */
+/* Teinte bleue : info, "toi", reprise, mode chill, banniere chill, stats "toi". */
+[data-theme="dark"] .alert-info,
+[data-theme="dark"] .player-item.is-self,
+[data-theme="dark"] .resume-banner,
+[data-theme="dark"] .mode-pill.mode-chill,
+[data-theme="dark"] .chill-banner,
+[data-theme="dark"] .stats-table tr.is-self td { background: #1c2740; }
+[data-theme="dark"] .stats-table tr.is-self td.stats-name { background: #223052; }
+
+/* Teinte rouge : erreurs. */
+[data-theme="dark"] .alert-error { background: #2e1a1a; }
+
+/* Teinte ambre/orange : panneau tricheur, doublon, mode compet, host-override,
+   cellule auteur "toi" de la matrice. */
+[data-theme="dark"] .cheater-panel,
+[data-theme="dark"] .cheater-applied-note,
+[data-theme="dark"] .scores-table .score-cell.duplicate,
+[data-theme="dark"] .mode-pill.mode-compet,
+[data-theme="dark"] .host-override-toolbar,
+[data-theme="dark"] .vote-matrix tr.is-self .author-cell { background: #2b2212; }
+[data-theme="dark"] .host-override-toolbar.is-active { background: #38290f; }
+
+/* Teinte jaune/or : "seul dans la categorie", 1re place du podium. */
+[data-theme="dark"] .scores-table .score-cell.alone,
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(1) { background: #2e2a12; }
+
+/* Teinte verte : reponse unique, encadre de reveal. */
+[data-theme="dark"] .scores-table .score-cell.unique,
+[data-theme="dark"] .reveal-box { background: #16281c; }
+
+/* Podium argent / bronze. */
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(2) { background: #2b2b2f; }
+[data-theme="dark"] .ranking-list.ranking-final li:nth-child(3) { background: #2c2119; }
+
+/* Cellules de la matrice de votes (fonds quasi blancs) -> surfaces sombres. */
+[data-theme="dark"] .vote-cell.pending { background: #20242c; }
+[data-theme="dark"] .vote-cell.diagonal { background: #1c2027; }
+
+/* Textes ambre fonce -> ambre clair, sinon illisibles sur fond sombre. */
+[data-theme="dark"] .cheater-panel-info strong,
+[data-theme="dark"] .cheater-applied-note { color: #e0b85c; }
+[data-theme="dark"] .host-override-toolbar-label { color: #d9c48a; }
+[data-theme="dark"] .host-override-toolbar-label strong { color: #ece7db; }
