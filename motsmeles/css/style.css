@@ -371,3 +371,18 @@
 }
 .team-name-input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
 #teamConfig { margin-bottom: 4px; }
+
+/* ==========================================================================
+   MODE SOMBRE (Mots mêlés)
+   La palette est heritee de shared/css/landing.css (override [data-theme=dark]).
+   Ici on ne rattrape que les surfaces "barre sombre" propres a ce jeu. Les
+   cases de la grille gardent leurs teintes chaudes (cases claires lisibles sur
+   plateau sombre).
+   ========================================================================== */
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner {
+  background: #10141d;
+  color: #ece7db;
+}
+[data-theme="dark"] .btn-primary { background: #35507e; color: #f2eee4; }
+[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }

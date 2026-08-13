@@ -234,3 +234,7 @@
   .chill-vote-foot { flex-direction: column; align-items: stretch; gap: 8px; }
   .chill-vote-btn { width: 100%; }
 }
+
+/* Mode sombre : le vert tres clair de fond devient un vert sombre discret. */
+[data-theme="dark"] .chill-def-block { background: #1c2a20; }
+[data-theme="dark"] .chill-vote-btn:hover:not(:disabled) { background: #1c2a20; }

@@ -1310,3 +1310,121 @@ input.code-input::placeholder {
   .answer-row { gap: 4px; }
   .answers-form { gap: 8px; margin-bottom: 16px; }
 }
+
+/* ==========================================================================
+   VERROUILLAGE DES VOTES (hote)
+   Banniere + etat "lecture seule" des cellules quand l'hote a verrouille.
+   ========================================================================== */
+.vote-lock-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--rayon-sm);
+  background: rgba(74, 111, 165, 0.12);
+  border: 1px solid var(--bleu-accent);
+  color: var(--bleu-nuit);
+  font-size: 13px;
+  font-weight: 600;
+}
+.vote-lock-banner.is-visible { display: flex; }
+.vote-lock-banner .lock-emoji { font-size: 16px; line-height: 1; }
+
+/* Bouton verrouiller / deverrouiller, au-dessus des actions de l'hote. */
+.btn-lock {
+  background: var(--beige-fonce);
+  color: var(--bleu-nuit);
+  border: 1px solid var(--bleu-accent);
+  margin-bottom: 8px;
+}
+.btn-lock:hover:not(:disabled) { background: var(--gris-clair); }
+.btn-lock.is-locked {
+  background: var(--bleu-accent);
+  color: var(--blanc);
+  border-color: var(--bleu-accent);
+}
+.btn-lock.is-locked:hover:not(:disabled) { background: var(--bleu-nuit-clair); }
+
+/* Etat verrouille figé d'une cellule pour les non-hotes : on remplace les
+   boutons par une pastille en lecture seule reprenant le vote courant. */
+.vote-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid var(--beige-fonce);
+  background: var(--blanc);
+  color: var(--gris-texte);
+}
+.vote-locked-badge.unique { background: var(--vert); border-color: var(--vert); color: #fff; }
+.vote-locked-badge.duplicate { background: #e08c2e; border-color: #e08c2e; color: #fff; }
+.vote-locked-badge.reject { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+
+/* ==========================================================================
+   MODE SOMBRE (Petit Bac)
+   Meme strategie que la page d'accueil : on redefinit les variables selon leur
+   role dominant (--bleu-nuit -> texte, --beige -> fond), puis on rattrape les
+   surfaces "barre sombre" qui utilisaient --bleu-nuit comme fond.
+   ========================================================================== */
+[data-theme="dark"] {
+  --bleu-nuit: #ece7db;
+  --bleu-nuit-clair: #cfc9ba;
+  --bleu-accent: #86a9e0;
+  --beige: #171a1f;
+  --beige-fonce: #2b303a;
+  --blanc: #242832;
+  --rouge: #e57373;
+  --vert: #5cb37a;
+  --jaune: #e0bd57;
+  --gris-texte: #a9a498;
+  --gris-clair: #3a3f49;
+  --ombre: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --ombre-forte: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+/* Surfaces "barre sombre" : header, footer, en-tete de tableaux, lettre, toast.
+   On les garde profondes avec un texte clair au lieu de suivre --bleu-nuit
+   devenu clair. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .letter-display,
+[data-theme="dark"] .validation-table th,
+[data-theme="dark"] .scores-table th,
+[data-theme="dark"] .scores-table th.col-category {
+  background: #10141d;
+  color: #ece7db;
+}
+/* .toast garde ses variantes .toast.error / .toast.success : on le laisse
+   suivre la palette plutot que de le forcer (sinon on ecraserait ces etats). */
+/* Les cellules d'en-tete de ligne collantes forcent leur fond en !important
+   cote clair : il faut donc du !important pour les repasser en sombre. */
+[data-theme="dark"] #view-validating .validation-table .category-cell,
+[data-theme="dark"] #view-scoring .scores-table .col-category {
+  background: #10141d !important;
+  color: #ece7db;
+}
+
+/* Boutons/pastilles a fond plein : on les garde en accent bleu bien visible. */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .letter-btn.selected {
+  background: #35507e;
+  color: #f2eee4;
+  border-color: #35507e;
+}
+[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) { background: #343a45; }
+
+/* Glyphes des votes actifs : on force un blanc franc pour le contraste. */
+[data-theme="dark"] .vote-btn.active,
+[data-theme="dark"] .vote-btn.unique.active,
+[data-theme="dark"] .vote-btn.duplicate.active,
+[data-theme="dark"] .vote-btn.reject.active { color: #ffffff; }
+
+/* Banniere de verrouillage : fond un peu plus soutenu sur sombre. */
+[data-theme="dark"] .vote-lock-banner { background: rgba(134, 169, 224, 0.16); }

@@ -359,6 +359,10 @@ conn.on("cheater_cheats_update", (msg) => {
   if (state.applyCheaterCountUpdate) state.applyCheaterCountUpdate(msg.count);
 });
 
+conn.on("votes_locked_update", (msg) => {
+  if (state.applyVotesLockedUpdate) state.applyVotesLockedUpdate(msg.locked);
+});
+
 conn.on("round_scored", (msg) => {
   state.phase = "scoring";
   state.players = msg.players;

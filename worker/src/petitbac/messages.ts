@@ -183,6 +183,14 @@ export interface RoundResult {
    * Rempli uniquement au moment du scoring (phase "scoring"), sinon 0.
    */
   cheaterPenalty: number;
+  /**
+   * Verrou de vote pose par l'hote. Tant qu'il est a true, seul l'hote peut
+   * encore modifier les cellules et le compteur "tricheur" ; les autres joueurs
+   * passent en lecture seule. Sert a couper court aux sabotages de dernier
+   * moment pendant la validation collaborative.
+   * Optionnel pour la retrocompatibilite (parties/reconnexions anciennes).
+   */
+  votesLocked?: boolean;
 }
 
 // ===========================================
@@ -212,6 +220,14 @@ export type ClientMessage =
       // Le serveur clamp entre 0 et le nombre de categories de la manche.
       type: "set_cheater_cheats";
       count: number;
+    }
+  | {
+      // Hote uniquement : verrouille / deverrouille les votes de la manche en
+      // cours. Une fois verrouille, seul l'hote peut encore modifier les
+      // cellules et le compteur tricheur. Permet de figer les votes avant de
+      // calculer les scores, sans avoir a identifier un saboteur anonyme.
+      type: "set_votes_locked";
+      locked: boolean;
     }
   | { type: "next_round" }
   | { type: "end_game" } // host : termine la partie tout de suite
@@ -294,6 +310,11 @@ export type ServerMessage =
       // pour le stoppeur de la manche (phase validating uniquement).
       type: "cheater_cheats_update";
       count: number;
+    }
+  | {
+      // Diffuse l'etat du verrou de vote (pose/leve par l'hote) a toute la salle.
+      type: "votes_locked_update";
+      locked: boolean;
     }
   | {
       type: "round_scored";

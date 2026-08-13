@@ -39,6 +39,11 @@
   .back-cta a:hover{filter:brightness(1.05);}
   @media (max-width:600px){ .rules-card{padding:22px 18px;} }
 </style>
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=1">
 </head>
 <body>
 
@@ -156,5 +161,6 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
+  <script type="module" src="../shared/js/theme.js?v=1"></script>
 </body>
 </html>

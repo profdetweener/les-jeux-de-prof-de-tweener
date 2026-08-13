@@ -31,6 +31,11 @@
       }
     })();
   </script>
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=1">
 </head>
 <body>
   <header class="landing-header">
@@ -97,5 +102,6 @@
   </footer>
 
   <div class="toast-container" id="toast-container"></div>
+  <script type="module" src="../shared/js/theme.js?v=1"></script>
 </body>
 </html>

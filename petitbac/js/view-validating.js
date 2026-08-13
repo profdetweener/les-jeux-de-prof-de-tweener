@@ -32,6 +32,8 @@ export function initValidatingView(state, conn) {
   const waitingEl = document.getElementById("validation-waiting");
   const finishBtn = document.getElementById("btn-finish-validation");
   const endGameBtn = document.getElementById("btn-end-game-validating");
+  const lockBtn = document.getElementById("btn-toggle-votes-lock");
+  const lockBanner = document.getElementById("vote-lock-banner");
 
   // --- Refs panneau "malus tricheur" ---
   const cheaterPanelEl = document.getElementById("cheater-panel");
@@ -50,6 +52,8 @@ export function initValidatingView(state, conn) {
   let cheaterStoppedBy = null;
   let cheaterCount = 0;
   let cheaterPenaltyPerCheat = 0;
+  // Verrou de vote pose par l'hote : true = seul l'hote edite encore.
+  let votesLocked = false;
 
   /**
    * Appele quand round_ended arrive : construit le tableau initial.
@@ -67,6 +71,8 @@ export function initValidatingView(state, conn) {
     cheaterStoppedBy = result.stoppedBy ?? null;
     cheaterCount = result.cheaterCheats ?? 0;
     cheaterPenaltyPerCheat = state.config?.scoring?.cheaterPenaltyPerCheat ?? 0;
+    // Etat du verrou : en reconnexion mid-validating, il peut deja etre pose.
+    votesLocked = result.votesLocked ?? false;
 
     console.log("[validation] renderValidationStart", {
       isHost: state.isHost,
@@ -87,6 +93,7 @@ export function initValidatingView(state, conn) {
     renderTable();
     renderCheaterPanel();
     updateHostActions();
+    renderLockState();
   };
 
   /**
@@ -105,8 +112,26 @@ export function initValidatingView(state, conn) {
     renderCheaterPanel();
   };
 
+  /**
+   * Appele a chaque votes_locked_update : (de)verrouille les votes en direct.
+   * On rerend les cellules (les non-hotes passent en lecture seule), le panneau
+   * tricheur (boutons +/- desactives) et l'etat du bouton/de la banniere.
+   */
+  state.applyVotesLockedUpdate = function (locked) {
+    votesLocked = Boolean(locked);
+    refreshAllCells();
+    renderCheaterPanel();
+    renderLockState();
+  };
+
   state.refreshValidationHostState = function () {
     updateHostActions();
+    // Si l'hote a change alors que les votes sont verrouilles, le nouvel hote
+    // doit retrouver les boutons de vote (il n'est plus en lecture seule) et le
+    // bon libelle de verrou.
+    refreshAllCells();
+    renderCheaterPanel();
+    renderLockState();
   };
 
   /**
@@ -260,8 +285,29 @@ export function initValidatingView(state, conn) {
     wrap.appendChild(text);
 
     if (isValid) {
-      // Cellule valide : 3 boutons collaboratifs
       const currentState = currentCellStates[pseudo]?.[category] ?? "unique";
+
+      // Votes verrouilles + je ne suis pas l'hote : lecture seule. On montre une
+      // pastille reprenant le vote courant, sans possibilite de le changer.
+      if (votesLocked && !state.isHost) {
+        const badge = document.createElement("span");
+        badge.className = `vote-locked-badge ${currentState}`;
+        const glyph =
+          currentState === "unique" ? "✓" : currentState === "duplicate" ? "≈" : "✗";
+        badge.textContent = glyph;
+        const label =
+          currentState === "unique"
+            ? "Accepté"
+            : currentState === "duplicate"
+              ? "Doublon"
+              : "Refusé";
+        badge.title = `${label} (votes verrouillés par l'hôte)`;
+        wrap.appendChild(badge);
+        td.appendChild(wrap);
+        return;
+      }
+
+      // Cellule valide : 3 boutons collaboratifs
       const btnGroup = document.createElement("span");
       btnGroup.className = "vote-buttons";
 
@@ -326,6 +372,31 @@ export function initValidatingView(state, conn) {
   }
 
   /**
+   * Synchronise l'UI liee au verrou : banniere (pour tous), libelle + style du
+   * bouton (pour l'hote) et texte d'attente (pour les non-hotes).
+   */
+  function renderLockState() {
+    if (lockBanner) lockBanner.classList.toggle("is-visible", votesLocked);
+
+    if (lockBtn) {
+      lockBtn.classList.toggle("is-locked", votesLocked);
+      lockBtn.textContent = votesLocked
+        ? "🔓 Déverrouiller les votes"
+        : "🔒 Verrouiller les votes";
+      lockBtn.title = votesLocked
+        ? "Rouvrir les votes à tous les joueurs"
+        : "Figer les votes : seul toi pourras encore les ajuster";
+    }
+
+    // Message d'attente des non-hotes : precise que l'hote a repris la main.
+    if (!state.isHost && waitingEl) {
+      waitingEl.textContent = votesLocked
+        ? "🔒 Votes verrouillés — l'hôte finalise puis passe aux scores…"
+        : "En attente de l'hôte pour passer aux scores…";
+    }
+  }
+
+  /**
    * Affiche / met a jour le panneau de "malus tricheur".
    *
    * Visible uniquement si :
@@ -345,8 +416,10 @@ export function initValidatingView(state, conn) {
     cheaterPanelEl.style.display = "flex";
     cheaterStopperEl.textContent = cheaterStoppedBy;
     cheaterCountEl.textContent = String(cheaterCount);
-    cheaterDecBtn.disabled = cheaterCount <= 0;
-    cheaterIncBtn.disabled = cheaterCount >= currentCategories.length;
+    // Verrou pose + non-hote : le compteur devient non modifiable, comme les cellules.
+    const frozen = votesLocked && !state.isHost;
+    cheaterDecBtn.disabled = frozen || cheaterCount <= 0;
+    cheaterIncBtn.disabled = frozen || cheaterCount >= currentCategories.length;
     // Apercu du malus total qui sera applique
     const totalMalus = cheaterCount * cheaterPenaltyPerCheat;
     if (totalMalus === 0) {
@@ -368,6 +441,14 @@ export function initValidatingView(state, conn) {
       const next = Math.min(currentCategories.length, cheaterCount + 1);
       if (next === cheaterCount) return;
       conn.send({ type: "set_cheater_cheats", count: next });
+    });
+  }
+
+  if (lockBtn) {
+    lockBtn.addEventListener("click", () => {
+      // On envoie l'inverse de l'etat courant ; le serveur fait foi et nous
+      // renverra un votes_locked_update qui mettra l'UI a jour.
+      conn.send({ type: "set_votes_locked", locked: !votesLocked });
     });
   }
 

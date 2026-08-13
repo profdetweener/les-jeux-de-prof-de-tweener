@@ -60,6 +60,9 @@ export class PetitBacRoom {
   private answers: Record<string, Record<string, string>>; // pseudo -> cat -> answer
   private cellStates: Record<string, Record<string, VoteValue>>; // pseudo -> cat -> etat partage
   private currentResult: RoundResult | null;
+  // Verrou de vote pose par l'hote pendant la phase "validating".
+  // true = seul l'hote peut encore modifier cellules + compteur tricheur.
+  private votesLocked: boolean;
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -76,6 +79,7 @@ export class PetitBacRoom {
     this.answers = {};
     this.cellStates = {};
     this.currentResult = null;
+    this.votesLocked = false;
 
     // Charge l'identite de l'hote persistee en storage avant de traiter
     // toute requete (cf. persistHostPseudo). Sans ce mecanisme, apres une
@@ -186,6 +190,9 @@ export class PetitBacRoom {
         break;
       case "set_cheater_cheats":
         this.handleSetCheaterCheats(ws, msg.count);
+        break;
+      case "set_votes_locked":
+        this.handleSetVotesLocked(ws, msg.locked);
         break;
       case "next_round":
         this.handleNextRound(ws);
@@ -538,6 +545,7 @@ export class PetitBacRoom {
     this.answers = {};
     this.cellStates = {};
     this.currentResult = null;
+    this.votesLocked = false;
     for (const p of this.players.values()) {
       p.hasSubmitted = false;
     }
@@ -741,6 +749,9 @@ export class PetitBacRoom {
       }
     }
 
+    // Nouvelle phase de validation : le verrou repart toujours ouvert.
+    this.votesLocked = false;
+
     // Construit un resultat preliminaire (sans scores encore — calcules au passage scoring)
     const result: RoundResult = {
       roundNumber: this.currentRound,
@@ -752,6 +763,7 @@ export class PetitBacRoom {
       stoppedBy,
       cheaterCheats: 0,
       cheaterPenalty: 0,
+      votesLocked: false,
     };
     this.currentResult = result;
     this.phase = "validating";
@@ -792,6 +804,12 @@ export class PetitBacRoom {
       this.sendError(ws, "INVALID_MESSAGE", "Etat invalide.");
       return;
     }
+    // Verrou de vote : une fois pose par l'hote, seul l'hote peut encore editer.
+    // Defense en profondeur — le client masque deja les boutons cote non-hote.
+    if (this.votesLocked && editor !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Les votes sont verrouilles par l'hote.");
+      return;
+    }
     // Modele collaboratif : n'importe qui peut modifier n'importe quelle cellule.
     // (Y compris la sienne propre — c'est assume.)
     // Garde-fou : si la reponse n'est pas valide syntaxiquement (vide / mauvaise lettre),
@@ -820,6 +838,12 @@ export class PetitBacRoom {
       this.sendError(ws, "WRONG_PHASE", "Pas de phase de validation en cours.");
       return;
     }
+    // Meme verrou que pour les cellules : locke = seul l'hote ajuste le compteur.
+    const editor = this.wsToPseudo.get(ws);
+    if (this.votesLocked && editor !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Les votes sont verrouilles par l'hote.");
+      return;
+    }
     if (!this.config || !this.currentResult) return;
     // Pas de stoppeur => l'UI ne devrait pas etre affichee cote client, mais on
     // ignore silencieusement par defense en profondeur.
@@ -837,6 +861,36 @@ export class PetitBacRoom {
     const clamped = Math.max(0, Math.min(maxCount, Math.floor(count)));
     this.currentResult.cheaterCheats = clamped;
     this.broadcast({ type: "cheater_cheats_update", count: clamped });
+  }
+
+  /**
+   * Hote uniquement : pose ou leve le verrou de vote pendant la phase validating.
+   *
+   * Une fois verrouille (locked = true), les autres joueurs ne peuvent plus
+   * modifier ni les cellules ni le compteur "tricheur" : seul l'hote a encore
+   * la main pour finaliser. C'est la reponse au probleme du saboteur anonyme
+   * qui rebascule des votes au dernier moment : plutot que de tenter de
+   * l'identifier, l'hote fige la table et tranche.
+   *
+   * Idempotent et diffuse a tous (y compris a l'hote) pour que l'UI se
+   * synchronise. L'etat est aussi memorise sur currentResult afin qu'un joueur
+   * qui se reconnecte pendant la validation retrouve le bon etat.
+   */
+  private handleSetVotesLocked(ws: WebSocket, locked: boolean): void {
+    const pseudo = this.wsToPseudo.get(ws);
+    if (!pseudo || pseudo !== this.hostPseudo) {
+      this.sendError(ws, "NOT_HOST", "Seul l'hote peut verrouiller les votes.");
+      return;
+    }
+    if (this.phase !== "validating") {
+      this.sendError(ws, "WRONG_PHASE", "Pas de phase de validation en cours.");
+      return;
+    }
+    const next = Boolean(locked);
+    if (next === this.votesLocked) return; // rien a diffuser
+    this.votesLocked = next;
+    if (this.currentResult) this.currentResult.votesLocked = next;
+    this.broadcast({ type: "votes_locked_update", locked: next });
   }
 
   // ==========================================================================
@@ -980,6 +1034,7 @@ export class PetitBacRoom {
     this.answers = {};
     this.cellStates = {};
     this.currentResult = null;
+    this.votesLocked = false;
     for (const p of this.players.values()) {
       p.totalScore = 0;
       p.hasSubmitted = false;

@@ -389,3 +389,72 @@ body { display: flex; flex-direction: column; }
   .landing-welcome p { font-size: 14.5px; line-height: 1.7; }
   .welcome-btn { width: 100%; padding: 14px 20px; }
 }
+
+/* ==========================================================================
+   MODE SOMBRE
+   --------------------------------------------------------------------------
+   Les variables de palette portent chacune deux roles opposes selon le
+   contexte : --bleu-nuit sert a la fois de texte (sur fond clair) ET de fond
+   (header/footer/badges) ; --beige sert a la fois de fond de page ET de texte
+   (sur le bleu nuit). On ne peut donc pas juste "inverser" les variables.
+
+   Strategie : on redefinit chaque variable selon son role DOMINANT
+   (--bleu-nuit -> texte clair, --beige -> fond sombre), puis on rattrape a la
+   main les quelques surfaces qui utilisaient ces variables dans leur role
+   minoritaire (header, footer, boutons a fond clair en dur).
+   ========================================================================== */
+[data-theme="dark"] {
+  --bleu-nuit: #ece7db;        /* role dominant : texte / avant-plan clair */
+  --bleu-nuit-clair: #cfc9ba;
+  --bleu-accent: #86a9e0;      /* liens : eclaircis pour le contraste */
+  --beige: #171a1f;            /* role dominant : fond de page sombre */
+  --beige-fonce: #2b303a;      /* surface secondaire / badges / bouton retour */
+  --blanc: #242832;            /* fond des cartes */
+  --rouge: #e57373;
+  --vert: #5cb37a;
+  --jaune: #e0bd57;
+  --rose: #e79bec;
+  --gris-texte: #a9a498;       /* texte attenue sur fond sombre */
+  --gris-clair: #3a3f49;       /* bordures / separateurs */
+  --ombre: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --ombre-forte: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+/* Header / footer : on les garde sombres (ils l'etaient deja en clair) au lieu
+   de suivre le --bleu-nuit devenu clair. */
+[data-theme="dark"] .landing-header,
+[data-theme="dark"] .landing-footer {
+  background: #10141d;
+  color: #ece7db;
+}
+[data-theme="dark"] .landing-footer a { color: #ece7db; }
+
+/* Voile de "jeu en chantier" : etait un voile clair, on le passe en voile sombre. */
+[data-theme="dark"] .game-card.coming-soon::before {
+  background: rgba(10, 12, 16, 0.55);
+}
+
+/* Bouton d'entree "welcome" : fond vert clair en dur -> vert sombre + texte clair. */
+[data-theme="dark"] .welcome-btn {
+  background: #23402c;
+  color: #ece7db;
+  border-color: #3f5a45;
+}
+[data-theme="dark"] .welcome-btn:hover { background: #2c4d35; }
+
+/* Encadre de mise en avant dans la page welcome : reste lisible sur la carte. */
+[data-theme="dark"] .landing-welcome .welcome-highlight {
+  background: #1c2027;
+  border-color: var(--gris-clair);
+}
+
+/* Code inline dans les pages legales : bordure discrete pour le detacher. */
+[data-theme="dark"] .legal-page code {
+  border: 1px solid var(--gris-clair);
+}
+
+/* Le FAB "Buy Me a Coffee" reste en jaune pastel (lisible sur les deux themes),
+   on renforce juste son ombre sur fond sombre. */
+[data-theme="dark"] .coffee-fab {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}

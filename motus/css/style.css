@@ -1610,3 +1610,42 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
    2 lignes et faire sauter le layout. */
 .comp-round-info,
 .comp-attempt-info { white-space: nowrap; }
+
+/* ==========================================================================
+   MODE SOMBRE (Motus / Sésame)
+   Palette redefinie par role dominant (--bleu-nuit -> texte, --beige -> fond),
+   puis rattrapage des surfaces "barre sombre". On conserve les couleurs de jeu
+   (case bien placee / mal placee) qui restent lisibles sur fond sombre.
+   Le clavier et le toast suivent la palette (ils ont des variantes d'etat
+   colorees qu'on ne doit pas ecraser).
+   ========================================================================== */
+[data-theme="dark"] {
+  --bleu-nuit: #ece7db;
+  --bleu-nuit-clair: #cfc9ba;
+  --bleu-accent: #86a9e0;
+  --beige: #171a1f;
+  --beige-fonce: #2b303a;
+  --blanc: #242832;
+  --rouge: #e57373;
+  --jaune: #e0bd57;
+  --gris-texte: #a9a498;
+  --gris-clair: #3a3f49;
+  --gris-cell: #30343d;   /* case "lettre absente" en sombre */
+  --vert: #5cb37a;
+  /* --case-bien / --case-mal : inchanges (vert / jaune du jeu, lisibles). */
+  --ombre: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Barres sombres : header, footer, bandeau de code, tag de l'hote. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner {
+  background: #10141d;
+  color: #ece7db;
+}
+[data-theme="dark"] .player-tag.host { background: #10141d; color: #ece7db; }
+
+/* Boutons/pastilles a fond plein : accent bleu bien visible. */
+[data-theme="dark"] .btn-primary { background: #35507e; color: #f2eee4; }
+[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
+[data-theme="dark"] .motus-first-letter::after { background: #35507e; color: #f2eee4; }

@@ -1,0 +1,70 @@
+/* ==========================================================================
+   Theme clair / sombre : primitives communes a tout le site.
+
+   Ce fichier ne contient QUE ce qui est independant de chaque jeu :
+     - le bouton flottant de bascule (.theme-toggle) ;
+     - quelques reglages de base en mode sombre (color-scheme, selection,
+       barres de defilement).
+
+   Les palettes sombres specifiques (override des variables --bleu-nuit, etc.)
+   vivent dans la feuille de style de chaque jeu, sous [data-theme="dark"],
+   car ce sont ces feuilles qui definissent les :root correspondants.
+   ========================================================================== */
+
+/* Indique au navigateur de teinter ses widgets natifs (scrollbars, champs de
+   formulaire, menus) selon le theme actif. */
+[data-theme="dark"] { color-scheme: dark; }
+
+/* --- Bouton flottant de bascule ------------------------------------------ */
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1200;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  color: #1a2540;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+}
+.theme-toggle:active { transform: translateY(0); }
+.theme-toggle:focus-visible {
+  outline: 2px solid #4a6fa5;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .theme-toggle {
+  background: #242832;
+  color: #ece7db;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 600px) {
+  .theme-toggle {
+    bottom: 14px;
+    left: 14px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; }
+}

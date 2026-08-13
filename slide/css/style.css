@@ -298,3 +298,16 @@
 .turn-banner { width: 100%; max-width: 400px; margin: 0 auto 12px; padding: 10px; border-radius: var(--rayon-sm);
   text-align: center; font-weight: 600; font-size: 15px; background: var(--beige-fonce); color: var(--bleu-nuit); }
 .turn-banner.mine { background: var(--bleu-nuit); color: var(--blanc); }
+
+/* ==========================================================================
+   MODE SOMBRE (Slide)
+   Palette heritee de shared/css/landing.css. On ne rattrape que les surfaces
+   "barre sombre" propres a ce jeu ; les tuiles gardent leurs teintes chaudes.
+   ========================================================================== */
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner {
+  background: #10141d;
+  color: #ece7db;
+}
+[data-theme="dark"] .btn-primary { background: #35507e; color: #f2eee4; }
+[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }

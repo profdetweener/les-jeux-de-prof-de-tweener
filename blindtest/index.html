@@ -8,6 +8,10 @@
 <link rel="stylesheet" href="../shared/css/landing.css?v=4">
 <style>
   /* Blind Test, aligné sur la charte du site (variables héritées de landing.css) */
+  /* Mode sombre : la palette vient de landing.css ; on rattrape juste ici les
+     quelques fonds clairs codés en dur pour qu'ils ne "flashent" pas. */
+  [data-theme="dark"] .pl-report{background:#2a1c1c;}
+  [data-theme="dark"] .chip:has(input:checked){background:#1c2740;}
   .mono{font-family:"Menlo","Consolas",monospace;}
   .app-header-home{color:var(--beige);text-decoration:none;font-size:13px;opacity:.8;padding:6px 10px;border-radius:6px;}
   .app-header-home:hover{opacity:1;background:rgba(255,255,255,.08);}
@@ -186,6 +190,11 @@
     .grid-3,.grid-2{grid-template-columns:1fr;}
   }
 </style>
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=1">
 </head>
 <body>
 
@@ -1161,5 +1170,6 @@ setupAudio();
     .catch(()=>{});
 })();
 </script>
+  <script type="module" src="../shared/js/theme.js?v=1"></script>
 </body>
 </html>

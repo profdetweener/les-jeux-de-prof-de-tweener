@@ -7,6 +7,11 @@
   <meta name="format-detection" content="telephone=no">
   <title>Partie, Petit Bac</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=1">
 </head>
 <body>
   <header class="app-header">
@@ -298,6 +303,12 @@
         Une réponse acceptée à la majorité simple sera validée.
       </p>
 
+      <!-- Banniere de verrouillage : visible par tous quand l'hote a verrouille -->
+      <div class="vote-lock-banner" id="vote-lock-banner">
+        <span class="lock-emoji">🔒</span>
+        <span>Votes verrouillés par l'hôte — seul l'hôte peut encore les ajuster.</span>
+      </div>
+
       <!-- Zone de malus tricheur (visible uniquement si STOP + malus configuré) -->
       <div class="cheater-panel" id="cheater-panel" style="display: none;">
         <div class="cheater-panel-info">
@@ -319,6 +330,9 @@
       </div>
 
       <div class="host-actions" id="validation-host-actions" style="display: none;">
+        <button class="btn btn-block btn-lock" id="btn-toggle-votes-lock" type="button">
+          🔒 Verrouiller les votes
+        </button>
         <button class="btn btn-primary btn-block" id="btn-finish-validation">
           ✅ Calculer les scores
         </button>
@@ -399,5 +413,6 @@
   </footer>
 
   <script type="module" src="js/lobby.js"></script>
+  <script type="module" src="../shared/js/theme.js?v=1"></script>
 </body>
 </html>

@@ -1846,3 +1846,62 @@ input.code-input::placeholder {
   line-height: 1.5;
   margin-top: 8px;
 }
+
+/* ==========================================================================
+   MODE SOMBRE (Définitions)
+   Meme strategie que les autres jeux. Note : de nombreux petits fonds pastel
+   en dur (pastilles de difficulte, surlignages de vote) restent clairs et
+   restent parfaitement lisibles (pastille claire, texte sombre) sur les cartes
+   sombres ; un passage "100% sombre" de ces pastilles pourra se faire plus tard.
+   ========================================================================== */
+[data-theme="dark"] {
+  --bleu-nuit: #ece7db;
+  --bleu-nuit-clair: #cfc9ba;
+  --bleu-accent: #86a9e0;
+  --beige: #171a1f;
+  --beige-fonce: #2b303a;
+  --blanc: #242832;
+  --rouge: #e57373;
+  --vert: #5cb37a;
+  --jaune: #e0bd57;
+  --gris-texte: #a9a498;
+  --gris-clair: #3a3f49;
+  --ombre: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --ombre-forte: 0 8px 24px rgba(0, 0, 0, 0.65);
+}
+
+/* Surfaces "barre sombre" : on les garde profondes avec texte clair. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner,
+[data-theme="dark"] .letter-display,
+[data-theme="dark"] .word-banner,
+[data-theme="dark"] .validation-table th,
+[data-theme="dark"] .scores-table th,
+[data-theme="dark"] .scores-table th.col-category,
+[data-theme="dark"] .vote-matrix thead th,
+[data-theme="dark"] .stats-table th,
+[data-theme="dark"] .stats-table th:first-child,
+[data-theme="dark"] #view-round .round-sticky-bar {
+  background: #10141d;
+  color: #ece7db;
+}
+/* En-tetes de ligne collantes (fond force en !important cote clair). */
+[data-theme="dark"] #view-validating .validation-table .category-cell,
+[data-theme="dark"] #view-scoring .scores-table .col-category {
+  background: #10141d !important;
+  color: #ece7db;
+}
+
+/* Boutons/pastilles a fond plein : accent bleu. */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .letter-btn.selected,
+[data-theme="dark"] .category-preset-btn.selected,
+[data-theme="dark"] .host-override-toggle {
+  background: #35507e;
+  color: #f2eee4;
+  border-color: #35507e;
+}
+[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) { background: #343a45; }
+/* .toast conserve ses variantes .error / .success : laisse suivre la palette. */
