@@ -1470,3 +1470,11 @@ input.code-input::placeholder {
 [data-theme="dark"] .room-code-banner,
 [data-theme="dark"] #view-round .round-sticky-bar { background: #10141d; color: #ece7db; }
 [data-theme="dark"] .category-preset-btn.selected { background: #35507e; color: #f2eee4; border-color: #35507e; }
+
+/* Cases "vide," (reponse manquante) : on leur donne une bande grise claire
+   coherente en mode sombre, quelle que soit la parite de la ligne (sinon seules
+   les lignes paires, zebrees, ressortaient clair et les impaires restaient
+   sombres). Reprend le meme voile clair que le zebrage. */
+[data-theme="dark"] #view-validating .validation-table td:has(.answer-empty) {
+  background: rgba(245, 237, 224, 0.45);
+}
