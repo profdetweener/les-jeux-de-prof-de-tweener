@@ -1517,10 +1517,12 @@ input.code-input::placeholder {
 [data-theme="dark"] #view-round .round-sticky-bar { background: #10141d; color: #ece7db; }
 [data-theme="dark"] .category-preset-btn.selected { background: #35507e; color: #f2eee4; border-color: #35507e; }
 
-/* Cases "vide," (reponse manquante) : on leur donne une bande grise claire
-   coherente en mode sombre, quelle que soit la parite de la ligne (sinon seules
-   les lignes paires, zebrees, ressortaient clair et les impaires restaient
-   sombres). Reprend le meme voile clair que le zebrage. */
-[data-theme="dark"] #view-validating .validation-table td:has(.answer-empty) {
-  background: rgba(245, 237, 224, 0.45);
-}
+/* En mode sombre, les fonds gris etaient trop marques (le voile beige du
+   zebrage, discret sur blanc, devient une bande grise franche sur fond sombre).
+   On adoucit tout pour garder des differences douces comme en clair. */
+/* Zebrage des lignes : voile clair tres leger au lieu de la bande grise. */
+[data-theme="dark"] .validation-table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.04); }
+/* Cases "vide," : distinction douce (un cran au-dessus du zebrage) + texte clair
+   lisible, coherent avec le reste de la ligne (avant : gris peu contraste). */
+[data-theme="dark"] #view-validating .validation-table td:has(.answer-empty) { background: rgba(255, 255, 255, 0.07); }
+[data-theme="dark"] .validation-cell .answer-empty { color: #ece7db; opacity: 0.8; }
