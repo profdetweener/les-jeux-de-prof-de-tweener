@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Définitions, Choisis ton mode</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=6">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <script>
     /**
      * Compat ascendante : si on arrive ici via un lien d'invitation
@@ -35,7 +35,7 @@
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
   </script>
-  <link rel="stylesheet" href="../shared/css/theme.css?v=3">
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
 </head>
 <body>
   <header class="landing-header">
@@ -102,6 +102,6 @@
   </footer>
 
   <div class="toast-container" id="toast-container"></div>
-  <script type="module" src="../shared/js/theme.js?v=1"></script>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

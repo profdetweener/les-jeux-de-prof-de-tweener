@@ -13,7 +13,7 @@ import { RoomConnection } from "../../shared/js/ws.js";
 import { showToast } from "../../shared/js/toast.js";
 import { initLobbyView } from "./view-lobby.js";
 import { initRoundView } from "./view-round.js";
-import { initValidatingView } from "./view-validating.js";
+import { initValidatingView } from "./view-validating.js?v=2";
 import { initScoringView } from "./view-scoring.js";
 import { initFinishedView } from "./view-finished.js";
 

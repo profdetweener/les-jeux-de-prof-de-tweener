@@ -58,22 +58,29 @@ function setPreference(theme) {
 // --- Bouton flottant -------------------------------------------------------
 
 let btn = null;
+let thumb = null;
 
 function updateButton(theme) {
   if (!btn) return;
   const dark = theme === "dark";
-  // On affiche l'icone de la CIBLE (ce vers quoi le clic bascule), pas de l'etat courant.
-  btn.textContent = dark ? "\u2600\uFE0F" : "\uD83C\uDF19"; // soleil si on est en sombre, lune si on est en clair
+  // Interrupteur : la pastille affiche l'etat COURANT (lune en sombre, soleil en
+  // clair). Sa position (geree en CSS via [data-theme]) indique aussi l'etat.
+  if (thumb) thumb.textContent = dark ? "\uD83C\uDF19" : "\u2600\uFE0F";
   const label = dark ? "Passer en mode clair" : "Passer en mode sombre";
   btn.setAttribute("aria-label", label);
   btn.setAttribute("title", label);
-  btn.setAttribute("aria-pressed", dark ? "true" : "false");
+  btn.setAttribute("aria-checked", dark ? "true" : "false");
 }
 
 function buildButton() {
   btn = document.createElement("button");
   btn.type = "button";
   btn.className = "theme-toggle";
+  btn.setAttribute("role", "switch");
+  thumb = document.createElement("span");
+  thumb.className = "theme-toggle-thumb";
+  thumb.setAttribute("aria-hidden", "true");
+  btn.appendChild(thumb);
   btn.addEventListener("click", () => {
     setPreference(currentTheme() === "dark" ? "light" : "dark");
   });

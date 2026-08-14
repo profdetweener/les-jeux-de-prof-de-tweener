@@ -24,6 +24,7 @@ import {
 
 export function initValidatingView(state, conn) {
   const tableEl = document.getElementById("validation-table");
+  const catListEl = document.getElementById("cat-vote-list");
   const roundNumberEl = document.getElementById("vr-round-number");
   const roundTotalEl = document.getElementById("vr-round-total");
   const letterValueEl = document.getElementById("vr-letter-value");
@@ -172,6 +173,7 @@ export function initValidatingView(state, conn) {
 
   function renderTable() {
     tableEl.innerHTML = "";
+    catListEl.innerHTML = "";
 
     if (currentCategories.length === 0 || currentPseudos.length === 0) {
       const tr = document.createElement("tr");
@@ -247,6 +249,75 @@ export function initValidatingView(state, conn) {
       tbody.appendChild(tr);
     }
     tableEl.appendChild(tbody);
+
+    // En parallele de la table (desktop), on construit l'affichage mobile :
+    // une carte par categorie. Les deux existent en meme temps dans le DOM,
+    // c'est le CSS qui montre l'un ou l'autre selon la largeur d'ecran.
+    renderCategoryCards();
+  }
+
+  /**
+   * Affichage mobile des votes : une carte par CATEGORIE, contenant la reponse
+   * de chaque joueur (ordre identique a la table). Permet de comparer d'un coup
+   * d'oeil les reponses d'une meme categorie (reperage des doublons), sans avoir
+   * a scroller de joueur en joueur.
+   *
+   * Chaque case reutilise renderCell() : meme rendu "reponse + boutons de vote /
+   * pastille lecture seule" que la table, et donc meme synchro via refreshAllCells.
+   */
+  function renderCategoryCards() {
+    catListEl.innerHTML = "";
+    for (const category of currentCategories) {
+      const card = document.createElement("div");
+      card.className = "cat-vote-card";
+
+      const header = document.createElement("div");
+      header.className = "cat-vote-card-header";
+      header.textContent = category;
+      card.appendChild(header);
+
+      for (const pseudo of currentPseudos) {
+        const isMe = pseudo === state.myPseudo;
+        const row = document.createElement("div");
+        row.className = "cat-vote-row" + (isMe ? " is-self" : "");
+
+        const player = document.createElement("span");
+        player.className = "cvr-player";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "cvr-player-name";
+        nameSpan.textContent = isMe ? "Toi" : pseudo;
+        player.appendChild(nameSpan);
+
+        // Kick (hote uniquement, sur les autres joueurs) : meme role que dans
+        // la table. Seul l'hote voit ce bouton, la vue reste propre pour les
+        // autres joueurs.
+        if (state.isHost && !isMe) {
+          const kickBtn = document.createElement("button");
+          kickBtn.type = "button";
+          kickBtn.className = "kick-inline-btn";
+          kickBtn.textContent = "✕";
+          kickBtn.title = `Exclure ${pseudo} de la partie`;
+          kickBtn.setAttribute("aria-label", `Exclure ${pseudo}`);
+          kickBtn.addEventListener("click", () => {
+            if (confirm(`Exclure ${pseudo} de la partie ? Ses réponses seront retirées.`)) {
+              conn.send({ type: "kick", targetPseudo: pseudo });
+            }
+          });
+          player.appendChild(kickBtn);
+        }
+        row.appendChild(player);
+
+        const cell = document.createElement("div");
+        cell.className = "cvr-cell";
+        cell.dataset.pseudo = pseudo;
+        cell.dataset.category = category;
+        renderCell(cell, pseudo, category);
+        row.appendChild(cell);
+
+        card.appendChild(row);
+      }
+      catListEl.appendChild(card);
+    }
   }
 
   function renderCell(td, pseudo, category) {
@@ -353,11 +424,14 @@ export function initValidatingView(state, conn) {
   }
 
   function refreshAllCells() {
-    const cells = tableEl.querySelectorAll("tbody td[data-pseudo]");
-    cells.forEach((td) => {
-      const pseudo = td.dataset.pseudo;
-      const category = td.dataset.category;
-      renderCell(td, pseudo, category);
+    // Re-rend chaque case des DEUX affichages (table desktop + cartes mobile).
+    // Les deux utilisent data-pseudo + data-category ; on ne matche que les
+    // cases (les <tr> n'ont pas data-category, donc ne sont pas touchees).
+    const cells = document.querySelectorAll(
+      "#view-validating [data-pseudo][data-category]"
+    );
+    cells.forEach((el) => {
+      renderCell(el, el.dataset.pseudo, el.dataset.category);
     });
   }
 

@@ -541,6 +541,53 @@ input.code-input::placeholder {
 .validation-cell .answer-bad-letter { color: var(--rouge); text-decoration: line-through; }
 .validation-cell .answer-bad-length { color: var(--rouge); text-decoration: line-through; text-decoration-style: wavy; }
 
+/* ===========================================================================
+ * Affichage MOBILE des votes : une carte par categorie, avec la reponse de
+ * chaque joueur regroupee (repere les doublons d'un coup d'oeil). Construit par
+ * renderCategoryCards(). Masque par defaut (grand ecran = table), affiche sous
+ * 760px. Les cases reutilisent .validation-cell / .vote-buttons / .vote-btn,
+ * donc elles heritent du dimensionnement mobile deja defini plus bas.
+ * =========================================================================== */
+.cat-vote-list { display: none; }
+.cat-vote-card {
+  background: var(--blanc);
+  border: 1px solid var(--beige-fonce);
+  border-radius: var(--rayon-sm);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.cat-vote-card-header {
+  background: var(--bleu-nuit);
+  color: var(--beige);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  padding: 10px 14px;
+}
+.cat-vote-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--beige-fonce);
+}
+.cat-vote-row.is-self { background: rgba(74, 111, 165, 0.06); }
+.cvr-player {
+  flex: 0 0 72px;
+  width: 72px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 13px;
+  padding-top: 2px;
+}
+.cvr-player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvr-cell { flex: 1 1 auto; min-width: 0; }
+
+[data-theme="dark"] .cat-vote-card-header { background: #10141d; color: #ece7db; }
+[data-theme="dark"] .cat-vote-row.is-self { background: rgba(134, 169, 224, 0.08); }
+
 .vote-buttons { display: inline-flex; gap: 4px; }
 .vote-btn {
   width: 28px; height: 28px;
@@ -1032,12 +1079,11 @@ input.code-input::placeholder {
      VUE VALIDATION : tableau -> cartes par joueur
      ========================================================================== */
   /* Le wrap perd son scroll horizontal (on n'en a plus besoin) */
-  #view-validating .validation-table-wrap {
-    overflow: visible;
-    border: none;
-    background: transparent;
-    margin-bottom: 16px;
-  }
+  /* On masque entierement la table sur mobile : c'est l'affichage par
+     categorie (.cat-vote-list) qui prend le relais (plus lisible pour comparer
+     les reponses et voter). */
+  #view-validating .validation-table-wrap { display: none; }
+  #view-validating .cat-vote-list { display: block; }
   /* Le tableau lui-meme devient un conteneur en blocs */
   #view-validating .validation-table,
   #view-validating .validation-table thead,

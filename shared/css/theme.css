@@ -15,54 +15,62 @@
    formulaire, menus) selon le theme actif. */
 [data-theme="dark"] { color-scheme: dark; }
 
-/* --- Bouton flottant de bascule ------------------------------------------ */
+/* --- Interrupteur flottant clair / sombre --------------------------------- */
+/* Piste en pilule + pastille coulissante portant l'icone de l'etat courant
+   (soleil en clair a gauche, lune en sombre a droite). */
 .theme-toggle {
   position: fixed;
   bottom: 20px;
   left: 20px;
   z-index: 1200;
-  width: 44px;
-  height: 44px;
+  width: 60px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: #2b2f3a;
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  transition: background 0.2s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle-thumb {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: #ffffff;
+  background: #f4f1ea;
   color: #1a2540;
-  font-size: 20px;
-  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.22s cubic-bezier(0.4, 0.1, 0.3, 1.2), background 0.2s ease;
 }
-.theme-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+/* Mode sombre : la pastille glisse a droite. */
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(30px);
 }
-.theme-toggle:active { transform: translateY(0); }
+.theme-toggle:hover { box-shadow: 0 5px 14px rgba(0, 0, 0, 0.34); }
 .theme-toggle:focus-visible {
   outline: 2px solid #4a6fa5;
-  outline-offset: 2px;
-}
-
-[data-theme="dark"] .theme-toggle {
-  background: #242832;
-  color: #ece7db;
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+  outline-offset: 3px;
 }
 
 @media (max-width: 600px) {
-  .theme-toggle {
-    bottom: 14px;
-    left: 14px;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-  }
+  .theme-toggle { bottom: 14px; left: 14px; width: 56px; height: 28px; }
+  .theme-toggle-thumb { width: 22px; height: 22px; margin-top: -11px; font-size: 12px; }
+  [data-theme="dark"] .theme-toggle-thumb { transform: translateX(28px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-thumb { transition: none; }
 }
 
 /* Sur la page d'accueil, quand le bouton "Buy me a coffee" (en bas a droite)

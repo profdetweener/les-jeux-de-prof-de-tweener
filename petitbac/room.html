@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#1a2540">
   <meta name="format-detection" content="telephone=no">
   <title>Partie, Petit Bac</title>
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
   </script>
-  <link rel="stylesheet" href="../shared/css/theme.css?v=3">
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
 </head>
 <body>
   <header class="app-header">
@@ -299,8 +299,7 @@
       </div>
 
       <p class="info-line" style="margin-bottom: 16px;">
-        🗳️ Vote pour ou contre chaque réponse des autres joueurs.
-        Une réponse acceptée à la majorité simple sera validée.
+        🗳️ Vote collaboratif pour les réponses de chacun.
       </p>
 
       <!-- Banniere de verrouillage : visible par tous quand l'hote a verrouille -->
@@ -328,6 +327,10 @@
       <div class="validation-table-wrap">
         <table class="validation-table" id="validation-table"></table>
       </div>
+
+      <!-- Affichage mobile : une carte par catégorie (réponses de tous les
+           joueurs regroupées). Masqué sur grand écran, où la table sert. -->
+      <div class="cat-vote-list" id="cat-vote-list" aria-hidden="false"></div>
 
       <div class="host-actions" id="validation-host-actions" style="display: none;">
         <button class="btn btn-block btn-lock" id="btn-toggle-votes-lock" type="button">
@@ -412,7 +415,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/lobby.js"></script>
-  <script type="module" src="../shared/js/theme.js?v=1"></script>
+  <script type="module" src="js/lobby.js?v=2"></script>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>
