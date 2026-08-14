@@ -74,6 +74,25 @@ body:has(.coffee-fab.above-footer) .theme-toggle { bottom: 78px; }
   body:has(.coffee-fab.above-footer) .theme-toggle { bottom: 68px; }
 }
 
+/* --------------------------------------------------------------------------
+   Barres d'en-tete / de pied de page en mode sombre.
+   Ces barres sont bleu nuit avec un texte clair. Leurs liens enfants (fleche
+   "retour", liens du footer : regles, mentions, Twitch, soutenir...) declarent
+   `color: var(--beige)`. Or en mode sombre --beige devient sombre (car son
+   role dominant est le fond de page) : ces liens deviendraient donc sombres
+   sur fond sombre = invisibles.
+   On redefinit --beige en clair LOCALEMENT sur ces barres : tous les liens et
+   separateurs enfants qui utilisent var(--beige) redeviennent lisibles d'un
+   seul coup, sans avoir a les enumerer un par un. Sans danger : aucun enfant
+   de ces barres n'utilise var(--beige) comme couleur de fond. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .landing-header,
+[data-theme="dark"] .landing-footer,
+[data-theme="dark"] .room-code-banner {
+  --beige: #ece7db;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle { transition: none; }
 }
