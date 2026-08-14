@@ -1456,3 +1456,17 @@ input.code-input::placeholder {
 
 [data-theme="dark"] .ranking-list.ranking-final li:nth-child(2) { background: #2b2b2f; }
 [data-theme="dark"] .ranking-list.ranking-final li:nth-child(3) { background: #2c2119; }
+
+
+/* Liens des barres header/footer en mode sombre : on redefinit --beige en clair
+   localement pour que la fleche retour et les liens du footer restent lisibles
+   (ils utilisent color: var(--beige), qui devient sombre en mode sombre). */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner { --beige: #ece7db; }
+
+/* Surfaces qui utilisaient background: var(--bleu-nuit) et devenaient claires en
+   sombre (--bleu-nuit bascule en clair). On les repasse en fond sombre. */
+[data-theme="dark"] .room-code-banner,
+[data-theme="dark"] #view-round .round-sticky-bar { background: #10141d; color: #ece7db; }
+[data-theme="dark"] .category-preset-btn.selected { background: #35507e; color: #f2eee4; border-color: #35507e; }

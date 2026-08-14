@@ -458,3 +458,8 @@ body { display: flex; flex-direction: column; }
 [data-theme="dark"] .coffee-fab {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
 }
+
+
+/* Liens des barres header/footer en mode sombre : --beige clair localement. */
+[data-theme="dark"] .landing-header,
+[data-theme="dark"] .landing-footer { --beige: #ece7db; }

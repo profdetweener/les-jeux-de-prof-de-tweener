@@ -1649,3 +1649,9 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 [data-theme="dark"] .btn-primary { background: #35507e; color: #f2eee4; }
 [data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
 [data-theme="dark"] .motus-first-letter::after { background: #35507e; color: #f2eee4; }
+
+
+/* Liens des barres header/footer en mode sombre : --beige clair localement. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner { --beige: #ece7db; }

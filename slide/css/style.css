@@ -311,3 +311,12 @@
 }
 [data-theme="dark"] .btn-primary { background: #35507e; color: #f2eee4; }
 [data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
+
+
+/* Liens du footer en mode sombre : --beige clair localement. */
+[data-theme="dark"] .app-footer { --beige: #ece7db; }
+
+/* Surfaces bleu-nuit qui devenaient claires en sombre -> accent bleu. */
+[data-theme="dark"] .turn-banner.mine,
+[data-theme="dark"] .seg button.on,
+[data-theme="dark"] .sb-chip.active { background: #35507e; color: #f2eee4; }

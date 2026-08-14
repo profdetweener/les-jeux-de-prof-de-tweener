@@ -238,3 +238,8 @@
 /* Mode sombre : le vert tres clair de fond devient un vert sombre discret. */
 [data-theme="dark"] .chill-def-block { background: #1c2a20; }
 [data-theme="dark"] .chill-vote-btn:hover:not(:disabled) { background: #1c2a20; }
+
+/* Overlay "Reveler la definition" : fond vert pale translucide -> vert sombre,
+   sinon il recouvre l'encadre et rend tout illisible en mode sombre. */
+[data-theme="dark"] .chill-def-reveal { background: rgba(28, 42, 32, 0.85); }
+[data-theme="dark"] .chill-def-reveal:hover { background: rgba(28, 42, 32, 0.7); }

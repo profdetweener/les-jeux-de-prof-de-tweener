@@ -1955,3 +1955,9 @@ input.code-input::placeholder {
 [data-theme="dark"] .cheater-applied-note { color: #e0b85c; }
 [data-theme="dark"] .host-override-toolbar-label { color: #d9c48a; }
 [data-theme="dark"] .host-override-toolbar-label strong { color: #ece7db; }
+
+
+/* Liens des barres header/footer en mode sombre : --beige clair localement. */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .room-code-banner { --beige: #ece7db; }
