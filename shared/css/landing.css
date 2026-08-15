@@ -463,3 +463,10 @@ body { display: flex; flex-direction: column; }
 /* Liens des barres header/footer en mode sombre : --beige clair localement. */
 [data-theme="dark"] .landing-header,
 [data-theme="dark"] .landing-footer { --beige: #ece7db; }
+
+/* Retour a l'accueil apres etre entre dans les jeux (meme session) : on saute
+   l'ecran de bienvenue et on montre direct la grille (classe posee tres tot
+   par le script du <head>, donc sans flash). */
+html.pdt-skip-welcome #welcome { display: none; }
+html.pdt-skip-welcome #gamesIntro { display: block; }
+html.pdt-skip-welcome #gamesGrid { display: grid; }
