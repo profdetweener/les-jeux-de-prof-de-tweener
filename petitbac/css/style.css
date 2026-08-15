@@ -1176,6 +1176,23 @@ input.code-input::placeholder {
   }
   #view-validating .vote-btn:hover { transform: none; }
 
+  /* Cartes par categorie : on garde la reponse AU-DESSUS et les boutons EN
+     DESSOUS (une reponse longue ne gene pas le placement des boutons), mais des
+     boutons compacts (plus petits, non etires sur toute la largeur) pour des
+     lignes moins hautes. */
+  #view-validating .cvr-cell .vote-buttons {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  #view-validating .cvr-cell .vote-btn {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 38px;
+    font-size: 18px;
+  }
+
   /* ==========================================================================
      VUE SCORING : meme pattern, tableau -> cartes par joueur
      ========================================================================== */
