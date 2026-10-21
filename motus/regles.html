@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sésame, Règles du jeu</title>
-  <link rel="stylesheet" href="css/style.css?v=34">
+  <link rel="stylesheet" href="css/style.css?v=35">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -95,6 +95,11 @@
           écrits pendant la pause sont ignorés. Un mot absent du dictionnaire ne coûte pas d'essai : le mot
           suivant du tchat est essayé à la place. Le streamer peut toujours taper lui-même, et mettre le
           tchat en pause avec le bouton ⏸.
+        </p>
+        <p>
+          Sous la barre du tchat s'affichent les mots refusés et la raison : pas dans le dictionnaire,
+          trop court, trop long, mauvaise première lettre ou déjà tenté. Les messages qui ne ressemblent
+          pas à une tentative (« gg », « salut »…) sont simplement ignorés.
         </p>
       </section>
 

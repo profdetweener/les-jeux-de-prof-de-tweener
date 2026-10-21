@@ -722,8 +722,9 @@ async function submitGuess(author = null) {
     game.attemptAuthors.push(author);
     chat.tried.add(guess);
     const rowIndex = game.attempts.length - 1;
+    // Le pseudo s'affiche sur la ligne : pas besoin de le repeter sous la
+    // barre, qui ne sert qu'a expliquer les refus.
     markRowAuthor(rowIndex, author);
-    if (author) setChatLast(`${author} propose ${guess}`, "proposed");
 
     // Animation lettre par lettre (bloque la saisie)
     game.status = "animating";
@@ -780,7 +781,7 @@ async function submitGuess(author = null) {
       const why = err && err.code === "WORD_NOT_IN_DICTIONARY"
         ? "pas dans le dictionnaire"
         : (err && err.message) || "refusé";
-      setChatLast(`${author} : ${guess} refusé (${why})`, "rejected");
+      setChatLast(`${author} : ${guess}, ${why}`, "rejected");
       resetTypingBuffer();
       renderCurrentRow();
     } else {
@@ -864,10 +865,42 @@ function chatListening() {
   return game.status === "in_progress" || game.status === "submitting" || game.status === "animating";
 }
 
+// Ecart de longueur max pour signaler "trop court / trop long". Au-dela, on
+// considere que ce n'est pas une tentative ("tu", "gg", "trop bien"...).
+const CHAT_LEN_TOLERANCE = 2;
+
+/**
+ * Explique pourquoi un mot du tchat ne peut pas etre tente.
+ * Renvoie null si le mot est jouable, une raison a afficher si le message
+ * ressemble a une vraie tentative, ou "" s'il faut l'ignorer en silence
+ * (bavardage du tchat : on ne veut pas noyer la barre de refus).
+ *
+ * @param {string} word mot deja normalise (A-Z)
+ * @returns {string|null}
+ */
+function chatRejectReason(word) {
+  const okLen = word.length === game.wordLength;
+  const okFirst = word[0] === game.firstLetter;
+  if (okLen && okFirst) return chat.tried.has(word) ? "déjà tenté" : null;
+  if (okFirst && Math.abs(word.length - game.wordLength) <= CHAT_LEN_TOLERANCE) {
+    const n = word.length;
+    return n < game.wordLength
+      ? `trop court (${n} lettres au lieu de ${game.wordLength})`
+      : `trop long (${n} lettres au lieu de ${game.wordLength})`;
+  }
+  if (okLen) return `ne commence pas par ${game.firstLetter}`;
+  return "";
+}
+
 function onChatMessage(m) {
   if (!chatListening()) return;
   const word = normalizeChatWord(m.text);
-  if (!isChatCandidate(word)) return;
+  if (!word) return;
+  const reason = chatRejectReason(word);
+  if (reason !== null) {
+    if (reason) setChatLast(`${m.name} : ${word}, ${reason}`, "rejected");
+    return;
+  }
   if (chat.queue.some((c) => c.word === word)) return;
   if (chat.queue.length >= CHAT_QUEUE_MAX) return;
   chat.queue.push({ name: m.name, word });
@@ -922,7 +955,7 @@ function resetChatForNewWord() {
   renderChatBar();
 }
 
-/** Affiche le pseudo de l'auteur a cote de la ligne (grand ecran). */
+/** Affiche le pseudo de l'auteur sur la ligne (a droite si la place le permet). */
 function markRowAuthor(rowIndex, author) {
   const rowEl = els.grid && els.grid.querySelector(`.motus-row[data-row="${rowIndex}"]`);
   if (!rowEl) return;
@@ -933,6 +966,31 @@ function markRowAuthor(rowIndex, author) {
     delete rowEl.dataset.author;
     rowEl.removeAttribute("title");
   }
+  updateAuthorPlacement();
+}
+
+// En dessous de cette marge libre a droite de la grille, le pseudo serait
+// illisible : on garde la pastille sur le coin de la ligne.
+const AUTHOR_SIDE_MIN_PX = 64;
+
+/**
+ * Mesure la place libre a droite de la grille (dans .game-main) et choisit
+ * ou afficher les pseudos : a droite de la ligne si ca tient, sinon sur le
+ * coin. Appele a l'affichage d'une grille, a chaque essai et au resize. Doit
+ * tourner la vue visible (une vue en display:none mesure 0).
+ */
+function updateAuthorPlacement() {
+  if (!els.grid) return;
+  // On mesure jusqu'au bord de la carte (sa marge interieure compte) : la
+  // pastille peut deborder de la colonne de jeu, pas de la carte.
+  const box = els.grid.closest(".card") || els.grid.closest(".game-main") || els.grid.parentElement;
+  const row = els.grid.querySelector(".motus-row");
+  if (!box || !row || !row.offsetWidth) return;
+  // 10 px d'ecart avec la ligne + 8 px de securite avant le bord de la carte.
+  const free = box.getBoundingClientRect().right - row.getBoundingClientRect().right - 18;
+  const side = free >= AUTHOR_SIDE_MIN_PX;
+  els.grid.classList.toggle("authors-side", side);
+  if (side) els.grid.style.setProperty("--author-space", `${Math.floor(free)}px`);
 }
 
 /**
@@ -1035,6 +1093,8 @@ function stopChatTicker() {
 
 /** Ouvre (ou garde) la connexion au tchat selon la config courante. */
 function syncChatConnection() {
+  const gameCard = document.getElementById("view-in-game");
+  if (gameCard) gameCard.classList.toggle("chat-on", config.chatOn);
   if (!config.chatOn) {
     if (chat.client) { chat.client.close(); chat.client = null; }
     stopChatTicker();
@@ -1519,6 +1579,7 @@ async function startNewWord() {
     // precedent ne doit pas se reporter).
     window.scrollTo(0, 0);
     showView("in_game");
+    updateAuthorPlacement();
     // Demarre le chrono pour cette partie (et lance le timer live)
     startTimer();
   } catch (err) {
@@ -1642,6 +1703,8 @@ async function init() {
 
   // Options tchat : reglages precedents + bascule Sans / Avec le tchat.
   loadChatPrefs();
+  // Place des pseudos (a droite ou sur le coin) selon la largeur dispo.
+  window.addEventListener("resize", updateAuthorPlacement);
   if (els.chatModeSeg) {
     els.chatModeSeg.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-chat]");

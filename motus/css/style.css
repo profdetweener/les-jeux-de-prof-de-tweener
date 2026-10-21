@@ -1696,10 +1696,26 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .chill-chat-log:not(:last-child) { opacity: 0.65; }
 .chill-chat-log.rejected { color: var(--rouge); }
 
-/* Pseudo de l'auteur d'un essai venu du tchat : pastille a cheval sur le coin
-   haut-droit de la ligne. Toujours dans la largeur de la grille, donc jamais
-   coupee, meme pour un mot de 10 lettres sur mobile. */
+/* Pseudo de l'auteur d'un essai venu du tchat.
+   Par defaut (place juste : mobile, mot long) : pastille a cheval sur le coin
+   haut-droit de la ligne, toujours dans la largeur de la grille.
+   Quand il y a de la place a droite de la grille (classe .authors-side posee
+   par chill.js, qui mesure l'espace libre) : pastille a droite de la ligne,
+   centree verticalement, largeur bornee par --author-space. */
 .motus-row[data-author] { position: relative; }
+.motus-grid.authors-side .motus-row[data-author]::after {
+  top: 50%; right: auto; left: calc(100% + 10px);
+  transform: translateY(-50%);
+  box-sizing: border-box;   /* max-width inclut le padding : pas de debord */
+  max-width: var(--author-space, 120px);
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 12px;
+}
+/* En mode tchat, la carte de jeu s'elargit un peu pour laisser la place aux
+   pseudos a droite de la grille (sans effet sur un ecran plus etroit, la
+   carte reste a 100 %). */
+#view-in-game.chat-on { max-width: 1040px; }
 .motus-row[data-author]::after {
   content: attr(data-author);
   position: absolute; top: -7px; right: -4px; z-index: 1;
