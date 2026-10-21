@@ -1612,6 +1612,107 @@ select:focus { outline: none; border-color: var(--bleu-accent); background: var(
 .comp-attempt-info { white-space: nowrap; }
 
 /* ==========================================================================
+   Mode chill + tchat Twitch
+   ========================================================================== */
+
+/* Libelle sans <label> (le groupe de boutons n'est pas un champ unique). */
+.label-like {
+  display: block; font-size: 13px; font-weight: 600;
+  margin-bottom: 6px; color: var(--bleu-nuit);
+}
+
+/* Bascule Sans / Avec le tchat, dans les options. */
+.chat-mode-seg {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  background: var(--beige); padding: 4px;
+  border-radius: var(--rayon-sm);
+}
+.chat-mode-seg button {
+  border: none; background: transparent; color: var(--gris-texte);
+  padding: 9px 10px; border-radius: 4px;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.chat-mode-seg button:hover { color: var(--bleu-nuit); }
+.chat-mode-seg button.on {
+  background: var(--blanc); color: var(--bleu-nuit);
+  box-shadow: 0 1px 3px rgba(26, 37, 64, 0.15);
+}
+.chat-help { margin: -4px 0 18px; line-height: 1.45; }
+
+/* Barre du tchat en jeu : meme largeur que la grille, comme .motus-header. */
+.chill-chat-bar {
+  margin: 0 auto 14px;
+  width: 100%;
+  max-width: calc(56px * var(--motus-cols, 7) + 6px * (var(--motus-cols, 7) - 1));
+  background: var(--beige);
+  border-radius: var(--rayon-sm);
+  padding: 8px 10px 6px;
+  box-sizing: border-box;
+}
+.chill-chat-bar[hidden] { display: none; }
+.chill-chat-top {
+  display: flex; align-items: center; gap: 10px;
+}
+.chill-chat-conn { font-size: 12px; opacity: 1; color: var(--gris-texte); flex: none; }
+.chill-chat-conn [hidden] { display: none; }
+.chill-chat-turn {
+  flex: 1; min-width: 0;
+  font-size: 14px; font-weight: 600; color: var(--bleu-nuit);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.chill-chat-turn[data-state="cooldown"] { color: var(--gris-texte); }
+.chill-chat-turn[data-state="paused"] { color: var(--rouge); }
+.chill-chat-pause {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--gris-clair);
+  border-radius: var(--rayon-sm);
+  color: var(--bleu-nuit);
+  padding: 3px 8px; font-size: 14px; line-height: 1;
+  cursor: pointer;
+}
+.chill-chat-pause:hover { background: var(--blanc); }
+.chill-chat-pause[aria-pressed="true"] { border-color: var(--rouge); color: var(--rouge); }
+.chill-chat-progress {
+  height: 3px; margin-top: 6px;
+  background: var(--gris-clair); border-radius: 2px; overflow: hidden;
+}
+.chill-chat-progress span {
+  display: block; height: 100%;
+  background: var(--bleu-accent);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform 0.25s linear;
+}
+.chill-chat-last {
+  font-size: 12px; color: var(--gris-texte);
+  text-align: center; margin-top: 4px;
+}
+.chill-chat-last:empty { display: none; }
+.chill-chat-log { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chill-chat-log + .chill-chat-log { margin-top: 1px; }
+/* La ligne la plus ancienne s'efface un peu : l'oeil va a la plus recente. */
+.chill-chat-log:not(:last-child) { opacity: 0.65; }
+.chill-chat-log.rejected { color: var(--rouge); }
+
+/* Pseudo de l'auteur d'un essai venu du tchat : pastille a cheval sur le coin
+   haut-droit de la ligne. Toujours dans la largeur de la grille, donc jamais
+   coupee, meme pour un mot de 10 lettres sur mobile. */
+.motus-row[data-author] { position: relative; }
+.motus-row[data-author]::after {
+  content: attr(data-author);
+  position: absolute; top: -7px; right: -4px; z-index: 1;
+  max-width: 45%;
+  padding: 1px 7px;
+  font-size: 11px; font-weight: 600; line-height: 1.4;
+  color: #fff; background: #7a4fc4;
+  border-radius: 9px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ==========================================================================
    MODE SOMBRE (Motus / Sésame)
    Palette redefinie par role dominant (--bleu-nuit -> texte, --beige -> fond),
    puis rattrapage des surfaces "barre sombre". On conserve les couleurs de jeu

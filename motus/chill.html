@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Sésame chill, Partie en cours</title>
-  <link rel="stylesheet" href="css/style.css?v=33">
+  <link rel="stylesheet" href="css/style.css?v=34">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -25,8 +25,8 @@
     <div class="card view" id="view-config">
       <h2>Options de la partie</h2>
       <p class="subtitle">
-        Mode chill : tu tapes les essais seul, les viewers proposent à l'oral
-        ou dans le tchat. Aucun joueur supplémentaire à attendre.
+        Mode chill : tu tapes les essais seul, ou tu laisses le tchat Twitch
+        proposer ses mots directement. Aucun joueur supplémentaire à attendre.
       </p>
 
       <div class="alert alert-error" id="error-box"></div>
@@ -42,6 +42,36 @@
           <input type="number" id="max-attempts-input" value="6" min="4" max="8" step="1">
           <p class="info-line">de 4 à 8 essais</p>
         </div>
+      </div>
+
+      <!-- Tchat Twitch : sans (le streamer tape seul) ou avec (les mots ecrits
+           dans le tchat sont testes comme s'ils etaient tapes au clavier). -->
+      <div class="form-group">
+        <span class="label-like" id="chat-mode-label">Tchat Twitch</span>
+        <div class="chat-mode-seg" id="chat-mode-seg" role="group" aria-labelledby="chat-mode-label">
+          <button type="button" data-chat="off" class="on" aria-pressed="true">Sans le tchat</button>
+          <button type="button" data-chat="on" aria-pressed="false">🟣 Avec le tchat</button>
+        </div>
+      </div>
+
+      <div id="chat-options" hidden>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="channel-input">Chaîne Twitch</label>
+            <input type="text" id="channel-input" autocomplete="off" spellcheck="false"
+                   placeholder="prof_de_tweener" value="prof_de_tweener">
+          </div>
+          <div class="form-group">
+            <label for="cooldown-input">Pause entre 2 mots</label>
+            <input type="number" id="cooldown-input" value="8" min="3" max="30" step="1">
+            <p class="info-line">en secondes, de 3 à 30</p>
+          </div>
+        </div>
+        <p class="info-line chat-help">
+          Le premier mot valide écrit dans le tchat est testé comme si tu l'avais tapé.
+          Ensuite, le tchat attend la fin de la pause avant qu'un nouveau mot soit pris :
+          les messages envoyés pendant la pause sont ignorés. Tu peux toujours taper toi-même.
+        </p>
       </div>
 
       <button class="btn btn-primary btn-block" id="start-btn">
@@ -120,6 +150,22 @@
               <span id="chill-sound-icon">🔊</span>
             </button>
           </div>
+          <!-- Barre du tchat Twitch (visible seulement en mode "avec le tchat") :
+               etat de la connexion, compte a rebours avant le prochain mot pris
+               dans le tchat, dernier mot propose et bouton pause. -->
+          <div class="chill-chat-bar" id="chill-chat-bar" hidden>
+            <div class="chill-chat-top">
+              <span class="connection-status chill-chat-conn">
+                <span class="dot" id="chat-dot"></span>
+                <span id="chat-conn-text">Tchat</span>
+              </span>
+              <span class="chill-chat-turn" id="chat-turn"></span>
+              <button type="button" class="chill-chat-pause" id="chat-pause-btn"
+                      aria-pressed="false" title="Mettre le tchat en pause">⏸</button>
+            </div>
+            <div class="chill-chat-progress" aria-hidden="true"><span id="chat-progress-fill"></span></div>
+            <div class="chill-chat-last" id="chat-last"></div>
+          </div>
           <div class="motus-grid" id="motus-grid"></div>
           <div class="motus-keyboard" id="motus-keyboard"></div>
           <!-- Champ de saisie natif (mobile) : declenche le clavier du
@@ -191,7 +237,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/chill.js?v=20"></script>
+  <script type="module" src="js/chill.js?v=21"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

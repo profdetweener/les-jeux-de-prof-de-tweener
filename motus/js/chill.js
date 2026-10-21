@@ -14,11 +14,25 @@
  *     (sauf la 1ere lettre, toujours imposee par les regles Motus).
  *   - L'animation des couleurs apres un essai joue lettre par lettre, avec
  *     un petit delai entre chaque case.
+ *
+ * Mode tchat Twitch (optionnel, choisi dans les options) :
+ *   - Lecture anonyme du tchat via shared/js/twitch.js (aucun compte, aucun
+ *     token : lecture seule, comme Mots meles).
+ *   - Un message qui ressemble a un essai valide (bonne longueur, bonne 1ere
+ *     lettre, pas deja tente) est soumis exactement comme si le streamer
+ *     l'avait tape.
+ *   - Apres chaque essai ACCEPTE (tchat ou clavier), le tchat est ferme
+ *     pendant `cooldownSec` secondes, compte a partir de la fin de
+ *     l'animation. Les messages recus pendant la pause sont ignores (pas mis
+ *     en file) : le but est que chacun voie le resultat avant de reproposer.
+ *   - Un mot refuse par le serveur (hors dictionnaire) ne consomme ni essai
+ *     ni pause : on passe au candidat suivant arrive dans la meme fenetre.
  */
 
 import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js";
 import { showToast } from "../../shared/js/toast.js";
 import { fetchDefinition, prefetchDefinition } from "../../shared/js/wiktionary.js?v=2";
+import { TwitchChat } from "../../shared/js/twitch.js";
 
 // =============================================================================
 // Bornes et defauts (alignes avec MOTUS_CONFIG cote worker)
@@ -30,6 +44,19 @@ const MIN_ATTEMPTS = 4;
 const MAX_ATTEMPTS = 8;
 const DEFAULT_WORD_LEN = 7;
 const DEFAULT_ATTEMPTS = 6;
+
+// Mode tchat : pause entre deux mots pris dans le tchat (secondes)
+const MIN_COOLDOWN = 3;
+const MAX_COOLDOWN = 30;
+const DEFAULT_COOLDOWN = 8;
+const DEFAULT_CHANNEL = "prof_de_tweener";
+// Nombre max de candidats gardes dans la fenetre ouverte (si le 1er est hors
+// dictionnaire, on essaie le suivant). Au-dela, on ignore : inutile de garder
+// 50 messages d'un tchat qui spamme.
+const CHAT_QUEUE_MAX = 5;
+const CHAT_KEY = "motus_chill_chat";          // "1" = avec le tchat
+const CHANNEL_KEY = "motus_channel";          // derniere chaine ecoutee
+const COOLDOWN_KEY = "motus_chat_cooldown";   // derniere pause choisie
 
 // Delai entre 2 cases lors de l'animation de feedback (ms)
 const REVEAL_DELAY_MS = 400;
@@ -191,6 +218,23 @@ function focusNativeInput() {
 const config = {
   wordLength: DEFAULT_WORD_LEN,
   maxAttempts: DEFAULT_ATTEMPTS,
+  chatOn: false,
+  channel: DEFAULT_CHANNEL,
+  cooldownSec: DEFAULT_COOLDOWN,
+};
+
+/**
+ * Etat du tchat Twitch (mode "avec le tchat"). Rien de tout ca n'est envoye
+ * au serveur : le worker chill reste stateless, tout se passe ici.
+ */
+const chat = {
+  client: null,          // instance TwitchChat
+  paused: false,         // pause manuelle du streamer (bouton ⏸)
+  busy: false,           // un mot du tchat est en cours de soumission
+  cooldownUntil: 0,      // timestamp (ms) avant lequel on ignore le tchat
+  queue: [],             // candidats { name, word } recus fenetre ouverte
+  tried: new Set(),      // mots deja testes ou refuses pour le mot en cours
+  tickerId: null,        // rafraichissement du compte a rebours
 };
 
 const game = {
@@ -199,6 +243,9 @@ const game = {
   wordLength: 0,
   maxAttempts: 0,
   attempts: [],
+  /** Auteur de chaque essai (meme index que attempts) : pseudo Twitch, ou
+   *  null quand c'est le streamer qui a tape. */
+  attemptAuthors: [],
   status: "idle",
   revealedWord: null,
 
@@ -641,11 +688,21 @@ function onKeyPress(key) {
   }
 }
 
-async function submitGuess() {
-  if (!canType()) return;
+/**
+ * Soumet la ligne courante.
+ *
+ * @param {string|null} [author=null] pseudo Twitch si le mot vient du tchat,
+ *   null si le streamer l'a tape lui-meme.
+ * @returns {Promise<"accepted"|"rejected"|"noop">}
+ *   accepted : l'essai a ete compte (et anime) ;
+ *   rejected : le serveur l'a refuse (hors dico, etc.), aucun essai consomme ;
+ *   noop     : rien n'a ete envoye (ligne incomplete, saisie bloquee).
+ */
+async function submitGuess(author = null) {
+  if (!canType()) return "noop";
   if (!isBufferComplete()) {
     flashCurrentRow();
-    return;
+    return "noop";
   }
   const guess = buildGuessString();
 
@@ -662,11 +719,21 @@ async function submitGuess() {
     const res = await motusChillGuess(game.token, guess);
 
     game.attempts.push(res.attempt);
+    game.attemptAuthors.push(author);
+    chat.tried.add(guess);
     const rowIndex = game.attempts.length - 1;
+    markRowAuthor(rowIndex, author);
+    if (author) setChatLast(`${author} propose ${guess}`, "proposed");
 
     // Animation lettre par lettre (bloque la saisie)
     game.status = "animating";
     await animateAttemptRow(rowIndex, res.attempt);
+
+    // La pause du tchat demarre une fois le resultat visible, que l'essai
+    // vienne du tchat ou du clavier : tout le monde doit voir les couleurs
+    // avant qu'un nouveau mot soit pris. Les candidats arrives pendant
+    // l'animation sont jetes pour la meme raison.
+    startChatCooldown();
 
     // Cas mot trouve : on saute la suite et passe a la vue between
     if (res.status === "found") {
@@ -677,7 +744,7 @@ async function submitGuess() {
       setTimeout(() => playSound("found"), 120);
       updateStatus();
       goBetween();
-      return;
+      return "accepted";
     }
 
     // Cas essais epuises : on demande le mot au serveur
@@ -691,7 +758,7 @@ async function submitGuess() {
       game.status = "exhausted";
       updateStatus();
       goBetween();
-      return;
+      return "accepted";
     }
 
     // Cas standard : on prepare la ligne suivante
@@ -701,11 +768,26 @@ async function submitGuess() {
     resetTypingBuffer();
     renderCurrentRow();
     updateStatus();
+    return "accepted";
   } catch (err) {
     // Le serveur a refuse l'essai (mot pas dans le dico, etc.)
     game.status = "in_progress";
-    showToast(err.message || "Essai refuse", { type: "error" });
-    flashCurrentRow();
+    if (author) {
+      // Mot du tchat refuse : pas de toast (un tchat actif en ferait
+      // pleuvoir), juste la ligne d'info sous la barre. On rend au streamer
+      // une ligne propre plutot que de laisser le mot refuse affiche.
+      chat.tried.add(guess);
+      const why = err && err.code === "WORD_NOT_IN_DICTIONARY"
+        ? "pas dans le dictionnaire"
+        : (err && err.message) || "refusé";
+      setChatLast(`${author} : ${guess} refusé (${why})`, "rejected");
+      resetTypingBuffer();
+      renderCurrentRow();
+    } else {
+      showToast(err.message || "Essai refuse", { type: "error" });
+      flashCurrentRow();
+    }
+    return "rejected";
   }
 }
 
@@ -738,6 +820,273 @@ function updateStatus() {
   if (els.giveUpBtn) {
     els.giveUpBtn.disabled = game.status !== "in_progress";
   }
+}
+
+// =============================================================================
+// Mode tchat Twitch
+// =============================================================================
+
+/**
+ * Transforme un message du tchat en mot candidat, ou null s'il ne ressemble
+ * pas a un essai. Meme normalisation que le worker (normalizeGuess) : accents
+ * retires, majuscules. On tolere la ponctuation en bordure ("maison !" non,
+ * car il y a un espace ; "maison!" oui) et les ligatures Œ/Æ.
+ *
+ * @param {string} text
+ * @returns {string|null}
+ */
+function normalizeChatWord(text) {
+  let t = String(text || "").trim();
+  if (!t || t.startsWith("!")) return null;          // commandes de bot
+  t = t.replace(/^["'«»“”.,;:!?]+|["'«»“”.,;:!?]+$/g, "");
+  if (!t || /\s/.test(t)) return null;               // une phrase n'est pas un essai
+  const w = t
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/Œ/g, "OE")
+    .replace(/Æ/g, "AE");
+  return /^[A-Z]+$/.test(w) ? w : null;
+}
+
+/** Vrai si le mot peut etre tente sur la grille en cours. */
+function isChatCandidate(word) {
+  return !!word &&
+    word.length === game.wordLength &&
+    word[0] === game.firstLetter &&
+    !chat.tried.has(word);
+}
+
+/** Le tchat ecoute-t-il en ce moment (hors pause, hors entre-deux-mots) ? */
+function chatListening() {
+  if (!config.chatOn || chat.paused) return false;
+  if (Date.now() < chat.cooldownUntil) return false;
+  return game.status === "in_progress" || game.status === "submitting" || game.status === "animating";
+}
+
+function onChatMessage(m) {
+  if (!chatListening()) return;
+  const word = normalizeChatWord(m.text);
+  if (!isChatCandidate(word)) return;
+  if (chat.queue.some((c) => c.word === word)) return;
+  if (chat.queue.length >= CHAT_QUEUE_MAX) return;
+  chat.queue.push({ name: m.name, word });
+  pumpChat();
+}
+
+/**
+ * Teste les candidats en file, un par un, tant que la fenetre est ouverte.
+ * S'arrete des qu'un essai est accepte (la pause demarre et vide la file).
+ * Un candidat refuse par le serveur laisse la place au suivant.
+ */
+async function pumpChat() {
+  if (chat.busy) return;
+  chat.busy = true;
+  try {
+    while (chat.queue.length > 0) {
+      if (!config.chatOn || chat.paused) break;
+      if (Date.now() < chat.cooldownUntil) { chat.queue = []; break; }
+      if (game.status !== "in_progress") break; // le streamer soumet : on attend
+      const c = chat.queue.shift();
+      if (!isChatCandidate(c.word)) continue;
+      // Le mot du tchat remplace ce que le streamer etait en train de taper.
+      game.typingBuffer = c.word.split("");
+      game.rowDirty = true;
+      renderCurrentRow();
+      updateLetterCounter();
+      syncNativeInputFromBuffer();
+      renderChatBar();
+      const outcome = await submitGuess(c.name);
+      if (outcome === "accepted") break;
+    }
+  } finally {
+    chat.busy = false;
+    renderChatBar();
+  }
+}
+
+/** Ferme le tchat pendant cooldownSec et jette les candidats en attente. */
+function startChatCooldown() {
+  if (!config.chatOn) return;
+  chat.cooldownUntil = Date.now() + config.cooldownSec * 1000;
+  chat.queue = [];
+  renderChatBar();
+}
+
+/** Remet le tchat a zero pour un nouveau mot (fenetre ouverte tout de suite). */
+function resetChatForNewWord() {
+  chat.cooldownUntil = 0;
+  chat.queue = [];
+  chat.tried.clear();
+  setChatLast("", "");
+  renderChatBar();
+}
+
+/** Affiche le pseudo de l'auteur a cote de la ligne (grand ecran). */
+function markRowAuthor(rowIndex, author) {
+  const rowEl = els.grid && els.grid.querySelector(`.motus-row[data-row="${rowIndex}"]`);
+  if (!rowEl) return;
+  if (author) {
+    rowEl.dataset.author = author;
+    rowEl.title = `Proposé par ${author}`;
+  } else {
+    delete rowEl.dataset.author;
+    rowEl.removeAttribute("title");
+  }
+}
+
+/**
+ * Journal court sous la barre : les 2 derniers evenements du tchat (mot
+ * propose, mot refuse). Deux lignes pour qu'un refus ne soit pas aussitot
+ * efface par le mot suivant teste dans la meme fenetre.
+ * Appel avec un texte vide : vide le journal (nouveau mot).
+ */
+const chatLog = [];
+function setChatLast(text, kind) {
+  if (!els.chatLast) return;
+  if (!text) chatLog.length = 0;
+  else {
+    chatLog.push({ text, kind });
+    if (chatLog.length > 2) chatLog.shift();
+  }
+  els.chatLast.replaceChildren(...chatLog.map((e) => {
+    const line = document.createElement("div");
+    line.className = "chill-chat-log" + (e.kind ? ` ${e.kind}` : "");
+    line.textContent = e.text;
+    return line;
+  }));
+}
+
+// Le module TwitchChat parle en wait/on/err ; la pastille reprend les classes
+// .connection-status .dot de Sesame (meme rendu que Mots meles).
+const CHAT_DOT_CLASS = { wait: "connecting", on: "open", err: "error" };
+
+function setChatConn(state, text) {
+  if (els.chatDot) {
+    els.chatDot.className = "dot " + (CHAT_DOT_CLASS[state] || "");
+    els.chatDot.title = text;
+  }
+  if (els.chatConnText) {
+    els.chatConnText.textContent = text;
+    // Connecte : la pastille verte suffit (nom de la chaine en infobulle),
+    // on garde la place pour le compte a rebours. Le texte revient des
+    // qu'il y a quelque chose a signaler (connexion, coupure).
+    els.chatConnText.hidden = state === "on";
+  }
+}
+
+/** Met a jour la barre du tchat : consigne, compte a rebours, bouton pause. */
+function renderChatBar() {
+  if (!els.chatBar) return;
+  els.chatBar.hidden = !config.chatOn;
+  if (!config.chatOn) return;
+
+  const now = Date.now();
+  const remaining = Math.max(0, chat.cooldownUntil - now);
+  const total = config.cooldownSec * 1000;
+  let turn = "";
+  let state = "open";
+  let fill = 0;
+
+  if (chat.paused) {
+    turn = "Tchat en pause";
+    state = "paused";
+  } else if (game.status === "submitting" || game.status === "animating") {
+    turn = "Test du mot en cours…";
+    state = "busy";
+  } else if (remaining > 0) {
+    turn = `Prochain mot dans ${Math.ceil(remaining / 1000)} s`;
+    state = "cooldown";
+    fill = total > 0 ? remaining / total : 0;
+  } else if (game.status === "in_progress") {
+    turn = `À vous le tchat : ${game.wordLength} lettres, commence par ${game.firstLetter}`;
+  }
+
+  if (els.chatTurn) {
+    els.chatTurn.textContent = turn;
+    els.chatTurn.dataset.state = state;
+  }
+  if (els.chatProgressFill) {
+    els.chatProgressFill.style.transform = `scaleX(${fill})`;
+  }
+  if (els.chatPauseBtn) {
+    els.chatPauseBtn.setAttribute("aria-pressed", chat.paused ? "true" : "false");
+    els.chatPauseBtn.textContent = chat.paused ? "▶" : "⏸";
+    els.chatPauseBtn.title = chat.paused ? "Rouvrir le tchat" : "Mettre le tchat en pause";
+  }
+}
+
+function startChatTicker() {
+  if (chat.tickerId !== null) return;
+  // 4 rafraichissements par seconde : compte a rebours fluide, et relance de
+  // la file si un candidat attendait la fin d'une soumission du streamer.
+  chat.tickerId = setInterval(() => {
+    renderChatBar();
+    if (chat.queue.length > 0) pumpChat();
+  }, 250);
+}
+
+function stopChatTicker() {
+  if (chat.tickerId !== null) {
+    clearInterval(chat.tickerId);
+    chat.tickerId = null;
+  }
+}
+
+/** Ouvre (ou garde) la connexion au tchat selon la config courante. */
+function syncChatConnection() {
+  if (!config.chatOn) {
+    if (chat.client) { chat.client.close(); chat.client = null; }
+    stopChatTicker();
+    renderChatBar();
+    return;
+  }
+  if (!chat.client || chat.client.channel !== config.channel) {
+    if (chat.client) chat.client.close();
+    chat.client = new TwitchChat(config.channel);
+    chat.client.on("status", (s) => setChatConn(s.state, s.text));
+    chat.client.on("message", onChatMessage);
+    chat.client.connect();
+  }
+  startChatTicker();
+  renderChatBar();
+}
+
+/** Bascule Sans / Avec le tchat dans la vue options. */
+function setChatModeUI(on) {
+  config.chatOn = !!on;
+  if (els.chatModeSeg) {
+    els.chatModeSeg.querySelectorAll("button[data-chat]").forEach((b) => {
+      const active = (b.dataset.chat === "on") === config.chatOn;
+      b.classList.toggle("on", active);
+      b.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+  if (els.chatOptions) els.chatOptions.hidden = !config.chatOn;
+}
+
+/** Recharge les derniers reglages tchat (par appareil, localStorage). */
+function loadChatPrefs() {
+  try {
+    const on = window.localStorage.getItem(CHAT_KEY) === "1";
+    const ch = (window.localStorage.getItem(CHANNEL_KEY) || "").trim();
+    const cd = parseInt(window.localStorage.getItem(COOLDOWN_KEY) || "", 10);
+    if (ch && els.channelInput) els.channelInput.value = ch;
+    if (Number.isFinite(cd) && els.cooldownInput) els.cooldownInput.value = String(cd);
+    setChatModeUI(on);
+  } catch {
+    setChatModeUI(false);
+  }
+}
+
+function saveChatPrefs() {
+  try {
+    window.localStorage.setItem(CHAT_KEY, config.chatOn ? "1" : "0");
+    if (config.chatOn) {
+      window.localStorage.setItem(CHANNEL_KEY, config.channel);
+      window.localStorage.setItem(COOLDOWN_KEY, String(config.cooldownSec));
+    }
+  } catch {}
 }
 
 // =============================================================================
@@ -907,6 +1256,9 @@ function renderWordList() {
         li.title = `Manqué après ${formatDuration(entry.durationMs)}`;
       }
     }
+    if (entry.finder) {
+      li.title = (li.title ? li.title + ", " : "") + `par ${entry.finder}`;
+    }
 
     const left = document.createElement("span");
     left.className = "word-item-text";
@@ -1035,6 +1387,12 @@ function goBetween() {
   // Enregistre la partie dans la session (stats + word list).
   // On le fait ici et nulle part ailleurs pour eviter le double comptage :
   // c'est le seul point d'entree de la vue "between".
+  // Pseudo Twitch de celui qui a trouve (null si c'est le streamer ou si le
+  // mot n'a pas ete trouve).
+  const finder = game.status === "found"
+    ? (game.attemptAuthors[game.attemptAuthors.length - 1] || null)
+    : null;
+
   if (game.firstLetter && game.revealedWord) {
     recordSessionWord({
       found: game.status === "found",
@@ -1043,11 +1401,14 @@ function goBetween() {
       wordLength: game.wordLength,
       maxAttempts: game.maxAttempts,
       durationMs,
+      finder,
     });
   }
 
   if (game.status === "found") {
-    els.betweenSummary.textContent = "Tu as trouvé le mot ! 🎉";
+    els.betweenSummary.textContent = finder
+      ? `${finder} a trouvé le mot ! 🎉`
+      : "Tu as trouvé le mot ! 🎉";
     els.betweenSummary.className = "between-summary success";
   } else {
     els.betweenSummary.textContent = "Essais épuisés. Le mot était :";
@@ -1098,9 +1459,11 @@ async function handleGiveUp() {
 }
 
 async function startNewWord() {
-  // Reset etat du round
+  // Reset etat du round. Statut "idle" pendant le tirage : le tchat ne doit
+  // rien soumettre tant que la nouvelle grille n'est pas prete.
   game.attempts = [];
-  game.status = "in_progress";
+  game.attemptAuthors = [];
+  game.status = "idle";
   game.revealedWord = null;
   resetKeyboardColors();
 
@@ -1141,7 +1504,10 @@ async function startNewWord() {
       window.localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     } catch {}
 
+    game.status = "in_progress";
     rebuildGrid();
+    // Nouveau mot : le tchat peut proposer tout de suite, sans pause.
+    resetChatForNewWord();
     // Initialise la ligne courante : 1ere lettre verrouillee, pas de hints (1er tour)
     game.lockedRow = computeLockedRow();
     game.hintRow = computeHintRow();
@@ -1178,6 +1544,20 @@ function readConfigFromInputs() {
   config.maxAttempts = clampInt(els.maxAttemptsInput.value, MIN_ATTEMPTS, MAX_ATTEMPTS, DEFAULT_ATTEMPTS);
   els.wordLengthInput.value = String(config.wordLength);
   els.maxAttemptsInput.value = String(config.maxAttempts);
+
+  // Reglages tchat : uniquement lus si le mode tchat est actif.
+  if (config.chatOn) {
+    config.cooldownSec = clampInt(els.cooldownInput.value, MIN_COOLDOWN, MAX_COOLDOWN, DEFAULT_COOLDOWN);
+    els.cooldownInput.value = String(config.cooldownSec);
+    const ch = (els.channelInput.value || "").toLowerCase().replace(/^#/, "").trim();
+    // Format des noms de chaine Twitch : lettres, chiffres, underscore.
+    if (!/^[a-z0-9_]{3,25}$/.test(ch)) {
+      return "Nom de chaîne Twitch invalide (lettres, chiffres et _ uniquement).";
+    }
+    config.channel = ch;
+    els.channelInput.value = ch;
+  }
+  return null;
 }
 
 function showError(msg) {
@@ -1232,6 +1612,19 @@ function bindElements() {
   els.resetBtn = $("chill-reset-btn");
   els.soundToggle = $("chill-sound-toggle");
   els.soundIcon = $("chill-sound-icon");
+
+  // Mode tchat Twitch (options + barre en jeu)
+  els.chatModeSeg = $("chat-mode-seg");
+  els.chatOptions = $("chat-options");
+  els.channelInput = $("channel-input");
+  els.cooldownInput = $("cooldown-input");
+  els.chatBar = $("chill-chat-bar");
+  els.chatDot = $("chat-dot");
+  els.chatConnText = $("chat-conn-text");
+  els.chatTurn = $("chat-turn");
+  els.chatPauseBtn = $("chat-pause-btn");
+  els.chatProgressFill = $("chat-progress-fill");
+  els.chatLast = $("chat-last");
 }
 
 async function init() {
@@ -1247,9 +1640,30 @@ async function init() {
     if (!ok) showError("Impossible de joindre le serveur. Vérifie ta connexion.");
   });
 
+  // Options tchat : reglages precedents + bascule Sans / Avec le tchat.
+  loadChatPrefs();
+  if (els.chatModeSeg) {
+    els.chatModeSeg.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-chat]");
+      if (btn) setChatModeUI(btn.dataset.chat === "on");
+    });
+  }
+  if (els.chatPauseBtn) {
+    els.chatPauseBtn.addEventListener("click", () => {
+      chat.paused = !chat.paused;
+      chat.queue = [];
+      renderChatBar();
+    });
+  }
+
   els.startBtn.addEventListener("click", () => {
     clearError();
-    readConfigFromInputs();
+    const err = readConfigFromInputs();
+    if (err) { showError(err); return; }
+    saveChatPrefs();
+    // Connexion (ou deconnexion) au tchat avant le tirage : le temps que
+    // l'IRC reponde, la grille est deja prete.
+    syncChatConnection();
     startNewWord();
   });
 

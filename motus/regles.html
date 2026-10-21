@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sésame, Règles du jeu</title>
-  <link rel="stylesheet" href="css/style.css?v=33">
+  <link rel="stylesheet" href="css/style.css?v=34">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -81,6 +81,20 @@
         <p>
           Tu choisis la longueur du mot (5 à 10 lettres) et le nombre d'essais (4 à 8). Après chaque mot,
           tu peux afficher sa définition (tirée du Wiktionnaire) pour apprendre ou rebondir en stream.
+        </p>
+        <h4>Avec le tchat Twitch</h4>
+        <p>
+          Dans les options, choisis <strong>Avec le tchat</strong> et indique ta chaîne. Les viewers
+          écrivent simplement leur mot dans le tchat (un seul mot par message, bonne longueur, bonne
+          première lettre) : le premier mot valide est testé comme si le streamer l'avait tapé, et le
+          pseudo de son auteur s'affiche sur la ligne.
+        </p>
+        <p>
+          Après chaque essai, le tchat est mis en <strong>pause quelques secondes</strong> (8 s par défaut,
+          réglable de 3 à 30 s) pour que tout le monde voie les couleurs avant de reproposer. Les messages
+          écrits pendant la pause sont ignorés. Un mot absent du dictionnaire ne coûte pas d'essai : le mot
+          suivant du tchat est essayé à la place. Le streamer peut toujours taper lui-même, et mettre le
+          tchat en pause avec le bouton ⏸.
         </p>
       </section>
 
