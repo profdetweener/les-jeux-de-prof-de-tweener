@@ -1,5 +1,6 @@
 # Worker dedie aux "Jeux du Prof de Tweener".
 name = "tweener-jeux"
+account_id = "5c658ef5dd4d01245f96062fe178d599"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 
