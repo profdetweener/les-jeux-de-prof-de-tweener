@@ -993,10 +993,13 @@ function updateAuthorPlacement() {
   if (side) els.grid.style.setProperty("--author-space", `${Math.floor(free)}px`);
 }
 
+// Duree d'affichage d'un refus sous la barre du tchat (ms).
+const CHAT_LOG_TTL_MS = 10000;
+
 /**
- * Journal court sous la barre : les 2 derniers evenements du tchat (mot
- * propose, mot refuse). Deux lignes pour qu'un refus ne soit pas aussitot
- * efface par le mot suivant teste dans la meme fenetre.
+ * Journal court sous la barre : les 2 derniers refus du tchat. Deux lignes
+ * pour qu'un refus ne soit pas aussitot efface par le suivant. Chaque ligne
+ * disparait seule au bout de CHAT_LOG_TTL_MS (purge par le ticker du tchat).
  * Appel avec un texte vide : vide le journal (nouveau mot).
  */
 const chatLog = [];
@@ -1004,15 +1007,28 @@ function setChatLast(text, kind) {
   if (!els.chatLast) return;
   if (!text) chatLog.length = 0;
   else {
-    chatLog.push({ text, kind });
+    chatLog.push({ text, kind, at: Date.now() });
     if (chatLog.length > 2) chatLog.shift();
   }
+  renderChatLog();
+}
+
+function renderChatLog() {
+  if (!els.chatLast) return;
   els.chatLast.replaceChildren(...chatLog.map((e) => {
     const line = document.createElement("div");
     line.className = "chill-chat-log" + (e.kind ? ` ${e.kind}` : "");
     line.textContent = e.text;
     return line;
   }));
+}
+
+/** Retire les refus affiches depuis plus de CHAT_LOG_TTL_MS. */
+function pruneChatLog() {
+  const limit = Date.now() - CHAT_LOG_TTL_MS;
+  const before = chatLog.length;
+  while (chatLog.length > 0 && chatLog[0].at <= limit) chatLog.shift();
+  if (chatLog.length !== before) renderChatLog();
 }
 
 // Le module TwitchChat parle en wait/on/err ; la pastille reprend les classes
@@ -1080,6 +1096,7 @@ function startChatTicker() {
   // la file si un candidat attendait la fin d'une soumission du streamer.
   chat.tickerId = setInterval(() => {
     renderChatBar();
+    pruneChatLog();
     if (chat.queue.length > 0) pumpChat();
   }, 250);
 }
