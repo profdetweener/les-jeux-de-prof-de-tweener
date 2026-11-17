@@ -111,18 +111,39 @@ export async function motusChillDraw(wordLength, maxAttempts, avoidFirstLetters)
  * @param {string} guess l'essai (sera normalise cote serveur)
  * @returns {Promise<{attempt: object, status: "in_progress"|"found", revealedWord: string|null}>}
  * @throws {Error & {code?: string}} avec un code parmi INVALID_GUESS_LENGTH,
- *         INVALID_GUESS_LETTERS, INVALID_GUESS_FIRST_LETTER, WORD_NOT_IN_DICTIONARY
+ *         INVALID_GUESS_LETTERS, INVALID_GUESS_FIRST_LETTER, WORD_NOT_IN_DICTIONARY,
+ *         ou NETWORK si le serveur n'a pas pu etre joint (coupure, erreur
+ *         Cloudflare sans en-tetes CORS : le navigateur dit "Failed to fetch").
  */
 export async function motusChillGuess(token, guess) {
-  const res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/guess`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, guess }),
-  });
+  // L'endpoint est sans etat (le mot voyage dans le token) : renvoyer le meme
+  // essai ne coute rien et ne fausse rien. On retente donc en silence les
+  // pannes reseau passageres avant d'abandonner.
+  const RETRY_DELAYS_MS = [400, 1200];
+  let res = null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await fetch(`${CONFIG.WORKER_URL}/motus/chill/guess`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, guess }),
+      });
+      // Erreur serveur (5xx) : souvent passagere aussi, on retente.
+      if (res.status < 500 || attempt >= RETRY_DELAYS_MS.length) break;
+    } catch {
+      if (attempt >= RETRY_DELAYS_MS.length) {
+        const err = new Error("Connexion au serveur impossible");
+        err.code = "NETWORK";
+        throw err;
+      }
+    }
+    await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || `Erreur essai (HTTP ${res.status})`);
     if (data.code) err.code = data.code;
+    else if (res.status >= 500) err.code = "NETWORK";
     throw err;
   }
   return data;

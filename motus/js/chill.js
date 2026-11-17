@@ -29,7 +29,7 @@
  *     ni pause : on passe au candidat suivant arrive dans la meme fenetre.
  */
 
-import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js";
+import { motusChillDraw, motusChillGuess, motusChillReveal, pingWorker } from "../../shared/js/api.js?v=2";
 import { showToast } from "../../shared/js/toast.js";
 import { fetchDefinition, prefetchDefinition } from "../../shared/js/wiktionary.js?v=2";
 import { TwitchChat } from "../../shared/js/twitch.js";
@@ -773,19 +773,28 @@ async function submitGuess(author = null) {
   } catch (err) {
     // Le serveur a refuse l'essai (mot pas dans le dico, etc.)
     game.status = "in_progress";
+    // Souci de connexion (et non refus du serveur) : le mot n'a pas ete juge,
+    // il doit donc rester jouable. Sinon le bon mot pourrait etre bloque en
+    // "deja tente" a cause d'une simple coupure.
+    const isNetwork = !!err && err.code === "NETWORK";
     if (author) {
       // Mot du tchat refuse : pas de toast (un tchat actif en ferait
       // pleuvoir), juste la ligne d'info sous la barre. On rend au streamer
       // une ligne propre plutot que de laisser le mot refuse affiche.
-      chat.tried.add(guess);
-      const why = err && err.code === "WORD_NOT_IN_DICTIONARY"
-        ? "pas dans le dictionnaire"
-        : (err && err.message) || "refusé";
+      if (!isNetwork) chat.tried.add(guess);
+      const why = isNetwork
+        ? "souci de connexion, mot non compté, retapez-le"
+        : err && err.code === "WORD_NOT_IN_DICTIONARY"
+          ? "pas dans le dictionnaire"
+          : (err && err.message) || "refusé";
       setChatLast(`${author} : ${guess}, ${why}`, "rejected");
       resetTypingBuffer();
       renderCurrentRow();
     } else {
-      showToast(err.message || "Essai refuse", { type: "error" });
+      const msg = isNetwork
+        ? "Connexion au serveur impossible, réessaie dans un instant."
+        : err.message || "Essai refuse";
+      showToast(msg, { type: "error" });
       flashCurrentRow();
     }
     return "rejected";
