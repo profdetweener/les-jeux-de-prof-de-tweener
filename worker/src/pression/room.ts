@@ -74,12 +74,16 @@ const INTER_MS = 5000;   // pause entre deux manches
 // dernieres millisecondes du minuteur de l'equipe qui tient la cocotte.
 // Une equipe qui recoit la cocotte au minimum (5 s) l'entend donc tout de suite.
 const WARN_MS = 5000;
-// Bonus de rapidite : un mot valide en moins de QUICK_MS apres le debut du
-// tour ajoute quickBonusSec au minuteur de l'equipe (sans depasser le temps
-// complet). Seuil large expres : le tchat voit la syllabe avec le retard du
-// stream, il ne dispose en pratique que de QUICK_MS moins ce retard.
-const QUICK_MS = 8000;
-const QUICK_BONUSES = [0, 2, 3];
+// Bonus de rapidite par paliers : [temps de reponse max, bonus], en ms. Le
+// temps de reponse se compte a partir du demarrage du minuteur, donc APRES le
+// temps de passage : le retard du stream est deja compense, les paliers
+// mesurent bien la vitesse de reaction des viewers. Le bonus ne fait jamais
+// depasser le temps de depart.
+const QUICK_TIERS: Array<[number, number]> = [
+  [3000, 3000],   // moins de 3 s : +3 s
+  [5000, 2000],   // moins de 5 s : +2 s
+  [8000, 1000],   // moins de 8 s : +1 s
+];
 // Temps de passage : quand la cocotte change d'equipe, la syllabe s'affiche
 // tout de suite mais le minuteur de l'equipe ne demarre qu'apres ce delai.
 // Compense le retard du stream (2 a 5 s en faible latence). Les mots recus
@@ -155,7 +159,7 @@ export class PressionRoom {
     this.hostStat = { words: 0, letters: 0 };
 
     this.cfg = {
-      rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonusSec: 2, graceSec: 3,
+      rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonus: true, graceSec: 3,
       lives: 3, livesStreamer: 3, livesChat: 3, charge: 50,
     };
     this.teams = [];
@@ -443,7 +447,7 @@ export class PressionRoom {
       rules: rules.length ? [...new Set(rules)] : ["contient"],
       level, timer,
       floorSec: FLOORS.includes(fl) ? fl : 8,
-      quickBonusSec: QUICK_BONUSES.includes(Math.floor(Number(c?.quickBonusSec))) ? Math.floor(Number(c?.quickBonusSec)) : 2,
+      quickBonus: c?.quickBonus !== false,
       graceSec: clampInt(c?.graceSec, 0, GRACE_MAX, 3),
       streamerName,
       lives: clampInt(c?.lives, LIVES_MIN, LIVES_MAX, 3),
@@ -650,14 +654,17 @@ export class PressionRoom {
     // Mot trouve vite : bonus de temps.
     // Pendant le temps de passage, le minuteur n'a pas encore tourne : il
     // reste tout le budget, pas plus.
-    const quick = now - this.turnStartAt < QUICK_MS && this.cfg.quickBonusSec > 0;
+    const elapsed = now - this.turnStartAt;   // negatif pendant le temps de passage
+    const tier = this.cfg.quickBonus ? QUICK_TIERS.find(([max]) => elapsed < max) : undefined;
+    const quick = !!tier;
     const remaining = Math.min(this.turnBudgetMs, this.explodeAt - now);
-    const left = remaining + (quick ? this.cfg.quickBonusSec * 1000 : 0);
+    const left = remaining + (tier ? tier[1] : 0);
     team.clockMs = Math.min(this.fullMs, Math.max(left, this.cfg.floorSec * 1000));
     // Bonus reellement gagne (0 si le minuteur etait deja presque plein).
     // Arrondi par defaut (a 0,1 s pres) : un bonus rogne par le plafond a
     // 0,5 s ne s'affiche pas "+1 s".
-    const timeBonusSec = quick ? Math.max(0, Math.floor((team.clockMs - remaining + 100) / 1000)) : 0;
+    // Seul le bonus compte ici, pas le relevement au minimum.
+    const timeBonusSec = quick ? Math.max(0, Math.floor((Math.min(this.fullMs, left) - remaining + 100) / 1000)) : 0;
     this.holder = this.nextAlive(teamId);
     this.startTurn(now);
     this.broadcastGame({ kind: "pass", word: w, by, teamId, bonus, chainBroken, timeBonusSec });

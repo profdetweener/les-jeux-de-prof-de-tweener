@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression, règles du jeu</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=9">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -64,8 +64,11 @@
         tic-tac démarre et que l'aiguille entre dans le rouge, il reste 5 secondes.
       </p>
       <p>
-        Bonus de rapidité : un mot trouvé en moins de 8 secondes ajoute quelques
-        secondes au minuteur de l'équipe (sans dépasser le temps de départ).
+        <b>Bonus de rapidité</b> (si l'hôte l'active) : un mot trouvé vite ajoute du
+        temps au minuteur de l'équipe, sans jamais dépasser le temps de départ.
+        Moins de 3 secondes : +3 s. Moins de 5 secondes : +2 s. Moins de 8 secondes :
+        +1 s. Le temps de réponse se compte à partir du démarrage du minuteur, donc
+        après le temps de passage : le retard du stream ne pénalise pas le bonus.
       </p>
 
       <h3>Les règles de manche</h3>

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=9">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -100,20 +100,10 @@
                 <div class="setup-row">
                   <span class="setup-label">Bonus de rapidité</span>
                   <div class="seg" id="quickSeg">
-                    <button data-v="0">Aucun</button>
-                    <button data-v="2">+2 s</button>
-                    <button data-v="3">+3 s</button>
+                    <button data-v="off">Non</button>
+                    <button data-v="on">Oui</button>
                   </div>
                 </div>
-                <p class="rules-note" style="margin:-4px 0 14px">
-                  Chaque équipe a son minuteur, qui ne tourne que pendant son tour. Toutes
-                  partent du même temps, tiré une fois dans la plage choisie. Une équipe qui
-                  valide garde le temps qui lui reste, sans descendre sous le minimum. Mot
-                  trouvé en moins de 8 s : bonus de temps (sans dépasser le temps de départ).
-                  Vie perdue : minuteur complet. Temps de passage : quand la cocotte change
-                  d'équipe, le minuteur ne démarre qu'après ce délai, pour compenser le retard
-                  du stream (sauf pour toi en mode Streamer contre tchat).
-                </p>
                 <div class="setup-row">
                   <span class="setup-label">Boîte de chargement</span>
                   <div class="seg" id="chargeSeg">
@@ -178,8 +168,10 @@
                 </g>
               </svg>
               <div class="ct-inter" id="inter" hidden>
-                <span class="big" id="interBig"></span>
-                <span class="small" id="interSmall"></span>
+                <div class="inter-box">
+                  <span class="big" id="interBig"></span>
+                  <span class="small" id="interSmall"></span>
+                </div>
               </div>
             </div>
 
@@ -235,7 +227,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=8"></script>
+  <script type="module" src="js/room.js?v=9"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

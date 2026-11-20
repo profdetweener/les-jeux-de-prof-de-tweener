@@ -56,13 +56,14 @@ let wasMyTurn = false;
 let pendingPop = null;
 
 const DEFAULT_CFG = {
-  rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonusSec: 2, graceSec: 3,
+  rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonus: true, graceSec: 3,
   lives: 3, livesStreamer: 3, livesChat: 3, charge: 50,
 };
 let cfg = { ...DEFAULT_CFG };
 try { cfg = { ...DEFAULT_CFG, ...(JSON.parse(localStorage.getItem(CFG_KEY) || "{}")) }; } catch {}
 if (!Array.isArray(cfg.rules) || !cfg.rules.length) cfg.rules = ["contient"];
-delete cfg.fuse; delete cfg.minTurnSec;
+delete cfg.fuse; delete cfg.minTurnSec; delete cfg.quickBonusSec;
+if (typeof cfg.quickBonus !== "boolean") cfg.quickBonus = true;
 function saveCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch {} }
 
 // ---------- Connexion ----------
@@ -231,7 +232,11 @@ function renderLobby() {
   wireSeg("levelSeg", "level", false);
   wireSeg("timerSeg", "timer", false);
   wireSeg("floorSeg", "floorSec", true);
-  wireSeg("quickSeg", "quickBonusSec", true);
+  // Bonus de rapidite : oui / non.
+  $("quickSeg").querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("on", (b.dataset.v === "on") === cfg.quickBonus);
+    b.onclick = () => { cfg.quickBonus = b.dataset.v === "on"; saveCfg(); renderLobby(); };
+  });
   // Temps de passage : curseur de 0 a 8 s.
   const gr = $("graceRange");
   const showGrace = () => { $("graceVal").textContent = cfg.graceSec ? cfg.graceSec + " s" : "aucun"; };
@@ -360,15 +365,18 @@ function renderGame() {
   const myTurn = mode === "streamer" && isHost && game.holder === 1 && !inter;
   if (inter) $("turn").innerHTML = "";
   else if (myTurn) $("turn").innerHTML = `<span class="who" style="background:${colorOf(0)}">À toi !</span> ${esc(RULE_HELP[game.rule])}`;
-  else if (holder) $("turn").innerHTML = `Au tour de <span class="who" style="background:${colorOf(holder.color)}">${esc(holder.name)}</span>`;
+  else if (holder) {
+    const [prep, noun] = deForm(holder);
+    $("turn").innerHTML = `Au tour ${prep}${prep.endsWith("'") ? "" : " "}<span class="who" style="background:${colorOf(holder.color)}">${esc(noun)}</span>`;
+  }
 
   // Pause entre deux manches.
   $("inter").hidden = !inter;
   if (inter) {
     const t = lastBlast ? gameTeam(lastBlast.teamId) : null;
-    $("interBig").textContent = lastBlast
-      ? (lastBlast.eliminated ? `💥 ${t ? t.name : ""} éliminée !` : `💥 Ça a sauté chez ${t ? t.name : ""} !`)
-      : "💥 Ça a sauté !";
+    $("interBig").textContent = !lastBlast || !t ? "💥 Ça a sauté !"
+      : lastBlast.eliminated ? `💥 ${cap(nounOf(t))} est éliminée !`
+      : `💥 Ça a sauté chez ${nounOf(t)} !`;
   }
 
   // Equipes : 4 a gauche de la cocotte, les suivantes a droite.
@@ -378,13 +386,11 @@ function renderGame() {
     for (let i = 0; i < Math.max(t.lives, 0); i++) lives += HEART;
     const pct = Math.min(100, Math.round((t.charge / game.chargeMax) * 100));
     const isHolder = t.id === game.holder && !inter && t.alive;
-    const members = mode === "equipes"
-      ? `${t.members} ${t.members > 1 ? "joueurs" : "joueur"}`
-      : (t.id === 1 ? "streamer" : `${t.members} ${t.members > 1 ? "viewers" : "viewer"}`);
     return `<div class="ct-team${isHolder ? " holder" : ""}${t.alive ? "" : " out"}" data-t="${t.id}"` +
       ` style="border-color:${isHolder ? col : "var(--gris-clair)"}">` +
-      `<div class="tname"><span class="dot" style="background:${col}"></span>${esc(t.name)}<span class="members">${members}</span></div>` +
-      `<div class="lives" style="color:${col}" title="${t.lives} vie(s)">${lives}</div>` +
+      `<div class="tname"><span class="dot" style="background:${col}"></span><span class="tlabel">${esc(t.name)}</span>` +
+      `<span class="lives" style="color:${col}" title="${t.lives} vie(s)">${lives}</span></div>` +
+      membersHtml(t) +
       `<div class="charge" title="Boîte de chargement"><span style="width:${pct}%;background:${col}"></span></div>` +
       `<div class="charge-lbl">${chargeLabel(t)}</div></div>`;
   });
@@ -424,6 +430,37 @@ function renderGame() {
 
 // Coeur des vies, a la couleur de l'equipe (currentColor).
 const HEART = '<svg class="life" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21.5 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.1 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8L12 21.5Z" fill="currentColor"/></svg>';
+
+// Joueurs de l'equipe, les uns sous les autres (mode equipes). Au-dela de
+// MAX_NAMES, on resume par "+ N autres". En mode streamer : rien (le tchat
+// entier joue, la liste n'aurait pas de sens).
+const MAX_NAMES = 8;
+function membersHtml(t) {
+  if (mode !== "equipes") return "";
+  const names = players.filter((p) => p.isViewer && p.teamId === t.id).map((p) => p.pseudo);
+  if (!names.length) return "";
+  const shown = names.slice(0, MAX_NAMES).map((n) => `<li>${esc(n)}</li>`).join("");
+  const more = names.length > MAX_NAMES ? `<li class="more">+ ${names.length - MAX_NAMES} autres</li>` : "";
+  return `<ul class="members-list">${shown}${more}</ul>`;
+}
+
+// Nom d'equipe dans une phrase : "Équipe 2" -> "l'équipe 2", "Tchat" (mode
+// streamer) -> "le tchat", nom personnalise -> tel quel.
+function nounOf(t) {
+  const m = /^Équipe (\d+)$/.exec(t.name);
+  if (m) return "l'équipe " + m[1];
+  if (mode === "streamer" && t.id === 2) return "le tchat";
+  return t.name;
+}
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+// "Au tour de l'équipe 2", "Au tour du tchat", "Au tour d'Alpha".
+function deForm(t) {
+  const n = nounOf(t);
+  if (n.startsWith("le ")) return ["du", n.slice(3)];
+  if (n.startsWith("l'")) return ["de", n];
+  if (/^[aeiouyhàâéèêîïôûAEIOUYHÀÂÉÈÊÎÏÔÛ]/.test(n)) return ["d'", n];
+  return ["de", n];
+}
 
 function chargeLabel(t) {
   if (t.lives >= t.maxLives) return "Vies au maximum";
@@ -502,7 +539,8 @@ function renderFinished(m) {
   if (m.mode === "streamer") {
     $("winTitle").textContent = m.winnerTeamId === 1 ? `🏆 ${m.hostPseudo || "Le streamer"} l'emporte !` : "🏆 Le tchat l'emporte !";
   } else {
-    $("winTitle").textContent = `🏆 ${m.winnerName} l'emporte !`;
+    const w = m.teams.find((t) => t.id === m.winnerTeamId);
+    $("winTitle").textContent = `🏆 ${w ? cap(nounOf(w)) : m.winnerName} l'emporte !`;
   }
   let note = `${m.totalWords} ${m.totalWords > 1 ? "mots joués" : "mot joué"}.`;
   if (m.longest) note += ` Mot le plus long : <b>${esc(m.longest.word)}</b> (${esc(m.longest.by)}, ${m.longest.word.length} lettres).`;

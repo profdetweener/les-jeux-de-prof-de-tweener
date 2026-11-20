@@ -41,7 +41,7 @@ export interface StartConfig {
   level: Level;
   timer: Timer;           // plage du minuteur de depart (tire au lancement)
   floorSec: number;       // minimum garanti au tour suivant d'une equipe qui a valide
-  quickBonusSec: number;  // bonus de rapidite (0 = desactive)
+  quickBonus: boolean;    // bonus de rapidite par paliers (voir QUICK_TIERS)
   graceSec: number;       // temps de passage : le minuteur demarre apres ce delai
   streamerName?: string;  // mode streamer : nom affiche (la chaine Twitch)
   lives: number;          // equipes : vies de chaque equipe
