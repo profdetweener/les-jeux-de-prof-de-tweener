@@ -501,11 +501,6 @@ export class PressionRoom {
     this.outCounter = 0;
     this.phase = "playing";
 
-    // Minuteur de depart, le meme pour toutes les equipes.
-    const [lo, hi] = TIMERS[this.cfg.timer];
-    this.fullMs = (lo + Math.floor(Math.random() * (hi - lo + 1))) * 1000;
-    for (const t of this.teams) t.clockMs = this.fullMs;
-
     const first = this.teams[Math.floor(Math.random() * this.teams.length)].id;
     this.broadcastRoom();
     this.startManche(first);
@@ -526,6 +521,11 @@ export class PressionRoom {
   private startManche(holder: number): void {
     const now = Date.now();
     this.manche++;
+    // Chaque manche repart a zero : nouveau temps de depart, tire dans la
+    // plage, le meme pour toutes les equipes.
+    const [lo, hi] = TIMERS[this.cfg.timer];
+    this.fullMs = (lo + Math.floor(Math.random() * (hi - lo + 1))) * 1000;
+    for (const t of this.teams) t.clockMs = this.fullMs;
     this.rule = this.pickRule();
     this.lastRule = this.rule;
     this.syllable = drawSyllable(this.rule, this.cfg.level, this.recent);
@@ -675,7 +675,6 @@ export class PressionRoom {
     const team = this.teams.find((t) => t.id === this.holder);
     if (!team) return;
     team.lives = Math.max(0, team.lives - 1);
-    team.clockMs = this.fullMs;   // vie perdue : minuteur complet
     const eliminated = team.lives === 0;
     if (eliminated) { team.alive = false; team.out = ++this.outCounter; }
 

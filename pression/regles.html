@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression, règles du jeu</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -27,52 +27,80 @@
 
       <h3>Le principe</h3>
       <p>
-        La cocotte chauffe. Une syllabe est inscrite dessus. L'équipe qui tient la
-        cocotte doit écrire dans le tchat un mot qui respecte la règle de la manche.
-        Le premier mot valide fait passer la cocotte à l'équipe suivante, avec une
-        nouvelle syllabe. Quand la pression lâche, l'équipe qui tient la cocotte perd
-        une vie. La dernière équipe encore en vie gagne.
+        Une cocotte-minute passe d'équipe en équipe. Une syllabe est inscrite dessus.
+        L'équipe qui tient la cocotte doit écrire dans le tchat un mot qui respecte la
+        règle de la manche (par exemple, un mot qui contient « OU »). Le premier mot
+        valide fait passer la cocotte à l'équipe suivante, avec une nouvelle syllabe.
+        Si le minuteur de l'équipe tombe à zéro avant qu'elle ait trouvé, la cocotte
+        saute : l'équipe perd une vie. La dernière équipe encore en vie gagne.
+      </p>
+
+      <h3>Une manche</h3>
+      <ul class="rules-list">
+        <li>Au début de la manche, une règle est tirée (Contient, Commence par…) et toutes les équipes reçoivent le même temps de départ.</li>
+        <li>La cocotte passe d'équipe en équipe à chaque mot valide.</li>
+        <li>Quand la cocotte saute chez une équipe, elle perd une vie et la manche s'arrête.</li>
+        <li>Après une courte pause, une nouvelle manche commence : nouvelle règle, nouveau temps de départ pour tout le monde. L'équipe qui a sauté repart la première.</li>
+      </ul>
+
+      <h3>Les minuteurs</h3>
+      <p>
+        Chaque équipe a son propre minuteur, qui ne tourne que pendant son tour, comme
+        une pendule d'échecs. Quand une équipe valide un mot, son minuteur s'arrête et
+        elle garde le temps qui lui reste pour son prochain tour.
       </p>
       <p>
-        Chaque équipe a son propre minuteur, qui ne tourne que pendant son tour.
-        Toutes les équipes partent du même temps, tiré au hasard en début de partie.
-        Une équipe qui valide un mot garde le temps qui lui reste pour son prochain
-        tour, sans descendre sous un minimum réglé par l'hôte (pour compenser le
-        décalage du stream). Quand une équipe perd une vie, son minuteur repart au
-        temps complet.
+        <b>Minimum au tour suivant.</b> Si une équipe valide alors qu'il lui reste très
+        peu de temps, son minuteur est remonté à ce minimum pour son prochain tour. Par
+        exemple, avec un minimum de 8 s, une équipe qui trouve son mot à 3 s de la fin
+        repartira avec 8 s, et non 3 s. Sans ce minimum, une équipe pourrait recevoir
+        la cocotte avec une seconde et sauter avant même d'avoir vu la syllabe.
       </p>
       <p>
-        <b>Temps de passage.</b> Le stream arrive chez les viewers avec quelques
-        secondes de retard (en général 2 à 5 s en faible latence, parfois plus selon
-        la connexion ou l'appareil), alors que leurs messages arrivent presque
-        instantanément. Quand la cocotte arrive chez une équipe, la syllabe s'affiche
-        tout de suite chez le streamer, mais son minuteur ne démarre qu'après le
-        temps de passage, réglable de 0 à 8 secondes. Les viewers ont ainsi le temps
-        de voir la syllabe avant que leur temps commence à filer. Un mot envoyé
-        pendant ce temps compte normalement, et l'équipe garde tout son minuteur.
+        <b>Le manomètre</b> montre la pression de l'équipe qui tient la cocotte :
+        l'aiguille monte à mesure que son minuteur s'écoule. Quand le tic-tac démarre
+        et que l'aiguille entre dans le rouge, il reste 5 secondes.
+      </p>
+
+      <h3>Le temps de passage</h3>
+      <p>
+        Le stream arrive chez les viewers avec quelques secondes de retard (en général
+        2 à 5 s en faible latence, parfois plus selon la connexion ou l'appareil),
+        alors que leurs messages, eux, arrivent presque instantanément. Sans
+        correction, une équipe perdrait ces secondes à chaque tour, avant même d'avoir
+        vu la syllabe.
       </p>
       <p>
-        En mode Streamer contre tchat, le streamer voit tout en direct : il n'a pas
-        de temps de passage, seul le tchat en profite. Pour bien régler ce temps, le
+        Le temps de passage compense ce retard : quand la cocotte arrive chez une
+        équipe, la syllabe s'affiche tout de suite, mais son minuteur ne démarre
+        qu'après ce délai (de 0 à 8 s). Un mot envoyé pendant ce temps compte
+        normalement, et l'équipe garde tout son minuteur.
+      </p>
+      <p>
+        En mode Streamer contre tchat, le streamer voit tout en direct : il n'a pas de
+        temps de passage, seul le tchat en profite. Pour bien régler ce temps, le
         streamer peut mesurer son retard : dans le lecteur Twitch, roue crantée,
-        Avancés, Statistiques vidéo, ligne « Latence par rapport au diffuseur ».
-        Côté viewers, activer la faible latence dans les réglages du lecteur réduit
-        le retard.
+        Avancés, Statistiques vidéo, ligne « Latence par rapport au diffuseur ». Côté
+        viewers, activer la faible latence dans les réglages du lecteur réduit le
+        retard.
       </p>
+
+      <h3>Le bonus de rapidité</h3>
       <p>
-        Le manomètre montre la pression de l'équipe qui tient la cocotte. Quand le
-        tic-tac démarre et que l'aiguille entre dans le rouge, il reste 5 secondes.
+        Un mot trouvé vite ajoute du temps au minuteur de l'équipe, sans jamais
+        dépasser le temps de départ de la manche :
       </p>
+      <ul class="rules-list">
+        <li>en moins de 3 secondes : +3 s ;</li>
+        <li>en moins de 5 secondes : +2 s ;</li>
+        <li>en moins de 8 secondes : +1 s.</li>
+      </ul>
       <p>
-        <b>Bonus de rapidité</b> (si l'hôte l'active) : un mot trouvé vite ajoute du
-        temps au minuteur de l'équipe, sans jamais dépasser le temps de départ.
-        Moins de 3 secondes : +3 s. Moins de 5 secondes : +2 s. Moins de 8 secondes :
-        +1 s. Le temps de réponse se compte à partir du démarrage du minuteur, donc
-        après le temps de passage : le retard du stream ne pénalise pas le bonus.
+        Le temps de réponse se compte à partir du démarrage du minuteur, donc après
+        le temps de passage : le retard du stream ne pénalise pas le bonus.
       </p>
 
       <h3>Les règles de manche</h3>
-      <p>L'hôte choisit une ou plusieurs règles. Une règle est tirée au début de chaque manche :</p>
       <ul class="rules-list">
         <li><b>Contient</b> : le mot contient la syllabe (ex. OU : <i>bouteille</i>).</li>
         <li><b>Commence par</b> : le mot commence par la syllabe (ex. PRI : <i>prison</i>).</li>
@@ -85,19 +113,19 @@
         </li>
       </ul>
       <p>
-        Le mot doit exister dans le dictionnaire du jeu et ne pas avoir déjà été
-        joué dans la partie. La syllabe seule compte aussi si c'est un mot (CUL
-        pour la syllabe CUL). Les accents ne comptent
-        pas. Les pluriels et les féminins sont acceptés, mais pas les conjugaisons :
-        un verbe ne compte qu'à l'infinitif (<i>manger</i> oui, <i>mangeons</i> non).
+        Le mot doit exister dans le dictionnaire du jeu et ne pas avoir déjà été joué
+        dans la partie. La syllabe seule compte aussi si c'est un mot (CUL pour la
+        syllabe CUL). Les accents ne comptent pas. Les pluriels et les féminins sont
+        acceptés, mais pas les conjugaisons : un verbe ne compte qu'à l'infinitif
+        (<i>manger</i> oui, <i>mangeons</i> non).
       </p>
 
       <h3>La boîte de chargement</h3>
       <p>
-        Chaque mot qui fait passer la cocotte remplit la boîte de ton équipe d'autant
-        de points que de lettres. Boîte pleine : une vie en plus, et la boîte repart
-        à zéro. Un mot long fait gagner plus de charge, mais il prend plus de temps
-        à trouver… Une équipe ne peut pas dépasser ses vies de départ plus deux.
+        Chaque mot qui fait passer la cocotte remplit la boîte de l'équipe d'autant de
+        points que de lettres. Boîte pleine : une vie en plus, et la boîte repart à
+        zéro. Un mot long fait gagner plus de charge, mais il prend plus de temps à
+        trouver… Une équipe ne peut pas dépasser ses vies de départ plus deux.
       </p>
 
       <h3>Les modes</h3>
@@ -105,8 +133,8 @@
         <li>
           <b>Équipes</b> : tape <b>!join</b> dans le tchat pour t'inscrire (ou
           <b>!join 2</b> pour choisir l'équipe 2). L'hôte peut ensuite déplacer les
-          joueurs. Jusqu'à 8 équipes. Quand c'est au tour de ton équipe, n'importe
-          quel membre peut répondre.
+          joueurs. Jusqu'à 8 équipes. Quand c'est au tour de ton équipe, n'importe quel
+          membre peut répondre.
         </li>
         <li>
           <b>Streamer contre tchat</b> : le streamer tape ses mots sur la page du jeu,
@@ -114,14 +142,29 @@
         </li>
       </ul>
 
+      <h3>Les réglages de l'hôte</h3>
+      <ul class="rules-list">
+        <li><b>Mode</b> : Équipes, ou Streamer contre tchat.</li>
+        <li><b>Chaîne Twitch</b> : la chaîne dont le tchat est lu.</li>
+        <li><b>Nombre d'équipes</b> (mode Équipes) : de 2 à 8, avec leurs noms.</li>
+        <li><b>Règles</b> : une ou plusieurs ; une est tirée au début de chaque manche.</li>
+        <li><b>Syllabes</b> : faciles, moyennes ou difficiles (plus ou moins de mots possibles).</li>
+        <li><b>Minuteur de chaque équipe</b> : la plage dans laquelle est tiré le temps de départ de chaque manche (15-25 s, 25-35 s ou 35-50 s).</li>
+        <li><b>Minimum au tour suivant</b> : 5, 8, 12 ou 16 s (voir « Les minuteurs »). Avec le retard du stream, 8 s ou plus est conseillé.</li>
+        <li><b>Temps de passage</b> : de 0 à 8 s (voir plus haut).</li>
+        <li><b>Bonus de rapidité</b> : activé ou non.</li>
+        <li><b>Boîte de chargement</b> : 30, 50 ou 80 lettres pour gagner une vie.</li>
+        <li><b>Vies</b> : de 1 à 6 par équipe ; en mode Streamer contre tchat, réglables séparément pour le streamer et pour le tchat.</li>
+      </ul>
+
       <h3>Bon à savoir</h3>
       <ul class="rules-list">
         <li>Un mot par message, sans phrase autour.</li>
-        <li>Un mot refusé (déjà joué, inconnu) s'affiche barré à l'écran.</li>
-        <li>Mot refusé ? Propose-en un autre tout de suite, il n'y a pas de temps d'attente entre deux essais.</li>
+        <li>Les dernières propositions s'affichent sous la cocotte : en vert si le mot est validé, en rouge s'il est refusé (déjà joué ou pas dans le dictionnaire).</li>
+        <li>Mot refusé ? Propose-en un autre tout de suite, il n'y a pas de temps d'attente entre deux essais. Et si un coéquipier a envoyé un bon mot juste après le tien, il est pris en compte automatiquement : chaque message est examiné dans l'ordre d'arrivée.</li>
         <li>
-          Le dictionnaire vient du Lefff (Inria, licence LGPL-LR). Il peut manquer
-          des mots récents ou familiers.
+          Le dictionnaire vient du Lefff (Inria, licence LGPL-LR). Il peut manquer des
+          mots récents ou familiers.
         </li>
       </ul>
     </div>

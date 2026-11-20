@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/style.css?v=10">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -176,6 +176,7 @@
             </div>
 
             <div class="ct-turn" id="turn"></div>
+            <ul class="ct-props" id="props"></ul>
 
             <div class="ct-host-input" id="hostInput" hidden>
               <input type="text" id="hostWord" autocomplete="off" spellcheck="false" placeholder="Ton mot">
@@ -227,7 +228,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=9"></script>
+  <script type="module" src="js/room.js?v=10"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

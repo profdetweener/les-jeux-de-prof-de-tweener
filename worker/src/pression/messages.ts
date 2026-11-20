@@ -10,11 +10,11 @@
  *                 tchat. Pas d'inscription : tout le tchat joue.
  *
  * Minuteurs : chaque equipe a le sien, qui ne tourne que pendant son tour
- * (comme une pendule d'echecs). Toutes partent du meme temps, tire au hasard
- * au lancement. Une equipe qui valide garde le temps qui lui reste pour son
- * prochain tour, sans descendre sous le minimum regle par l'hote. Quand son
- * minuteur tombe a zero, la cocotte saute : l'equipe perd une vie et son
- * minuteur repart au temps complet.
+ * (comme une pendule d'echecs). A chaque nouvelle manche, un temps de depart
+ * est tire dans la plage choisie, le meme pour toutes les equipes. Une equipe
+ * qui valide garde le temps qui lui reste pour son prochain tour, sans
+ * descendre sous le minimum regle par l'hote. Quand son minuteur tombe a zero,
+ * la cocotte saute : l'equipe perd une vie et une nouvelle manche commence.
  *
  * Deroule : une manche va d'une explosion a la suivante. La regle (contient,
  * commence, finit, chaine) est tiree au debut de la manche parmi celles

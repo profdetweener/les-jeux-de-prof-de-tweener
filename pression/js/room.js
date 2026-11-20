@@ -54,6 +54,25 @@ let toastTimer = null;
 let loopId = null;
 let wasMyTurn = false;
 let pendingPop = null;
+// Propositions traitees par le serveur (mots conformes a la regle) : vert si
+// valide, rouge si refuse. Les plus recentes en haut, remises a zero a chaque
+// manche.
+let props = [];
+const MAX_PROPS = 5;
+function pushProp(ok, word, by, teamId, why) {
+  props.unshift({ ok, word, by, teamId, why });
+  if (props.length > MAX_PROPS) props.length = MAX_PROPS;
+}
+function renderProps() {
+  const box = document.getElementById("props");
+  if (!box) return;
+  box.innerHTML = props.map((p) =>
+    `<li class="${p.ok ? "ok" : "ko"}">` +
+    `<span class="dot" style="background:${colorOf(p.teamId - 1)}"></span>` +
+    `<span class="w">${esc(p.word)}</span>` +
+    (p.why ? `<span class="why">${p.why}</span>` : "") +
+    `<span class="by">${esc(p.by)}</span></li>`).join("");
+}
 
 const DEFAULT_CFG = {
   rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonus: true, graceSec: 3,
@@ -114,6 +133,8 @@ conn.on("game_state", (m) => {
 // Mot refuse : pas d'affichage public (pas d'historique a l'ecran). Seul le
 // streamer, en mode streamer, voit son champ trembler.
 conn.on("reject", (m) => {
+  pushProp(false, m.word, m.by, m.teamId, m.reason === "used" ? "déjà joué" : "pas dans le dictionnaire");
+  renderProps();
   if (mode === "streamer" && isHost && m.teamId === 1) {
     const box = $("hostInput");
     box.classList.remove("bad"); void box.offsetWidth; box.classList.add("bad");
@@ -324,8 +345,10 @@ function renderTeamConfig(viewers) {
 function handleEvent(ev) {
   if (ev.kind === "manche") {
     lastBlast = null;
+    props = [];
     sound("manche");
   } else if (ev.kind === "pass") {
+    pushProp(true, ev.word, ev.by, ev.teamId, "");
     if (ev.bonus) {
       const t = gameTeam(ev.teamId);
       toast(`+1 vie pour ${t ? t.name : ""} !`);
@@ -378,6 +401,8 @@ function renderGame() {
       : lastBlast.eliminated ? `💥 ${cap(nounOf(t))} est éliminée !`
       : `💥 Ça a sauté chez ${nounOf(t)} !`;
   }
+
+  renderProps();
 
   // Equipes : 4 a gauche de la cocotte, les suivantes a droite.
   const cards = game.teams.map((t) => {
@@ -446,20 +471,25 @@ function membersHtml(t) {
 
 // Nom d'equipe dans une phrase : "Équipe 2" -> "l'équipe 2", "Tchat" (mode
 // streamer) -> "le tchat", nom personnalise -> tel quel.
+// Nom personnalise en mode equipes ("Les nuls") : "l'équipe Les nuls", ce qui
+// reste correct quel que soit le nom choisi.
 function nounOf(t) {
   const m = /^Équipe (\d+)$/.exec(t.name);
   if (m) return "l'équipe " + m[1];
-  if (mode === "streamer" && t.id === 2) return "le tchat";
-  return t.name;
+  if (mode === "streamer") return t.id === 2 ? "le tchat" : t.name;
+  return "l'équipe " + t.name;
 }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 // "Au tour de l'équipe 2", "Au tour du tchat", "Au tour d'Alpha".
+// Renvoie [debut de phrase, texte de la pastille] :
+// "Au tour de [l'équipe 2]", "Au tour de l'équipe [Les nuls]",
+// "Au tour du [tchat]", "Au tour d'[Alpha]".
 function deForm(t) {
-  const n = nounOf(t);
-  if (n.startsWith("le ")) return ["du", n.slice(3)];
-  if (n.startsWith("l'")) return ["de", n];
-  if (/^[aeiouyhàâéèêîïôûAEIOUYHÀÂÉÈÊÎÏÔÛ]/.test(n)) return ["d'", n];
-  return ["de", n];
+  if (/^Équipe \d+$/.test(t.name)) return ["de", nounOf(t)];
+  if (mode === "streamer" && t.id === 2) return ["du", "tchat"];
+  if (mode === "equipes") return ["de l'équipe", t.name];
+  if (/^[aeiouyhàâéèêîïôûAEIOUYHÀÂÉÈÊÎÏÔÛ]/.test(t.name)) return ["d'", t.name];
+  return ["de", t.name];
 }
 
 function chargeLabel(t) {
