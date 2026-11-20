@@ -355,6 +355,7 @@ function handleEvent(ev) {
       toast(`+1 vie pour ${t ? t.name : ""} !`);
       sound("bonus");
     } else sound("pass");
+    if (ev.chainBroken) toast("Chaîne cassée : trop peu de mots possibles, nouvelle syllabe");
     flashTeam(ev.teamId);
     if (ev.timeBonusSec > 0) pendingPop = { teamId: ev.teamId, text: `+${ev.timeBonusSec} s` };
   } else if (ev.kind === "explode") {

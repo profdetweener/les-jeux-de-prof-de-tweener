@@ -12,7 +12,10 @@
  * Regle de tri :
  *  - on GARDE une forme si le Lefff la connait comme nom commun, adjectif
  *    (hors participe), adverbe, preposition, conjonction, determinant ou
- *    pronom, ou comme verbe a l'infinitif. Pluriels et feminins compris.
+ *    pronom, au singulier ou invariable, ou comme verbe a l'infinitif.
+ *    Feminins compris. Pas de pluriels, sauf les mots qui n'existent qu'au
+ *    pluriel (GENS, CISEAUX, FIANCAILLES...), dont le lemme est la forme
+ *    elle-meme.
  *    Ex. : PORTE, MARCHE, LIVRES (aussi des noms), FATIGUE, COURANT (adjectifs
  *    a part entiere), MANGER.
  *  - on RETIRE une forme que le Lefff ne connait que comme verbe conjugue ou
@@ -40,7 +43,7 @@ if (!lefffPath) {
 }
 
 // Retouches manuelles (mots normalises, en majuscules sans accent).
-const AJOUTS = ["SMARTPHONE", "SMARTPHONES", "STREAMER", "STREAMERS", "TCHAT", "TCHATS", "EMOJI", "EMOJIS"];
+const AJOUTS = ["SMARTPHONE", "STREAMER", "TCHAT", "EMOJI"];
 const RETRAITS = [];
 
 // Meme normalisation que le worker (src/pression/dict.ts).
@@ -56,11 +59,13 @@ const KEEP_POS = new Set(["nc", "adj", "adv", "prep", "csu", "det", "pro", "coo"
 const lefffOk = new Set();      // au moins un emploi non conjugue
 const lefffVerbal = new Set();  // au moins un emploi conjugue / participe
 const FORM_RE = /^[a-zàâäçéèêëîïôöùûüÿœæ'-]+$/;
+const pluralSelf = new Set();   // pluriel dont le lemme est la forme (GENS)
+const pluralOther = new Set();  // pluriel d'un autre lemme (CHEVAUX <- CHEVAL)
 
 for (const line of readFileSync(lefffPath, "utf8").split(/\r?\n/)) {
   const p = line.split("\t");
   if (p.length < 4) continue;
-  const [form, pos, , tag] = p;
+  const [form, pos, lemma, tag] = p;
   if (!FORM_RE.test(form)) continue;
   const n = norm(form);
   if (n.length < 3) continue;
@@ -70,10 +75,19 @@ for (const line of readFileSync(lefffPath, "utf8").split(/\r?\n/)) {
   } else if (pos === "adj" && /^[KG]/.test(tag)) {
     lefffVerbal.add(n);                        // participe employe comme adjectif
   } else if (KEEP_POS.has(pos)) {
+    // Pluriel (etiquette mp, fp ou p) : ecarte, sauf pluriel lexicalise
+    // (traite apres la boucle).
+    if (/p$/.test(tag)) {
+      if (lemma === form) pluralSelf.add(n); else pluralOther.add(n);
+      continue;
+    }
     lefffOk.add(n);
   }
 }
 
+// Mot qui n'existe qu'au pluriel : garde seulement si le Lefff ne le
+// rattache a aucun singulier (GENS, CISEAUX oui ; CHEVAUX non).
+for (const w of pluralSelf) if (!pluralOther.has(w)) lefffOk.add(w);
 const words = new Set(lefffOk);
 for (const w of AJOUTS) words.add(norm(w));
 for (const w of RETRAITS) words.delete(norm(w));

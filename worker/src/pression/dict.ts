@@ -6,7 +6,7 @@
  * les regenerer.
  *
  * Le Set de mots est construit a la premiere partie lancee, puis partage par
- * toutes les rooms de l'isolat (variable de module) : ~117 000 mots.
+ * toutes les rooms de l'isolat (variable de module) : ~65 000 mots.
  */
 
 import MOTS from "./data/mots.txt";
@@ -38,19 +38,21 @@ export function norm(s: string): string {
 // Niveaux : on tire dans les N syllabes les plus fournies (pools inclusifs :
 // une syllabe "facile" peut tomber en "difficile"). Par rang plutot que par
 // seuil, pour que les niveaux tiennent si on regenere le dictionnaire.
-// Sur la liste actuelle, la syllabe la moins fournie de chaque pool accepte :
-//   contient : 1205 / 409 / 138 mots
-//   commence :  517 / 160 /  62
-//   finit    :  978 / 160 /  45
+// Sur la liste actuelle (~65 000 mots, sans pluriels ni conjugaisons), la
+// syllabe la moins fournie de chaque pool accepte :
+//   contient : 646 / 220 / 75 mots
+//   commence : 289 /  89 / 35
+//   finit    : 539 /  91 / 28
 const RANKS: Record<Level, { contient: number; commence: number; finit: number }> = {
   facile:    { contient: 300,  commence: 100, finit: 50 },
   moyen:     { contient: 800,  commence: 300, finit: 150 },
   difficile: { contient: 1600, commence: 650, finit: 300 },
 };
 
-// Regle "chaine" : la syllabe suivante = les 2 dernieres lettres du mot joue,
-// en debut de mot. En dessous de ce nombre de mots possibles, la chaine casse
-// et on tire une syllabe "commence" au hasard (sinon, impasse garantie).
+// Regle "chaine" : la syllabe suivante = les 3 dernieres lettres du mot joue
+// (ou les 2 dernieres), en debut de mot. En dessous de ce nombre de mots
+// possibles, la chaine casse et on tire une syllabe "commence" au hasard
+// (sinon, impasse garantie).
 export const CHAIN_MIN = 25;
 
 const POOLS = new Map<string, string[]>();

@@ -641,8 +641,10 @@ export class PressionRoom {
     // Syllabe suivante.
     let chainBroken = false;
     if (this.rule === "chaine") {
-      const s = w.slice(-2);
-      if (startCount(s) >= CHAIN_MIN) this.syllable = s;
+      // Les 3 dernieres lettres (EROTIQUE -> QUE), sinon les 2 dernieres, si
+      // assez de mots commencent ainsi. Sinon la chaine casse.
+      const next = [3, 2].map((L) => w.slice(-L)).find((s) => startCount(s) >= CHAIN_MIN);
+      if (next) this.syllable = next;
       else { this.syllable = drawSyllable("chaine", this.cfg.level, this.recent); chainBroken = true; }
     } else {
       this.syllable = drawSyllable(this.rule, this.cfg.level, this.recent);
