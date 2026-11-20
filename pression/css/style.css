@@ -63,6 +63,11 @@
 .stepper button:hover { border-color: var(--bleu-nuit); }
 .stepper b { font-family: Georgia, serif; font-size: 16px; min-width: 18px; text-align: center; }
 
+/* Curseur (temps de passage) */
+.slider { display: inline-flex; align-items: center; gap: 10px; }
+.slider input[type="range"] { width: 170px; accent-color: var(--bleu-accent); cursor: pointer; }
+.slider b { font-family: Georgia, serif; min-width: 52px; text-align: right; }
+
 .channel-input {
   flex: 1; min-width: 0; max-width: 220px; padding: 7px 10px;
   border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
@@ -265,6 +270,12 @@
 .ct-team.out { opacity: .45; }
 .ct-team.out .tname::after { content: "éliminée"; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--rouge); margin-left: 4px; }
 .ct-team.flash { animation: flash .6s; }
+.ct-team { position: relative; }
+.time-pop {
+  position: absolute; right: 12px; top: 34px; font-weight: 800; font-size: 17px;
+  color: var(--vert); pointer-events: none; animation: time-pop 1.4s ease-out forwards;
+}
+@keyframes time-pop { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px); } }
 @keyframes flash { 0%,100% { filter: none; } 50% { filter: brightness(1.25); } }
 
 /* Saisie du streamer. */

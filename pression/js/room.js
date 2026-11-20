@@ -53,14 +53,16 @@ let lastBlast = null;
 let toastTimer = null;
 let loopId = null;
 let wasMyTurn = false;
+let pendingPop = null;
 
 const DEFAULT_CFG = {
-  rules: ["contient"], level: "moyen", fuse: "moyenne", minTurnSec: 12,
+  rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonusSec: 2, graceSec: 3,
   lives: 3, livesStreamer: 3, livesChat: 3, charge: 50,
 };
 let cfg = { ...DEFAULT_CFG };
 try { cfg = { ...DEFAULT_CFG, ...(JSON.parse(localStorage.getItem(CFG_KEY) || "{}")) }; } catch {}
 if (!Array.isArray(cfg.rules) || !cfg.rules.length) cfg.rules = ["contient"];
+delete cfg.fuse; delete cfg.minTurnSec;
 function saveCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch {} }
 
 // ---------- Connexion ----------
@@ -194,7 +196,7 @@ function renderLobby() {
   } else {
     $("playersTitle").textContent = "Joueurs";
     $("viewerList").innerHTML =
-      `<p class="empty-note">${esc(hostPseudo || "Le streamer")} contre tout le tchat. Pas d'inscription : ` +
+      `<p class="empty-note">${esc(channelName() || "Le streamer")} contre tout le tchat. Pas d'inscription : ` +
       "n'importe quel viewer peut répondre quand c'est au tchat.</p>";
   }
   if (!isHost) {
@@ -227,8 +229,16 @@ function renderLobby() {
     };
   });
   wireSeg("levelSeg", "level", false);
-  wireSeg("fuseSeg", "fuse", false);
-  wireSeg("minTurnSeg", "minTurnSec", true);
+  wireSeg("timerSeg", "timer", false);
+  wireSeg("floorSeg", "floorSec", true);
+  wireSeg("quickSeg", "quickBonusSec", true);
+  // Temps de passage : curseur de 0 a 8 s.
+  const gr = $("graceRange");
+  const showGrace = () => { $("graceVal").textContent = cfg.graceSec ? cfg.graceSec + " s" : "aucun"; };
+  gr.value = cfg.graceSec;
+  showGrace();
+  gr.oninput = () => { cfg.graceSec = +gr.value; showGrace(); };
+  gr.onchange = () => saveCfg();
   wireSeg("chargeSeg", "charge", true);
   renderLives();
 
@@ -246,7 +256,7 @@ function renderLobby() {
     saveCfg();
     try { localStorage.setItem(CHANNEL_KEY, channelName()); } catch {}
     unlockAudio();
-    conn.send({ type: "start", mode, config: cfg });
+    conn.send({ type: "start", mode, config: { ...cfg, streamerName: channelName() } });
   };
 }
 
@@ -317,6 +327,7 @@ function handleEvent(ev) {
       sound("bonus");
     } else sound("pass");
     flashTeam(ev.teamId);
+    if (ev.timeBonusSec > 0) pendingPop = { teamId: ev.teamId, text: `+${ev.timeBonusSec} s` };
   } else if (ev.kind === "explode") {
     lastBlast = ev;
     const st = $("stage");
@@ -379,6 +390,17 @@ function renderGame() {
   });
   $("teamsLeft").innerHTML = cards.slice(0, 4).join("");
   $("teamsRight").innerHTML = cards.slice(4).join("");
+  // Bonus de rapidite : petit "+2 s" qui s'envole de la carte de l'equipe.
+  if (pendingPop) {
+    const el = document.querySelector(`.ct-team[data-t="${pendingPop.teamId}"]`);
+    if (el) {
+      const pop = document.createElement("span");
+      pop.className = "time-pop";
+      pop.textContent = pendingPop.text;
+      el.appendChild(pop);
+    }
+    pendingPop = null;
+  }
 
   // Sifflement : la cocotte va sauter dans 3 s si personne ne repond.
   const whistling = game.whistling && !inter;
@@ -394,10 +416,6 @@ function renderGame() {
   $("hostSend").disabled = !myTurn;
   if (myTurn && !wasMyTurn) { inp.value = ""; inp.focus(); }
   wasMyTurn = myTurn;
-
-  $("help").textContent = mode === "equipes"
-    ? "Répondez dans le tchat Twitch, un mot par message. Pas encore inscrit ? Tape !join (ou !join 2)."
-    : "Le tchat répond dans le tchat Twitch, un mot par message.";
 
   const eg = $("endGameBtn");
   eg.hidden = !isHost;
@@ -443,7 +461,7 @@ const DIAL = { cx: 214, cy: 66 };
 })();
 
 // Aiguille : elle monte avec le temps de cuisson mais s'arrete au bord de la
-// zone rouge (RED). Elle n'entre dans le rouge que quand la cocotte siffle,
+// zone rouge (RED). Elle n'entre dans le rouge que pendant le compte a rebours final,
 // c'est-a-dire 3 s avant l'explosion : rouge = danger reel, jamais avant.
 const RED = 0.81;
 let whistleStart = 0;
@@ -459,11 +477,13 @@ function frame() {
     $("interSmall").textContent = `Nouvelle manche dans ${s} s`;
     st.classList.remove("cooking", "hot", "whistle");
   } else if (whistleStart) {
-    p = RED + (1 - RED) * Math.min(1, (performance.now() - whistleStart) / 3000);
+    p = RED + (1 - RED) * Math.min(1, (performance.now() - whistleStart) / (WARN_S * 1000));
     st.classList.add("cooking", "hot", "whistle");
     st.style.setProperty("--steam-speed", "0.5s");
   } else {
-    const t = Math.max(0, Math.min(1, (now - game.fuseStartAt) / game.fuseMaxMs));
+    // Pression = part du minuteur de l'equipe deja consommee.
+    const left = game.turnBudgetMs - (now - game.turnStartAt);
+    const t = Math.max(0, Math.min(1, 1 - left / game.fullMs));
     p = Math.min(RED - 0.02, t);
     st.classList.add("cooking");
     st.classList.remove("whistle");
@@ -594,6 +614,7 @@ $("soundBtn").onclick = () => {
 function unlockAudio() {
   if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { actx = null; } }
   if (actx && actx.state === "suspended") actx.resume();
+  loadTick();
 }
 document.addEventListener("pointerdown", unlockAudio, { once: true });
 
@@ -615,31 +636,60 @@ function noise(dur, vol) {
   src.connect(f).connect(g).connect(actx.destination);
   src.start();
 }
-// Sifflement continu de la cocotte, tant qu'elle siffle (arrete par un mot
-// valide, l'explosion ou la fin de partie).
+// Compte a rebours final : tic-tac en boucle (sounds/tic-tac.wav, 16 tics
+// coupes pile pour boucler sans a-coup) pendant les 5 dernieres secondes. Le
+// volume monte jusqu'a l'explosion. Arrete par un mot valide, l'explosion ou
+// la fin de partie. Si le fichier n'a pas pu etre charge : sifflement de
+// synthese a la place.
+const WARN_S = 5;
+let tickBuffer = null;
+let tickLoading = false;
+function loadTick() {
+  if (tickBuffer || tickLoading || !actx) return;
+  tickLoading = true;
+  fetch("sounds/tic-tac.wav?v=1")
+    .then((r) => r.arrayBuffer())
+    .then((buf) => actx.decodeAudioData(buf))
+    .then((b) => { tickBuffer = b; })
+    .catch(() => { tickLoading = false; });
+}
+
 let whistleNodes = null;
 function startWhistle() {
   if (whistleNodes || !soundOn || !actx || actx.state !== "running") return;
-  const o = actx.createOscillator(), lfo = actx.createOscillator();
-  const lfoGain = actx.createGain(), g = actx.createGain();
+  const g = actx.createGain();
+  g.connect(actx.destination);
+  const t0 = actx.currentTime;
+  if (tickBuffer) {
+    const src = actx.createBufferSource();
+    src.buffer = tickBuffer;
+    src.loop = true;
+    g.gain.setValueAtTime(0.35, t0);
+    g.gain.linearRampToValueAtTime(0.8, t0 + WARN_S);
+    src.connect(g);
+    src.start();
+    whistleNodes = { g, stops: [src] };
+    return;
+  }
+  const o = actx.createOscillator(), lfo = actx.createOscillator(), lfoGain = actx.createGain();
   o.type = "sine"; o.frequency.value = 1700;
-  lfo.frequency.value = 7; lfoGain.gain.value = 60;   // vibrato
+  lfo.frequency.value = 7; lfoGain.gain.value = 60;
   lfo.connect(lfoGain).connect(o.frequency);
-  g.gain.setValueAtTime(0.0001, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.05, actx.currentTime + 0.4);
-  g.gain.linearRampToValueAtTime(0.09, actx.currentTime + 3);   // monte jusqu'a l'explosion
-  o.connect(g).connect(actx.destination);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.4);
+  g.gain.linearRampToValueAtTime(0.09, t0 + WARN_S);
+  o.connect(g);
   o.start(); lfo.start();
-  whistleNodes = { o, lfo, g };
+  whistleNodes = { g, stops: [o, lfo] };
 }
 function stopWhistle() {
   if (!whistleNodes) return;
-  const { o, lfo, g } = whistleNodes;
+  const { g, stops } = whistleNodes;
   whistleNodes = null;
   try {
     g.gain.cancelScheduledValues(actx.currentTime);
-    g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.05);
-    o.stop(actx.currentTime + 0.3); lfo.stop(actx.currentTime + 0.3);
+    g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.04);
+    for (const n of stops) n.stop(actx.currentTime + 0.25);
   } catch { /* deja arrete */ }
 }
 

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=7">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -74,22 +74,46 @@
                   </div>
                 </div>
                 <div class="setup-row">
-                  <span class="setup-label">Cuisson par manche</span>
-                  <div class="seg" id="fuseSeg">
-                    <button data-v="courte">Courte</button>
-                    <button data-v="moyenne">Moyenne</button>
-                    <button data-v="longue">Longue</button>
+                  <span class="setup-label">Minuteur de chaque équipe</span>
+                  <div class="seg" id="timerSeg">
+                    <button data-v="court">15-25 s</button>
+                    <button data-v="moyen">25-35 s</button>
+                    <button data-v="long">35-50 s</button>
                   </div>
                 </div>
                 <div class="setup-row">
-                  <span class="setup-label">Temps minimum par tour</span>
-                  <div class="seg" id="minTurnSeg">
+                  <span class="setup-label">Minimum au tour suivant</span>
+                  <div class="seg" id="floorSeg">
+                    <button data-v="5">5 s</button>
                     <button data-v="8">8 s</button>
                     <button data-v="12">12 s</button>
                     <button data-v="16">16 s</button>
-                    <button data-v="20">20 s</button>
                   </div>
                 </div>
+                <div class="setup-row">
+                  <span class="setup-label">Temps de passage</span>
+                  <span class="slider">
+                    <input type="range" id="graceRange" min="0" max="8" step="1" value="3">
+                    <b id="graceVal">3 s</b>
+                  </span>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Bonus de rapidité</span>
+                  <div class="seg" id="quickSeg">
+                    <button data-v="0">Aucun</button>
+                    <button data-v="2">+2 s</button>
+                    <button data-v="3">+3 s</button>
+                  </div>
+                </div>
+                <p class="rules-note" style="margin:-4px 0 14px">
+                  Chaque équipe a son minuteur, qui ne tourne que pendant son tour. Toutes
+                  partent du même temps, tiré une fois dans la plage choisie. Une équipe qui
+                  valide garde le temps qui lui reste, sans descendre sous le minimum. Mot
+                  trouvé en moins de 8 s : bonus de temps (sans dépasser le temps de départ).
+                  Vie perdue : minuteur complet. Temps de passage : quand la cocotte change
+                  d'équipe, le minuteur ne démarre qu'après ce délai, pour compenser le retard
+                  du stream (sauf pour toi en mode Streamer contre tchat).
+                </p>
                 <div class="setup-row">
                   <span class="setup-label">Boîte de chargement</span>
                   <div class="seg" id="chargeSeg">
@@ -168,7 +192,6 @@
           </div>
           <div class="ct-side" id="teamsRight"></div>
         </div>
-        <p class="ct-help" id="help"></p>
         <div class="ct-btns">
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
         </div>
@@ -212,7 +235,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=4"></script>
+  <script type="module" src="js/room.js?v=8"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

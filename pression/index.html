@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -17,21 +17,16 @@
   <header class="landing-header ct-header">
     <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
     <h1>Pression</h1>
-    <span class="header-tagline" id="server-status">connexion au serveur…</span>
+    <span class="header-tagline">jeu du tchat Twitch</span>
   </header>
 
   <main class="entry-main">
     <div class="entry-card">
-      <h2 id="card-title">Bienvenue !</h2>
-
-      <p class="entry-sub" id="subtitle-create">
+      <h2>Pression</h2>
+      <p class="entry-sub">
         Tu affiches la cocotte sur ton stream, le tchat joue. Trouve un mot qui
         respecte la syllabe avant que la pression lâche, et passe la cocotte à
         l'équipe suivante. En équipes, ou toi contre tout le tchat.
-      </p>
-      <p class="entry-sub" id="subtitle-join" hidden>
-        Tu es invité à suivre la partie <strong id="join-code-label">-</strong>.
-        Choisis un pseudo pour entrer. Les joueurs, eux, jouent depuis le tchat Twitch.
       </p>
 
       <div class="entry-alert" id="error-box"></div>
@@ -44,12 +39,8 @@
         </div>
       </div>
 
-      <div class="entry-field">
-        <label for="pseudo">Ton pseudo</label>
-        <input id="pseudo" type="text" maxlength="20" placeholder="Ex : Max" autocomplete="off">
-      </div>
-
-      <button class="btn btn-primary" id="createBtn">Créer la partie</button>
+      <p class="entry-sub" id="creating" hidden>Création de la partie…</p>
+      <button class="btn btn-primary" id="retryBtn" hidden>Réessayer</button>
     </div>
   </main>
 
@@ -63,7 +54,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/join.js?v=1"></script>
+  <script type="module" src="js/join.js?v=2"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

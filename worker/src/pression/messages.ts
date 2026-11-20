@@ -9,11 +9,17 @@
  *  - "streamer" : le streamer (l'hote, qui tape sur sa page) contre tout le
  *                 tchat. Pas d'inscription : tout le tchat joue.
  *
- * Deroule : une manche = une cuisson. La regle (contient, commence, finit,
- * chaine) est tiree au debut de la manche parmi celles choisies par l'hote.
- * A chaque mot valide, la cocotte passe a l'equipe suivante avec une nouvelle
- * syllabe. Quand la pression lache, l'equipe qui la tient perd une vie. Une
- * pause, puis nouvelle manche. Derniere equipe en vie gagne.
+ * Minuteurs : chaque equipe a le sien, qui ne tourne que pendant son tour
+ * (comme une pendule d'echecs). Toutes partent du meme temps, tire au hasard
+ * au lancement. Une equipe qui valide garde le temps qui lui reste pour son
+ * prochain tour, sans descendre sous le minimum regle par l'hote. Quand son
+ * minuteur tombe a zero, la cocotte saute : l'equipe perd une vie et son
+ * minuteur repart au temps complet.
+ *
+ * Deroule : une manche va d'une explosion a la suivante. La regle (contient,
+ * commence, finit, chaine) est tiree au debut de la manche parmi celles
+ * choisies par l'hote. A chaque mot valide, la cocotte passe a l'equipe
+ * suivante avec une nouvelle syllabe. Derniere equipe en vie gagne.
  *
  * Boite de chargement : chaque mot qui fait passer la cocotte remplit la boite
  * de l'equipe d'autant de points que de lettres. Boite pleine = une vie de
@@ -28,13 +34,16 @@ export type Phase = "lobby" | "playing" | "finished";
 export type Mode = "equipes" | "streamer";
 export type Rule = "contient" | "commence" | "finit" | "chaine";
 export type Level = "facile" | "moyen" | "difficile";
-export type Fuse = "courte" | "moyenne" | "longue";
+export type Timer = "court" | "moyen" | "long";
 
 export interface StartConfig {
   rules: Rule[];
   level: Level;
-  fuse: Fuse;
-  minTurnSec: number;     // temps minimum garanti a l'equipe qui recoit la cocotte
+  timer: Timer;           // plage du minuteur de depart (tire au lancement)
+  floorSec: number;       // minimum garanti au tour suivant d'une equipe qui a valide
+  quickBonusSec: number;  // bonus de rapidite (0 = desactive)
+  graceSec: number;       // temps de passage : le minuteur demarre apres ce delai
+  streamerName?: string;  // mode streamer : nom affiche (la chaine Twitch)
   lives: number;          // equipes : vies de chaque equipe
   livesStreamer: number;  // streamer : vies du streamer
   livesChat: number;      // streamer : vies du tchat
@@ -71,11 +80,12 @@ export interface GameDTO {
   rule: Rule;
   syllable: string;
   manche: number;
-  // Manometre : la pression monte de fuseStartAt a fuseStartAt + fuseMaxMs.
-  // L'instant reel de l'explosion reste secret (tire entre min et max).
-  fuseStartAt: number;
-  fuseMaxMs: number;
-  minTurnMs: number;
+  // Manometre de l'equipe qui tient la cocotte : son minuteur demarre a
+  // turnStartAt (apres le temps de passage, donc parfois dans le futur) avec
+  // turnBudgetMs, sur un total de fullMs.
+  turnStartAt: number;
+  turnBudgetMs: number;
+  fullMs: number;
   serverNow: number;           // pour caler l'horloge du client
   interUntil: number | null;   // pause entre deux manches (ms epoch)
   lastPass: PassInfo | null;
@@ -86,9 +96,9 @@ export interface GameDTO {
 
 export type GameEvent =
   | { kind: "manche"; chainBroken?: boolean }
-  | { kind: "pass"; word: string; by: string; teamId: number; bonus: boolean; chainBroken: boolean }
+  | { kind: "pass"; word: string; by: string; teamId: number; bonus: boolean; chainBroken: boolean; timeBonusSec: number }
   | { kind: "explode"; teamId: number; eliminated: boolean }
-  // La cocotte siffle : explosion dans WARN_MS si personne ne repond.
+  // Compte a rebours final : explosion dans WARN_MS si personne ne repond.
   | { kind: "whistle" };
 
 export interface ViewerStat { name: string; teamId: number; words: number; letters: number; }

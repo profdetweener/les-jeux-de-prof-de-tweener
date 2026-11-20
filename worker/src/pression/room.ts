@@ -18,7 +18,7 @@ import { validatePseudo, pseudosEqual } from "../shared/moderation";
 import { norm, isWord, matchesRule, drawSyllable, startCount, CHAIN_MIN, warmUp } from "./dict";
 import type {
   ClientMessage, ServerMessage, PlayerDTO, TeamDTO, GameDTO, GameEvent, PassInfo, ViewerStat,
-  Phase, Mode, Rule, Level, Fuse, StartConfig, CtErrorCode,
+  Phase, Mode, Rule, Level, Timer, StartConfig, CtErrorCode,
 } from "./messages";
 
 interface Session {
@@ -47,30 +47,45 @@ interface Team {
   charge: number;
   alive: boolean;
   out: number;         // ordre d'elimination (0 = en vie)
+  clockMs: number;     // temps restant sur le minuteur de l'equipe
 }
 
 const MAX_TEAMS = 8;
 const RULES: Rule[] = ["contient", "commence", "finit", "chaine"];
 const LEVELS: Level[] = ["facile", "moyen", "difficile"];
-// Plage de cuisson par manche : l'explosion tombe au hasard entre les deux.
-const FUSES: Record<Fuse, [number, number]> = {
-  courte: [25000, 40000],
-  moyenne: [40000, 70000],
-  longue: [60000, 100000],
+// Minuteur de depart : tire au hasard dans la plage au lancement (en secondes
+// entieres), le meme pour toutes les equipes.
+const TIMERS: Record<Timer, [number, number]> = {
+  court: [15, 25],
+  moyen: [25, 35],
+  long: [35, 50],
 };
-// Temps garanti a l'equipe qui recoit la cocotte. Couvre le retard du stream :
-// le tchat voit la nouvelle syllabe quelques secondes apres le serveur.
-const MIN_TURNS = [8, 12, 16, 20];
+// Minimum au tour suivant d'une equipe qui a valide (en s). Doit couvrir le
+// retard du stream : le tchat voit la cocotte arriver quelques secondes apres
+// le serveur.
+const FLOORS = [5, 8, 12, 16];
 const CHARGES = [30, 50, 80];
 const LIVES_MIN = 1, LIVES_MAX = 6;
 // La boite de chargement peut faire monter une equipe jusqu'a ses vies de
 // depart + 2, pas au-dela (sinon une equipe en avance devient intouchable).
 const LIVES_BONUS_CAP = 2;
 const INTER_MS = 5000;   // pause entre deux manches
-// La cocotte siffle WARN_MS avant d'exploser (son + aiguille dans le rouge).
-// Toujours inferieur au temps minimum par tour (8 s) : une equipe qui recoit
-// la cocotte ne l'entend jamais siffler tout de suite.
-const WARN_MS = 3000;
+// Compte a rebours final (tic-tac + aiguille dans le rouge) : les WARN_MS
+// dernieres millisecondes du minuteur de l'equipe qui tient la cocotte.
+// Une equipe qui recoit la cocotte au minimum (5 s) l'entend donc tout de suite.
+const WARN_MS = 5000;
+// Bonus de rapidite : un mot valide en moins de QUICK_MS apres le debut du
+// tour ajoute quickBonusSec au minuteur de l'equipe (sans depasser le temps
+// complet). Seuil large expres : le tchat voit la syllabe avec le retard du
+// stream, il ne dispose en pratique que de QUICK_MS moins ce retard.
+const QUICK_MS = 8000;
+const QUICK_BONUSES = [0, 2, 3];
+// Temps de passage : quand la cocotte change d'equipe, la syllabe s'affiche
+// tout de suite mais le minuteur de l'equipe ne demarre qu'apres ce delai.
+// Compense le retard du stream (2 a 5 s en faible latence). Les mots recus
+// pendant ce temps comptent. Pas de temps de passage pour le streamer en
+// mode streamer : il voit tout en direct.
+const GRACE_MAX = 8;   // secondes, reglage par curseur de 0 a 8
 const RECENT = 12;       // syllabes recentes evitees au tirage
 // Garde-fou anti-bot par viewer (seau a jetons) : 10 essais d'avance, un jeton
 // regagne toutes les 300 ms. Un humain qui enchaine les propositions apres un
@@ -115,8 +130,9 @@ export class PressionRoom {
   private syllable: string;
   private recent: string[];
   private manche: number;
-  private fuseStartAt: number;
-  private fuseMaxMs: number;
+  private turnStartAt: number;
+  private turnBudgetMs: number;
+  private fullMs: number;
   private explodeAt: number;
   private warned: boolean;
   private interUntil: number | null;
@@ -139,7 +155,7 @@ export class PressionRoom {
     this.hostStat = { words: 0, letters: 0 };
 
     this.cfg = {
-      rules: ["contient"], level: "moyen", fuse: "moyenne", minTurnSec: 12,
+      rules: ["contient"], level: "moyen", timer: "moyen", floorSec: 8, quickBonusSec: 2, graceSec: 3,
       lives: 3, livesStreamer: 3, livesChat: 3, charge: 50,
     };
     this.teams = [];
@@ -149,8 +165,9 @@ export class PressionRoom {
     this.syllable = "";
     this.recent = [];
     this.manche = 0;
-    this.fuseStartAt = 0;
-    this.fuseMaxMs = 0;
+    this.turnStartAt = 0;
+    this.turnBudgetMs = 0;
+    this.fullMs = 0;
     this.explodeAt = 0;
     this.warned = false;
     this.interUntil = null;
@@ -418,13 +435,17 @@ export class PressionRoom {
   private sanitizeConfig(c: Partial<StartConfig> | undefined): StartConfig {
     const rules = Array.isArray(c?.rules) ? c!.rules.filter((r): r is Rule => RULES.includes(r as Rule)) : [];
     const level = LEVELS.includes(c?.level as Level) ? (c!.level as Level) : "moyen";
-    const fuse: Fuse = c?.fuse === "courte" || c?.fuse === "longue" ? c.fuse : "moyenne";
-    const mt = Math.floor(Number(c?.minTurnSec));
+    const timer: Timer = c?.timer === "court" || c?.timer === "long" ? c.timer : "moyen";
+    const fl = Math.floor(Number(c?.floorSec));
     const ch = Math.floor(Number(c?.charge));
+    const streamerName = String(c?.streamerName || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 25);
     return {
       rules: rules.length ? [...new Set(rules)] : ["contient"],
-      level, fuse,
-      minTurnSec: MIN_TURNS.includes(mt) ? mt : 12,
+      level, timer,
+      floorSec: FLOORS.includes(fl) ? fl : 8,
+      quickBonusSec: QUICK_BONUSES.includes(Math.floor(Number(c?.quickBonusSec))) ? Math.floor(Number(c?.quickBonusSec)) : 2,
+      graceSec: clampInt(c?.graceSec, 0, GRACE_MAX, 3),
+      streamerName,
       lives: clampInt(c?.lives, LIVES_MIN, LIVES_MAX, 3),
       livesStreamer: clampInt(c?.livesStreamer, LIVES_MIN, LIVES_MAX, 3),
       livesChat: clampInt(c?.livesChat, LIVES_MIN, LIVES_MAX, 3),
@@ -440,7 +461,7 @@ export class PressionRoom {
     this.cfg = this.sanitizeConfig(config);
 
     const mk = (id: number, name: string, lives: number): Team => ({
-      id, name, lives, maxLives: lives + LIVES_BONUS_CAP, charge: 0, alive: true, out: 0,
+      id, name, lives, maxLives: lives + LIVES_BONUS_CAP, charge: 0, alive: true, out: 0, clockMs: 0,
     });
 
     if (this.mode === "equipes") {
@@ -455,7 +476,7 @@ export class PressionRoom {
       this.teams = teams;
     } else {
       this.teams = [
-        mk(1, this.hostPseudo || "Streamer", this.cfg.livesStreamer),
+        mk(1, this.cfg.streamerName || this.hostPseudo || "Streamer", this.cfg.livesStreamer),
         mk(2, "Tchat", this.cfg.livesChat),
       ];
       // En streamer, tout le tchat joue : on repart d'une table vide.
@@ -475,6 +496,11 @@ export class PressionRoom {
     this.longest = null;
     this.outCounter = 0;
     this.phase = "playing";
+
+    // Minuteur de depart, le meme pour toutes les equipes.
+    const [lo, hi] = TIMERS[this.cfg.timer];
+    this.fullMs = (lo + Math.floor(Math.random() * (hi - lo + 1))) * 1000;
+    for (const t of this.teams) t.clockMs = this.fullMs;
 
     const first = this.teams[Math.floor(Math.random() * this.teams.length)].id;
     this.broadcastRoom();
@@ -501,15 +527,21 @@ export class PressionRoom {
     this.syllable = drawSyllable(this.rule, this.cfg.level, this.recent);
     this.pushRecent(this.syllable);
     this.holder = this.teams.some((t) => t.id === holder && t.alive) ? holder : this.nextAlive(holder);
-    const [a, b] = FUSES[this.cfg.fuse];
-    this.fuseStartAt = now;
-    this.fuseMaxMs = b;
-    this.explodeAt = now + a + Math.floor(Math.random() * (b - a));
     this.interUntil = null;
     this.lastPass = null;
-    this.warned = false;
-    this.scheduleFuse();
+    this.startTurn(now);
     this.broadcastGame({ kind: "manche" });
+  }
+
+  // Le minuteur de l'equipe qui tient la cocotte se met a tourner.
+  private startTurn(now: number): void {
+    const team = this.teams.find((t) => t.id === this.holder);
+    const live = this.mode === "streamer" && this.holder === 1;
+    this.turnStartAt = now + (live ? 0 : this.cfg.graceSec * 1000);
+    this.turnBudgetMs = team ? team.clockMs : this.fullMs;
+    this.explodeAt = this.turnStartAt + this.turnBudgetMs;
+    this.warned = this.turnBudgetMs <= WARN_MS;
+    this.scheduleFuse();
   }
 
   // Equipe en vie suivante, dans l'ordre des equipes, en bouclant.
@@ -613,13 +645,22 @@ export class PressionRoom {
     }
     this.pushRecent(this.syllable);
 
+    // L'equipe garde le temps qui lui reste pour son prochain tour, sans
+    // descendre sous le minimum. Puis le minuteur de la suivante demarre.
+    // Mot trouve vite : bonus de temps.
+    // Pendant le temps de passage, le minuteur n'a pas encore tourne : il
+    // reste tout le budget, pas plus.
+    const quick = now - this.turnStartAt < QUICK_MS && this.cfg.quickBonusSec > 0;
+    const remaining = Math.min(this.turnBudgetMs, this.explodeAt - now);
+    const left = remaining + (quick ? this.cfg.quickBonusSec * 1000 : 0);
+    team.clockMs = Math.min(this.fullMs, Math.max(left, this.cfg.floorSec * 1000));
+    // Bonus reellement gagne (0 si le minuteur etait deja presque plein).
+    // Arrondi par defaut (a 0,1 s pres) : un bonus rogne par le plafond a
+    // 0,5 s ne s'affiche pas "+1 s".
+    const timeBonusSec = quick ? Math.max(0, Math.floor((team.clockMs - remaining + 100) / 1000)) : 0;
     this.holder = this.nextAlive(teamId);
-    const minTurn = this.cfg.minTurnSec * 1000;
-    if (this.explodeAt - now < minTurn) this.explodeAt = now + minTurn;
-    // Nouveau porteur : la cocotte arrete de siffler (minTurn > WARN_MS).
-    this.warned = this.explodeAt - now <= WARN_MS;
-    this.scheduleFuse();
-    this.broadcastGame({ kind: "pass", word: w, by, teamId, bonus, chainBroken });
+    this.startTurn(now);
+    this.broadcastGame({ kind: "pass", word: w, by, teamId, bonus, chainBroken, timeBonusSec });
   }
 
   // ========================= Explosion / fin =========================
@@ -627,6 +668,7 @@ export class PressionRoom {
     const team = this.teams.find((t) => t.id === this.holder);
     if (!team) return;
     team.lives = Math.max(0, team.lives - 1);
+    team.clockMs = this.fullMs;   // vie perdue : minuteur complet
     const eliminated = team.lives === 0;
     if (eliminated) { team.alive = false; team.out = ++this.outCounter; }
 
@@ -755,9 +797,9 @@ export class PressionRoom {
       rule: this.rule,
       syllable: this.syllable,
       manche: this.manche,
-      fuseStartAt: this.fuseStartAt,
-      fuseMaxMs: this.fuseMaxMs,
-      minTurnMs: this.cfg.minTurnSec * 1000,
+      turnStartAt: this.turnStartAt,
+      turnBudgetMs: this.turnBudgetMs,
+      fullMs: this.fullMs,
       serverNow: Date.now(),
       interUntil: this.interUntil,
       lastPass: this.lastPass,

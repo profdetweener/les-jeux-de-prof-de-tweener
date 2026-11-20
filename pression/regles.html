@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression, règles du jeu</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=6">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -34,11 +34,38 @@
         une vie. La dernière équipe encore en vie gagne.
       </p>
       <p>
-        Le manomètre montre la pression qui monte, mais personne ne sait exactement
-        quand la cocotte va sauter. Quand elle se met à siffler et que l'aiguille
-        entre dans le rouge, il reste 3 secondes. Quand elle arrive chez une équipe, celle-ci a
-        toujours un temps minimum pour répondre (réglé par l'hôte), pour compenser
-        le décalage du stream.
+        Chaque équipe a son propre minuteur, qui ne tourne que pendant son tour.
+        Toutes les équipes partent du même temps, tiré au hasard en début de partie.
+        Une équipe qui valide un mot garde le temps qui lui reste pour son prochain
+        tour, sans descendre sous un minimum réglé par l'hôte (pour compenser le
+        décalage du stream). Quand une équipe perd une vie, son minuteur repart au
+        temps complet.
+      </p>
+      <p>
+        <b>Temps de passage.</b> Le stream arrive chez les viewers avec quelques
+        secondes de retard (en général 2 à 5 s en faible latence, parfois plus selon
+        la connexion ou l'appareil), alors que leurs messages arrivent presque
+        instantanément. Quand la cocotte arrive chez une équipe, la syllabe s'affiche
+        tout de suite chez le streamer, mais son minuteur ne démarre qu'après le
+        temps de passage, réglable de 0 à 8 secondes. Les viewers ont ainsi le temps
+        de voir la syllabe avant que leur temps commence à filer. Un mot envoyé
+        pendant ce temps compte normalement, et l'équipe garde tout son minuteur.
+      </p>
+      <p>
+        En mode Streamer contre tchat, le streamer voit tout en direct : il n'a pas
+        de temps de passage, seul le tchat en profite. Pour bien régler ce temps, le
+        streamer peut mesurer son retard : dans le lecteur Twitch, roue crantée,
+        Avancés, Statistiques vidéo, ligne « Latence par rapport au diffuseur ».
+        Côté viewers, activer la faible latence dans les réglages du lecteur réduit
+        le retard.
+      </p>
+      <p>
+        Le manomètre montre la pression de l'équipe qui tient la cocotte. Quand le
+        tic-tac démarre et que l'aiguille entre dans le rouge, il reste 5 secondes.
+      </p>
+      <p>
+        Bonus de rapidité : un mot trouvé en moins de 8 secondes ajoute quelques
+        secondes au minuteur de l'équipe (sans dépasser le temps de départ).
       </p>
 
       <h3>Les règles de manche</h3>
