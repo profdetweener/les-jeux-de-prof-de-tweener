@@ -293,7 +293,7 @@
 .ct-props { list-style: none; margin: 4px 0 0; padding: 0; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
 .ct-props li {
   display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--rayon-sm);
-  background: var(--blanc); border: 2px solid; font-size: 14px; animation: prop-in .18s ease-out;
+  background: var(--blanc); border: 2px solid; font-size: 14px;
 }
 .ct-props li.ok { border-color: var(--vert); }
 .ct-props li.ko { border-color: var(--rouge); }
@@ -302,9 +302,11 @@
 .ct-props li.ko .w { color: var(--rouge); }
 .ct-props li .why { font-size: 12px; color: var(--gris-texte); }
 .ct-props li .by { margin-left: auto; font-size: 12.5px; color: var(--gris-texte); }
-.ct-props li:nth-child(n+2) { opacity: .8; }
-.ct-props li:nth-child(n+4) { opacity: .55; }
+/* Une seule proposition a la fois : apparait, reste 2 s, s'efface. */
+.ct-props { min-height: 42px; }
+.ct-props li { animation: prop-in .18s ease-out, prop-out .3s ease-in 1.7s forwards; }
 @keyframes prop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes prop-out { to { opacity: 0; } }
 
 /* Saisie du streamer. */
 .ct-host-input { display: flex; gap: 8px; width: 100%; max-width: 420px; }

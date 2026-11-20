@@ -54,21 +54,23 @@ let toastTimer = null;
 let loopId = null;
 let wasMyTurn = false;
 let pendingPop = null;
-// Propositions traitees par le serveur (mots conformes a la regle) : vert si
-// valide, rouge si refuse. Les plus recentes en haut, remises a zero a chaque
-// manche.
+// Derniere proposition traitee par le serveur (mot conforme a la regle) :
+// vert si valide, rouge si refuse. Une seule a la fois : elle reste affichee
+// PROP_MS puis disparait ; une nouvelle proposition remplace aussitot la
+// precedente (pas de file d'attente, pour ne pas prendre de retard sur le jeu).
 let props = [];
-const MAX_PROPS = 5;
+const PROP_MS = 2000;
+let propTimer = null;
 function pushProp(ok, word, by, teamId, why) {
-  props.unshift({ ok, word, by, teamId, why });
-  if (props.length > MAX_PROPS) props.length = MAX_PROPS;
+  props = [{ ok, word, by, teamId, why }];
+  clearTimeout(propTimer);
+  propTimer = setTimeout(() => { props = []; renderProps(); }, PROP_MS);
 }
 function renderProps() {
   const box = document.getElementById("props");
   if (!box) return;
   box.innerHTML = props.map((p) =>
     `<li class="${p.ok ? "ok" : "ko"}">` +
-    `<span class="dot" style="background:${colorOf(p.teamId - 1)}"></span>` +
     `<span class="w">${esc(p.word)}</span>` +
     (p.why ? `<span class="why">${p.why}</span>` : "") +
     `<span class="by">${esc(p.by)}</span></li>`).join("");
@@ -345,7 +347,6 @@ function renderTeamConfig(viewers) {
 function handleEvent(ev) {
   if (ev.kind === "manche") {
     lastBlast = null;
-    props = [];
     sound("manche");
   } else if (ev.kind === "pass") {
     pushProp(true, ev.word, ev.by, ev.teamId, "");
