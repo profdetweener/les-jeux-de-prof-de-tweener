@@ -80,13 +80,16 @@ export interface GameDTO {
   interUntil: number | null;   // pause entre deux manches (ms epoch)
   lastPass: PassInfo | null;
   usedCount: number;
+  whistling: boolean;          // la cocotte siffle (explosion imminente)
   hostPseudo: string;
 }
 
 export type GameEvent =
   | { kind: "manche"; chainBroken?: boolean }
   | { kind: "pass"; word: string; by: string; teamId: number; bonus: boolean; chainBroken: boolean }
-  | { kind: "explode"; teamId: number; eliminated: boolean };
+  | { kind: "explode"; teamId: number; eliminated: boolean }
+  // La cocotte siffle : explosion dans WARN_MS si personne ne repond.
+  | { kind: "whistle" };
 
 export interface ViewerStat { name: string; teamId: number; words: number; letters: number; }
 

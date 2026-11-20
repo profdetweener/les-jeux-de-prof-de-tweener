@@ -81,9 +81,13 @@ export function drawSyllable(rule: Rule, level: Level, recent: string[]): string
   return p[Math.floor(Math.random() * p.length)];
 }
 
-/** Vrai si le mot respecte la regle pour la syllabe (sans regarder le dictionnaire). */
+/**
+ * Vrai si le mot respecte la regle pour la syllabe (sans regarder le
+ * dictionnaire). Le mot peut etre la syllabe elle-meme (CUL pour CUL), s'il
+ * est dans le dictionnaire.
+ */
 export function matchesRule(word: string, rule: Rule, syl: string): boolean {
-  if (word.length <= syl.length) return false;
+  if (word.length < syl.length) return false;
   if (rule === "contient") return word.includes(syl);
   if (rule === "finit") return word.endsWith(syl);
   return word.startsWith(syl); // commence, chaine

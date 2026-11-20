@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="../shared/css/theme.css?v=4">
 </head>
 <body>
-  <header class="landing-header">
+  <header class="landing-header ct-header">
     <a href="index.html" class="app-header-home" title="Quitter la partie">←</a>
     <h1>Pression</h1>
     <span class="header-right">
@@ -114,56 +114,60 @@
     <!-- JEU -->
     <section id="game" hidden>
       <div class="ct-game">
-        <div class="ct-head">
-          <div class="ct-manche" id="manche"></div>
-          <div class="ct-rule" id="rule"></div>
-        </div>
+        <div class="ct-arena">
+          <div class="ct-side" id="teamsLeft"></div>
+          <div class="ct-center">
+            <div class="ct-head">
+              <div class="ct-manche" id="manche"></div>
+              <div class="ct-rule" id="rule"></div>
+            </div>
 
-        <div class="ct-stage" id="stage">
-          <svg viewBox="0 0 320 270" role="img" aria-labelledby="potTitle">
-            <title id="potTitle">La cocotte</title>
-            <g class="burst">
-              <circle cx="110" cy="70" r="34" fill="var(--steam)"/>
-              <circle cx="160" cy="44" r="42" fill="var(--steam)"/>
-              <circle cx="212" cy="70" r="34" fill="var(--steam)"/>
-            </g>
-            <g class="steam">
-              <circle cx="160" cy="28" r="9" style="--drift:-8px"/>
-              <circle cx="160" cy="28" r="11" style="--drift:9px"/>
-              <circle cx="160" cy="28" r="8" style="--drift:2px"/>
-            </g>
-            <g class="pot-group">
-              <rect class="pot-handle" x="4" y="112" width="48" height="16" rx="8"/>
-              <rect class="pot-handle" x="268" y="112" width="48" height="16" rx="8"/>
-              <rect class="pot-body" x="40" y="92" width="240" height="152" rx="26"/>
-              <rect class="pot-band" id="potBand" x="41.5" y="140" width="237" height="66"/>
-              <text class="pot-label" id="potLabel" x="160" y="189" text-anchor="middle" font-size="50">…</text>
-            </g>
-            <g class="lid-group">
-              <path class="pot-lid" d="M44 94 Q160 28 276 94 Z"/>
-              <rect class="valve" x="152" y="36" width="16" height="20" rx="4"/>
-              <g id="dial">
-                <circle class="dial-face" cx="214" cy="66" r="19"/>
-                <g id="dialTicks"></g>
-                <line class="dial-needle" id="needle" x1="214" y1="66" x2="214" y2="52"/>
-                <circle class="dial-hub" cx="214" cy="66" r="3"/>
-              </g>
-            </g>
-          </svg>
-          <div class="ct-inter" id="inter" hidden>
-            <span class="big" id="interBig"></span>
-            <span class="small" id="interSmall"></span>
+            <div class="ct-stage" id="stage">
+              <svg viewBox="0 0 320 270" role="img" aria-labelledby="potTitle">
+                <title id="potTitle">La cocotte</title>
+                <g class="burst">
+                  <circle cx="110" cy="70" r="34" fill="var(--steam)"/>
+                  <circle cx="160" cy="44" r="42" fill="var(--steam)"/>
+                  <circle cx="212" cy="70" r="34" fill="var(--steam)"/>
+                </g>
+                <g class="steam">
+                  <circle cx="160" cy="28" r="9" style="--drift:-8px"/>
+                  <circle cx="160" cy="28" r="11" style="--drift:9px"/>
+                  <circle cx="160" cy="28" r="8" style="--drift:2px"/>
+                </g>
+                <g class="pot-group">
+                  <rect class="pot-handle" x="4" y="112" width="48" height="16" rx="8"/>
+                  <rect class="pot-handle" x="268" y="112" width="48" height="16" rx="8"/>
+                  <rect class="pot-body" x="40" y="92" width="240" height="152" rx="26"/>
+                  <rect class="pot-band" id="potBand" x="41.5" y="140" width="237" height="66"/>
+                  <text class="pot-label" id="potLabel" x="160" y="189" text-anchor="middle" font-size="50">…</text>
+                </g>
+                <g class="lid-group">
+                  <path class="pot-lid" d="M44 94 Q160 28 276 94 Z"/>
+                  <rect class="valve" x="152" y="36" width="16" height="20" rx="4"/>
+                  <g id="dial">
+                    <circle class="dial-face" cx="214" cy="66" r="27"/>
+                    <g id="dialTicks"></g>
+                    <line class="dial-needle" id="needle" x1="214" y1="66" x2="214" y2="46"/>
+                    <circle class="dial-hub" cx="214" cy="66" r="4"/>
+                  </g>
+                </g>
+              </svg>
+              <div class="ct-inter" id="inter" hidden>
+                <span class="big" id="interBig"></span>
+                <span class="small" id="interSmall"></span>
+              </div>
+            </div>
+
+            <div class="ct-turn" id="turn"></div>
+
+            <div class="ct-host-input" id="hostInput" hidden>
+              <input type="text" id="hostWord" autocomplete="off" spellcheck="false" placeholder="Ton mot">
+              <button class="btn btn-primary" id="hostSend">Envoyer</button>
+            </div>
           </div>
+          <div class="ct-side" id="teamsRight"></div>
         </div>
-
-        <div class="ct-turn" id="turn"></div>
-
-        <div class="ct-host-input" id="hostInput" hidden>
-          <input type="text" id="hostWord" autocomplete="off" spellcheck="false" placeholder="Ton mot">
-          <button class="btn btn-primary" id="hostSend">Envoyer</button>
-        </div>
-
-        <div class="ct-teams" id="teams"></div>
         <p class="ct-help" id="help"></p>
         <div class="ct-btns">
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
@@ -208,7 +212,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=3"></script>
+  <script type="module" src="js/room.js?v=4"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

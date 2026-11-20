@@ -80,17 +80,17 @@ for (const w of RETRAITS) words.delete(norm(w));
 const sorted = [...words].filter((w) => w.length >= 3).sort();
 
 // ----- Syllabes -----
-// Un mot compte une fois par syllabe. Le mot doit etre strictement plus long
-// que la syllabe (meme regle que le serveur).
+// Un mot compte une fois par syllabe. Le mot peut etre la syllabe elle-meme
+// (meme regle que le serveur).
 const contient = new Map(), commence = new Map(), finit = new Map();
 const inc = (m, k) => m.set(k, (m.get(k) || 0) + 1);
 for (const w of sorted) {
   const seen = new Set();
   for (const L of [2, 3]) {
     for (let i = 0; i + L <= w.length; i++) seen.add(w.slice(i, i + L));
-    if (w.length > L) { inc(commence, w.slice(0, L)); inc(finit, w.slice(-L)); }
+    if (w.length >= L) { inc(commence, w.slice(0, L)); inc(finit, w.slice(-L)); }
   }
-  for (const s of seen) if (w.length > s.length) inc(contient, s);
+  for (const s of seen) inc(contient, s);
 }
 // "commence" est garde en entier : la regle chaine a besoin du compte de
 // n'importe quel debut de 2 lettres. Ailleurs, on coupe sous 20 mots.

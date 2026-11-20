@@ -145,7 +145,7 @@ function normWord(s) {
     .normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z]/g, "");
 }
 function matchesRule(w, rule, syl) {
-  if (!syl || w.length <= syl.length) return false;
+  if (!syl || w.length < syl.length) return false;
   if (rule === "contient") return w.includes(syl);
   if (rule === "finit") return w.endsWith(syl);
   return w.startsWith(syl);
@@ -360,8 +360,8 @@ function renderGame() {
       : "💥 Ça a sauté !";
   }
 
-  // Equipes.
-  $("teams").innerHTML = game.teams.map((t) => {
+  // Equipes : 4 a gauche de la cocotte, les suivantes a droite.
+  const cards = game.teams.map((t) => {
     const col = colorOf(t.color);
     let lives = "";
     for (let i = 0; i < Math.max(t.lives, 0); i++) lives += HEART;
@@ -376,7 +376,15 @@ function renderGame() {
       `<div class="lives" style="color:${col}" title="${t.lives} vie(s)">${lives}</div>` +
       `<div class="charge" title="Boîte de chargement"><span style="width:${pct}%;background:${col}"></span></div>` +
       `<div class="charge-lbl">${chargeLabel(t)}</div></div>`;
-  }).join("");
+  });
+  $("teamsLeft").innerHTML = cards.slice(0, 4).join("");
+  $("teamsRight").innerHTML = cards.slice(4).join("");
+
+  // Sifflement : la cocotte va sauter dans 3 s si personne ne repond.
+  const whistling = game.whistling && !inter;
+  if (whistling && !whistleStart) whistleStart = performance.now();
+  if (!whistling) whistleStart = 0;
+  if (whistling) startWhistle(); else stopWhistle();
 
   // Saisie du streamer.
   const hi = $("hostInput");
@@ -426,14 +434,19 @@ const DIAL = { cx: 214, cy: 66 };
   };
   let html = "";
   for (let d = -120; d <= 120; d += 30) {
-    const [x1, y1] = pt(d, 13), [x2, y2] = pt(d, 17);
+    const [x1, y1] = pt(d, 18), [x2, y2] = pt(d, 24);
     html += `<line class="dial-tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
   }
-  const [ax, ay] = pt(75, 15.5), [bx, by] = pt(120, 15.5);
-  html += `<path d="M ${ax.toFixed(1)} ${ay.toFixed(1)} A 15.5 15.5 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}" stroke="#c84545" stroke-width="3.5" fill="none"/>`;
+  const [ax, ay] = pt(75, 22), [bx, by] = pt(120, 22);
+  html += `<path d="M ${ax.toFixed(1)} ${ay.toFixed(1)} A 22 22 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}" stroke="#c84545" stroke-width="5" fill="none"/>`;
   g.innerHTML = html;
 })();
 
+// Aiguille : elle monte avec le temps de cuisson mais s'arrete au bord de la
+// zone rouge (RED). Elle n'entre dans le rouge que quand la cocotte siffle,
+// c'est-a-dire 3 s avant l'explosion : rouge = danger reel, jamais avant.
+const RED = 0.81;
+let whistleStart = 0;
 function frame() {
   loopId = requestAnimationFrame(frame);
   if (!game) return;
@@ -444,17 +457,23 @@ function frame() {
     p = 1;
     const s = Math.max(0, Math.ceil((game.interUntil - now) / 1000));
     $("interSmall").textContent = `Nouvelle manche dans ${s} s`;
-    st.classList.remove("cooking", "hot");
+    st.classList.remove("cooking", "hot", "whistle");
+  } else if (whistleStart) {
+    p = RED + (1 - RED) * Math.min(1, (performance.now() - whistleStart) / 3000);
+    st.classList.add("cooking", "hot", "whistle");
+    st.style.setProperty("--steam-speed", "0.5s");
   } else {
-    p = Math.max(0, Math.min(1, (now - game.fuseStartAt) / game.fuseMaxMs));
+    const t = Math.max(0, Math.min(1, (now - game.fuseStartAt) / game.fuseMaxMs));
+    p = Math.min(RED - 0.02, t);
     st.classList.add("cooking");
-    st.classList.toggle("hot", p > 0.75);
-    st.style.setProperty("--steam-speed", (2.4 - 1.8 * p).toFixed(2) + "s");
+    st.classList.remove("whistle");
+    st.classList.toggle("hot", t > 0.7);
+    st.style.setProperty("--steam-speed", (2.4 - 1.6 * t).toFixed(2) + "s");
   }
   $("needle").setAttribute("transform", `rotate(${(-120 + 240 * p).toFixed(1)} ${DIAL.cx} ${DIAL.cy})`);
 }
 function startLoop() { if (!loopId) loopId = requestAnimationFrame(frame); }
-function stopLoop() { if (loopId) { cancelAnimationFrame(loopId); loopId = null; } }
+function stopLoop() { if (loopId) { cancelAnimationFrame(loopId); loopId = null; } stopWhistle(); whistleStart = 0; }
 
 // ---------- Fin ----------
 function renderFinished(m) {
@@ -567,6 +586,7 @@ function renderSoundBtn() { $("soundBtn").textContent = soundOn ? "🔊" : "🔇
 renderSoundBtn();
 $("soundBtn").onclick = () => {
   soundOn = !soundOn;
+  if (!soundOn) stopWhistle();
   try { localStorage.setItem(SOUND_KEY, soundOn ? "on" : "off"); } catch {}
   renderSoundBtn();
   unlockAudio();
@@ -595,6 +615,34 @@ function noise(dur, vol) {
   src.connect(f).connect(g).connect(actx.destination);
   src.start();
 }
+// Sifflement continu de la cocotte, tant qu'elle siffle (arrete par un mot
+// valide, l'explosion ou la fin de partie).
+let whistleNodes = null;
+function startWhistle() {
+  if (whistleNodes || !soundOn || !actx || actx.state !== "running") return;
+  const o = actx.createOscillator(), lfo = actx.createOscillator();
+  const lfoGain = actx.createGain(), g = actx.createGain();
+  o.type = "sine"; o.frequency.value = 1700;
+  lfo.frequency.value = 7; lfoGain.gain.value = 60;   // vibrato
+  lfo.connect(lfoGain).connect(o.frequency);
+  g.gain.setValueAtTime(0.0001, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.05, actx.currentTime + 0.4);
+  g.gain.linearRampToValueAtTime(0.09, actx.currentTime + 3);   // monte jusqu'a l'explosion
+  o.connect(g).connect(actx.destination);
+  o.start(); lfo.start();
+  whistleNodes = { o, lfo, g };
+}
+function stopWhistle() {
+  if (!whistleNodes) return;
+  const { o, lfo, g } = whistleNodes;
+  whistleNodes = null;
+  try {
+    g.gain.cancelScheduledValues(actx.currentTime);
+    g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.05);
+    o.stop(actx.currentTime + 0.3); lfo.stop(actx.currentTime + 0.3);
+  } catch { /* deja arrete */ }
+}
+
 function sound(kind) {
   if (!soundOn || !actx || actx.state !== "running") return;
   if (kind === "pass") tone(880, 0, 0.09, 0.12, "triangle");

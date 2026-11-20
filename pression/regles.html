@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression, règles du jeu</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="../shared/css/theme.css?v=4">
 </head>
 <body>
-  <header class="landing-header">
+  <header class="landing-header ct-header">
     <a href="index.html" class="app-header-home" title="Retour au jeu">← Pression</a>
     <h1>Règles du jeu</h1>
     <span class="header-tagline">Pression</span>
@@ -35,7 +35,8 @@
       </p>
       <p>
         Le manomètre montre la pression qui monte, mais personne ne sait exactement
-        quand la cocotte va sauter. Quand elle arrive chez une équipe, celle-ci a
+        quand la cocotte va sauter. Quand elle se met à siffler et que l'aiguille
+        entre dans le rouge, il reste 3 secondes. Quand elle arrive chez une équipe, celle-ci a
         toujours un temps minimum pour répondre (réglé par l'hôte), pour compenser
         le décalage du stream.
       </p>
@@ -54,8 +55,9 @@
         </li>
       </ul>
       <p>
-        Le mot doit être plus long que la syllabe, exister dans le dictionnaire du
-        jeu et ne pas avoir déjà été joué dans la partie. Les accents ne comptent
+        Le mot doit exister dans le dictionnaire du jeu et ne pas avoir déjà été
+        joué dans la partie. La syllabe seule compte aussi si c'est un mot (CUL
+        pour la syllabe CUL). Les accents ne comptent
         pas. Les pluriels et les féminins sont acceptés, mais pas les conjugaisons :
         un verbe ne compte qu'à l'infinitif (<i>manger</i> oui, <i>mangeons</i> non).
       </p>

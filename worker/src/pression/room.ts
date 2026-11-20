@@ -67,6 +67,10 @@ const LIVES_MIN = 1, LIVES_MAX = 6;
 // depart + 2, pas au-dela (sinon une equipe en avance devient intouchable).
 const LIVES_BONUS_CAP = 2;
 const INTER_MS = 5000;   // pause entre deux manches
+// La cocotte siffle WARN_MS avant d'exploser (son + aiguille dans le rouge).
+// Toujours inferieur au temps minimum par tour (8 s) : une equipe qui recoit
+// la cocotte ne l'entend jamais siffler tout de suite.
+const WARN_MS = 3000;
 const RECENT = 12;       // syllabes recentes evitees au tirage
 // Garde-fou anti-bot par viewer (seau a jetons) : 10 essais d'avance, un jeton
 // regagne toutes les 300 ms. Un humain qui enchaine les propositions apres un
@@ -114,6 +118,7 @@ export class PressionRoom {
   private fuseStartAt: number;
   private fuseMaxMs: number;
   private explodeAt: number;
+  private warned: boolean;
   private interUntil: number | null;
   private nextHolder: number;
   private lastPass: PassInfo | null;
@@ -147,6 +152,7 @@ export class PressionRoom {
     this.fuseStartAt = 0;
     this.fuseMaxMs = 0;
     this.explodeAt = 0;
+    this.warned = false;
     this.interUntil = null;
     this.nextHolder = 0;
     this.lastPass = null;
@@ -200,12 +206,21 @@ export class PressionRoom {
       else this.schedule(this.interUntil);
       return;
     }
-    if (now >= this.explodeAt - 25) this.explode();
-    else this.schedule(this.explodeAt);
+    if (now >= this.explodeAt - 25) { this.explode(); return; }
+    if (!this.warned && now >= this.explodeAt - WARN_MS - 25) {
+      this.warned = true;
+      this.broadcastGame({ kind: "whistle" });
+    }
+    this.scheduleFuse();
   }
 
   private schedule(at: number): void {
     void this.state.storage.setAlarm(at);
+  }
+
+  // Prochaine echeance de la cuisson : le sifflement, puis l'explosion.
+  private scheduleFuse(): void {
+    this.schedule(this.warned ? this.explodeAt : this.explodeAt - WARN_MS);
   }
 
   // ========================= Routage =========================
@@ -492,7 +507,8 @@ export class PressionRoom {
     this.explodeAt = now + a + Math.floor(Math.random() * (b - a));
     this.interUntil = null;
     this.lastPass = null;
-    this.schedule(this.explodeAt);
+    this.warned = false;
+    this.scheduleFuse();
     this.broadcastGame({ kind: "manche" });
   }
 
@@ -599,10 +615,10 @@ export class PressionRoom {
 
     this.holder = this.nextAlive(teamId);
     const minTurn = this.cfg.minTurnSec * 1000;
-    if (this.explodeAt - now < minTurn) {
-      this.explodeAt = now + minTurn;
-      this.schedule(this.explodeAt);
-    }
+    if (this.explodeAt - now < minTurn) this.explodeAt = now + minTurn;
+    // Nouveau porteur : la cocotte arrete de siffler (minTurn > WARN_MS).
+    this.warned = this.explodeAt - now <= WARN_MS;
+    this.scheduleFuse();
     this.broadcastGame({ kind: "pass", word: w, by, teamId, bonus, chainBroken });
   }
 
@@ -746,6 +762,7 @@ export class PressionRoom {
       interUntil: this.interUntil,
       lastPass: this.lastPass,
       usedCount: this.used.size,
+      whistling: this.warned && this.interUntil === null,
       hostPseudo: this.hostPseudo ?? "",
     };
   }
