@@ -153,15 +153,17 @@
 /* ===================== Jeu ===================== */
 .ct-game { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 980px; margin: 0 auto; }
 
-.ct-rulebar { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--gris-texte); }
-.ct-rulebar .rule {
-  background: var(--bleu-nuit); color: var(--blanc); border-radius: 999px; padding: 5px 14px;
-  font-weight: 700; letter-spacing: .03em; font-size: 15px;
+/* En-tete du jeu : numero de manche, puis la regle, centres. Pastille grise
+   neutre : le bleu est deja une couleur d'equipe. */
+.ct-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 18px; }
+.ct-manche { font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gris-texte); }
+.ct-rule {
+  background: #5d636e; color: #fff; border-radius: 999px; padding: 6px 18px;
+  font-weight: 800; letter-spacing: .05em; font-size: 17px;
 }
-.ct-rulebar b { color: var(--bleu-nuit); font-family: Georgia, serif; }
 
 /* Scene : la cocotte au centre. */
-.ct-stage { position: relative; width: 100%; max-width: 420px; }
+.ct-stage { position: relative; width: 100%; max-width: 270px; }
 .ct-stage svg { width: 100%; height: auto; display: block; overflow: visible; }
 .ct-turn { text-align: center; font-size: 18px; font-weight: 700; min-height: 27px; }
 .ct-turn .who { padding: 2px 10px; border-radius: 6px; color: #fff; }
@@ -177,7 +179,6 @@
   --handle: #0d0f13; --dial: #eceef2; --dial-ink: #1a2540; --steam: rgba(220, 225, 235, .45);
 }
 .pot-body { fill: var(--pot); stroke: var(--pot-dark); stroke-width: 3; }
-.pot-shine { fill: var(--pot-shine); opacity: .55; }
 .pot-lid { fill: var(--lid); stroke: var(--pot-dark); stroke-width: 3; }
 .pot-handle { fill: var(--handle); }
 .pot-band { fill: var(--band); transition: fill .25s; }
@@ -215,7 +216,7 @@
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; gap: 6px; pointer-events: none;
 }
-.ct-inter .big { font-size: 22px; font-weight: 800; background: var(--blanc); color: var(--bleu-nuit);
+.ct-inter .big { white-space: nowrap; font-size: 19px; font-weight: 800; background: var(--blanc); color: var(--bleu-nuit);
   padding: 8px 16px; border-radius: var(--rayon); box-shadow: var(--ombre-forte); }
 .ct-inter .small { font-size: 14px; background: var(--blanc); color: var(--gris-texte); padding: 4px 12px; border-radius: 999px; box-shadow: var(--ombre); }
 
@@ -228,9 +229,8 @@
 }
 .ct-team .tname { font-weight: 700; display: flex; align-items: center; gap: 6px; font-size: 15px; }
 .ct-team .tname .members { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--gris-texte); }
-.ct-team .lives { display: flex; gap: 4px; min-height: 14px; }
-.ct-team .life { width: 13px; height: 13px; border-radius: 50%; border: 2px solid currentColor; }
-.ct-team .life.full { background: currentColor; }
+.ct-team .lives { display: flex; gap: 4px; min-height: 16px; }
+.ct-team .life { width: 17px; height: 16px; flex: none; }
 .ct-team .charge { height: 9px; border-radius: 999px; background: var(--beige-fonce); overflow: hidden; }
 .ct-team .charge span { display: block; height: 100%; border-radius: 999px; transition: width .3s; }
 .ct-team .charge-lbl { font-size: 11.5px; color: var(--gris-texte); }
@@ -251,15 +251,6 @@
 .ct-host-input input:disabled { opacity: .55; }
 .ct-host-input.bad input { animation: shake .3s; border-color: var(--rouge); }
 @keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-
-/* Fil des derniers mots. */
-.ct-feed { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 4px; min-height: 30px; }
-.ct-feed .item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 10px; border-radius: var(--rayon-sm); background: var(--blanc); box-shadow: var(--ombre); }
-.ct-feed .item .w { font-family: Georgia, serif; font-weight: 800; letter-spacing: .04em; }
-.ct-feed .item .by { color: var(--gris-texte); margin-left: auto; font-size: 12.5px; }
-.ct-feed .item.ko { opacity: .7; box-shadow: none; background: transparent; border: 1px dashed var(--gris-clair); }
-.ct-feed .item.ko .w { text-decoration: line-through; }
-.ct-feed .item.info { justify-content: center; font-weight: 600; box-shadow: none; background: var(--beige-fonce); }
 
 .ct-help { font-size: 13px; color: var(--gris-texte); text-align: center; max-width: 560px; }
 .ct-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
@@ -322,7 +313,7 @@
 [data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
 [data-theme="dark"] .seg button.on,
 [data-theme="dark"] .chip.on { background: #35507e; color: #f2eee4; border-color: #35507e; }
-[data-theme="dark"] .ct-rulebar .rule { background: #35507e; color: #f2eee4; }
+[data-theme="dark"] .ct-rule { background: #4a505b; color: #f2eee4; }
 [data-theme="dark"] .badge.off { background: #4a2a2a; color: #f0b4b4; }
 
 @media (prefers-reduced-motion: reduce) {

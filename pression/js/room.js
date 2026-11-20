@@ -37,7 +37,6 @@ const RULE_HELP = {
   finit: "le mot doit finir par la syllabe",
   chaine: "le mot doit commencer par la syllabe, et ses 2 dernières lettres deviennent la syllabe suivante",
 };
-const LEVEL_LABEL = { facile: "faciles", moyen: "moyennes", difficile: "difficiles" };
 
 // ---------- Etat ----------
 let isHost = false;
@@ -50,7 +49,6 @@ let teamNames = [];
 let game = null;
 let prevSyllable = "";
 let clockOffset = 0;
-let feed = [];
 let lastBlast = null;
 let toastTimer = null;
 let loopId = null;
@@ -95,8 +93,7 @@ conn.on("room_state", (m) => {
   // Au lancement, room_state arrive juste avant le premier game_state.
   if (m.phase !== phase) {
     phase = m.phase;
-    if (phase === "playing") feed = [];
-    else game = null;
+    if (phase !== "playing") game = null;
     render();
     return;
   }
@@ -107,19 +104,17 @@ conn.on("game_state", (m) => {
   if (game && game.syllable !== m.game.syllable) prevSyllable = game.syllable;
   game = m.game;
   setClock(game.serverNow);
-  if (phase !== "playing") { phase = "playing"; feed = []; render(); }
+  if (phase !== "playing") { phase = "playing"; render(); }
   if (m.event) handleEvent(m.event);
   renderGame();
 });
+// Mot refuse : pas d'affichage public (pas d'historique a l'ecran). Seul le
+// streamer, en mode streamer, voit son champ trembler.
 conn.on("reject", (m) => {
-  const why = m.reason === "used" ? "déjà joué" : "pas dans le dictionnaire";
-  pushFeed("ko", `<span class="dot" style="background:${colorOf(m.teamId - 1)}"></span>` +
-    `<span class="w">${esc(m.word)}</span> <span>${why}</span><span class="by">${esc(m.by)}</span>`);
   if (mode === "streamer" && isHost && m.teamId === 1) {
     const box = $("hostInput");
     box.classList.remove("bad"); void box.offsetWidth; box.classList.add("bad");
   }
-  renderFeed();
 });
 conn.on("finished", (m) => {
   phase = "finished"; game = null;
@@ -311,41 +306,24 @@ function renderTeamConfig(viewers) {
 }
 
 // ---------- Jeu ----------
-function pushFeed(cls, html) {
-  feed.unshift({ cls, html });
-  if (feed.length > 7) feed.length = 7;
-}
-function renderFeed() {
-  $("feed").innerHTML = feed.map((f) => `<div class="item ${f.cls}">${f.html}</div>`).join("");
-}
-
 function handleEvent(ev) {
   if (ev.kind === "manche") {
     lastBlast = null;
-    pushFeed("info", `Manche ${game.manche} : ${esc(RULE_LABEL[game.rule].toLowerCase())} <b>${esc(game.syllable)}</b>`);
     sound("manche");
   } else if (ev.kind === "pass") {
-    pushFeed("ok", `<span class="dot" style="background:${colorOf(ev.teamId - 1)}"></span>` +
-      `<span class="w">${esc(ev.word)}</span><span class="by">${esc(ev.by)} · +${ev.word.length}</span>`);
     if (ev.bonus) {
       const t = gameTeam(ev.teamId);
-      pushFeed("info", `Boîte pleine : +1 vie pour ${esc(t ? t.name : "")} !`);
-      toast("Boîte pleine : +1 vie !");
+      toast(`+1 vie pour ${t ? t.name : ""} !`);
       sound("bonus");
     } else sound("pass");
-    if (ev.chainBroken) pushFeed("info", "Chaîne cassée (trop peu de mots possibles), nouvelle syllabe.");
     flashTeam(ev.teamId);
   } else if (ev.kind === "explode") {
     lastBlast = ev;
-    const t = gameTeam(ev.teamId);
-    const name = t ? t.name : "";
-    pushFeed("info", ev.eliminated ? `💥 ${esc(name)} est éliminée !` : `💥 Ça a sauté chez ${esc(name)} : une vie en moins.`);
     const st = $("stage");
     st.classList.remove("boom"); void st.offsetWidth; st.classList.add("boom");
     setTimeout(() => st.classList.remove("boom"), 1600);
     sound("boom");
   }
-  renderFeed();
 }
 
 function flashTeam(id) {
@@ -359,9 +337,8 @@ function renderGame() {
   const holder = gameTeam(game.holder);
   const inter = game.interUntil !== null;
 
-  $("ruleBar").innerHTML = `<span>Manche <b>${game.manche}</b></span>` +
-    `<span class="rule">${RULE_LABEL[game.rule]}</span>` +
-    `<span>syllabes ${LEVEL_LABEL[game.level] || ""} · <b>${game.usedCount}</b> mots joués</span>`;
+  $("manche").textContent = "Manche " + game.manche;
+  $("rule").textContent = RULE_LABEL[game.rule];
 
   const label = $("potLabel");
   label.textContent = inter ? "" : game.syllable;
@@ -387,7 +364,7 @@ function renderGame() {
   $("teams").innerHTML = game.teams.map((t) => {
     const col = colorOf(t.color);
     let lives = "";
-    for (let i = 0; i < Math.max(t.lives, 0); i++) lives += '<span class="life full"></span>';
+    for (let i = 0; i < Math.max(t.lives, 0); i++) lives += HEART;
     const pct = Math.min(100, Math.round((t.charge / game.chargeMax) * 100));
     const isHolder = t.id === game.holder && !inter && t.alive;
     const members = mode === "equipes"
@@ -398,7 +375,7 @@ function renderGame() {
       `<div class="tname"><span class="dot" style="background:${col}"></span>${esc(t.name)}<span class="members">${members}</span></div>` +
       `<div class="lives" style="color:${col}" title="${t.lives} vie(s)">${lives}</div>` +
       `<div class="charge" title="Boîte de chargement"><span style="width:${pct}%;background:${col}"></span></div>` +
-      `<div class="charge-lbl">Charge ${t.charge} / ${game.chargeMax}</div></div>`;
+      `<div class="charge-lbl">${chargeLabel(t)}</div></div>`;
   }).join("");
 
   // Saisie du streamer.
@@ -417,8 +394,15 @@ function renderGame() {
   const eg = $("endGameBtn");
   eg.hidden = !isHost;
   eg.onclick = () => { if (confirm("Terminer la partie maintenant ?")) conn.send({ type: "endGame" }); };
+}
 
-  renderFeed();
+// Coeur des vies, a la couleur de l'equipe (currentColor).
+const HEART = '<svg class="life" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21.5 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.1 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8L12 21.5Z" fill="currentColor"/></svg>';
+
+function chargeLabel(t) {
+  if (t.lives >= t.maxLives) return "Vies au maximum";
+  const n = Math.max(0, game.chargeMax - t.charge);
+  return `Vie supplémentaire dans ${n} ${n > 1 ? "lettres" : "lettre"}`;
 }
 
 // Saisie du streamer.
