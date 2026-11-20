@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Pression, règles du jeu</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Retour au jeu">← Pression</a>
+    <h1>Règles du jeu</h1>
+    <span class="header-tagline">Pression</span>
+  </header>
+
+  <main class="rules-main">
+    <div class="card">
+      <h2>Pression</h2>
+      <p class="subtitle">Un jeu de mots et de vitesse qui se joue depuis le tchat Twitch.</p>
+
+      <h3>Le principe</h3>
+      <p>
+        La cocotte chauffe. Une syllabe est inscrite dessus. L'équipe qui tient la
+        cocotte doit écrire dans le tchat un mot qui respecte la règle de la manche.
+        Le premier mot valide fait passer la cocotte à l'équipe suivante, avec une
+        nouvelle syllabe. Quand la pression lâche, l'équipe qui tient la cocotte perd
+        une vie. La dernière équipe encore en vie gagne.
+      </p>
+      <p>
+        Le manomètre montre la pression qui monte, mais personne ne sait exactement
+        quand la cocotte va sauter. Quand elle arrive chez une équipe, celle-ci a
+        toujours un temps minimum pour répondre (réglé par l'hôte), pour compenser
+        le décalage du stream.
+      </p>
+
+      <h3>Les règles de manche</h3>
+      <p>L'hôte choisit une ou plusieurs règles. Une règle est tirée au début de chaque manche :</p>
+      <ul class="rules-list">
+        <li><b>Contient</b> : le mot contient la syllabe (ex. OU : <i>bouteille</i>).</li>
+        <li><b>Commence par</b> : le mot commence par la syllabe (ex. PRI : <i>prison</i>).</li>
+        <li><b>Finit par</b> : le mot finit par la syllabe (ex. AGE : <i>fromage</i>).</li>
+        <li>
+          <b>Chaîne</b> : le mot commence par la syllabe, et ses deux dernières lettres
+          deviennent la syllabe de l'équipe suivante. À vous de piéger l'adversaire !
+          Si la fin choisie ne laisse presque aucun mot possible, la chaîne casse et
+          une nouvelle syllabe est tirée.
+        </li>
+      </ul>
+      <p>
+        Le mot doit être plus long que la syllabe, exister dans le dictionnaire du
+        jeu et ne pas avoir déjà été joué dans la partie. Les accents ne comptent
+        pas. Les pluriels et les féminins sont acceptés, mais pas les conjugaisons :
+        un verbe ne compte qu'à l'infinitif (<i>manger</i> oui, <i>mangeons</i> non).
+      </p>
+
+      <h3>La boîte de chargement</h3>
+      <p>
+        Chaque mot qui fait passer la cocotte remplit la boîte de ton équipe d'autant
+        de points que de lettres. Boîte pleine : une vie en plus, et la boîte repart
+        à zéro. Un mot long fait gagner plus de charge, mais il prend plus de temps
+        à trouver… Une équipe ne peut pas dépasser ses vies de départ plus deux.
+      </p>
+
+      <h3>Les modes</h3>
+      <ul class="rules-list">
+        <li>
+          <b>Équipes</b> : tape <b>!join</b> dans le tchat pour t'inscrire (ou
+          <b>!join 2</b> pour choisir l'équipe 2). L'hôte peut ensuite déplacer les
+          joueurs. Jusqu'à 8 équipes. Quand c'est au tour de ton équipe, n'importe
+          quel membre peut répondre.
+        </li>
+        <li>
+          <b>Streamer contre tchat</b> : le streamer tape ses mots sur la page du jeu,
+          tout le tchat répond dans le tchat, sans inscription.
+        </li>
+      </ul>
+
+      <h3>Bon à savoir</h3>
+      <ul class="rules-list">
+        <li>Un mot par message, sans phrase autour.</li>
+        <li>Un mot refusé (déjà joué, inconnu) s'affiche barré à l'écran.</li>
+        <li>Les messages trop rapprochés d'une même personne sont ignorés : pas la peine de spammer.</li>
+        <li>
+          Le dictionnaire vient du Lefff (Inria, licence LGPL-LR). Il peut manquer
+          des mots récents ou familiers.
+        </li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="index.html">Jouer</a>
+    <span class="footer-sep">·</span>
+    <a href="../mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
+</body>
+</html>

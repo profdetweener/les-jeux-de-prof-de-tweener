@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Pression</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="../index.html" class="app-header-home" title="Tous les jeux">← Tous les jeux</a>
+    <h1>Pression</h1>
+    <span class="header-tagline" id="server-status">connexion au serveur…</span>
+  </header>
+
+  <main class="entry-main">
+    <div class="entry-card">
+      <h2 id="card-title">Bienvenue !</h2>
+
+      <p class="entry-sub" id="subtitle-create">
+        Tu affiches la cocotte sur ton stream, le tchat joue. Trouve un mot qui
+        respecte la syllabe avant que la pression lâche, et passe la cocotte à
+        l'équipe suivante. En équipes, ou toi contre tout le tchat.
+      </p>
+      <p class="entry-sub" id="subtitle-join" hidden>
+        Tu es invité à suivre la partie <strong id="join-code-label">-</strong>.
+        Choisis un pseudo pour entrer. Les joueurs, eux, jouent depuis le tchat Twitch.
+      </p>
+
+      <div class="entry-alert" id="error-box"></div>
+
+      <div class="entry-resume" id="resume-banner" hidden>
+        <p>Tu as une partie Pression en cours.</p>
+        <div class="entry-resume-actions">
+          <button class="btn btn-primary" id="resumeBtn">Reprendre la partie</button>
+          <button class="btn btn-ghost" id="newBtn">Nouvelle partie</button>
+        </div>
+      </div>
+
+      <div class="entry-field">
+        <label for="pseudo">Ton pseudo</label>
+        <input id="pseudo" type="text" maxlength="20" placeholder="Ex : Max" autocomplete="off">
+      </div>
+
+      <button class="btn btn-primary" id="createBtn">Créer la partie</button>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="regles.html">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script type="module" src="js/join.js?v=1"></script>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
+</body>
+</html>

@@ -60,3 +60,19 @@ class_name = "MotsMelesRoom"
 [[migrations]]
 tag = "v6"
 new_sqlite_classes = ["MotsMelesRoom"]
+
+# Pression (jeu joue depuis le tchat Twitch).
+[[durable_objects.bindings]]
+name = "PRESSION_ROOMS"
+class_name = "PressionRoom"
+
+# v7 a ete deploye quand le jeu s'appelait encore Cocotte-minute : la classe
+# a ete creee sous le nom CocotteRoom. On garde v7 tel quel (deja applique) et
+# v8 la renomme en PressionRoom.
+[[migrations]]
+tag = "v7"
+new_sqlite_classes = ["CocotteRoom"]
+
+[[migrations]]
+tag = "v8"
+renamed_classes = [{ from = "CocotteRoom", to = "PressionRoom" }]

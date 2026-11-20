@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Pression</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=1">
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
+</head>
+<body>
+  <header class="landing-header">
+    <a href="index.html" class="app-header-home" title="Quitter la partie">←</a>
+    <h1>Pression</h1>
+    <span class="header-right">
+      <span class="connection-status" id="chatStatus" hidden>
+        <span class="dot"></span>
+        <span class="text" id="chatStatusText"></span>
+      </span>
+      <button type="button" class="sound-btn" id="soundBtn" title="Son">🔊</button>
+    </span>
+  </header>
+
+  <main class="room-main">
+    <div class="conn-banner" id="conn" hidden></div>
+
+    <!-- SALON -->
+    <section id="lobby" hidden>
+      <div class="lobby-card">
+        <div class="room-code-banner">
+          <span class="label">Lien pour suivre la partie</span>
+          <div class="room-share">
+            <code class="invite-url" id="inviteUrl">-</code>
+            <button type="button" class="copy-btn" id="copyBtn">Copier le lien</button>
+          </div>
+        </div>
+
+        <div class="lobby-grid">
+          <div class="lobby-players">
+            <h3 id="playersTitle">Joueurs</h3>
+            <div class="players" id="viewerList"></div>
+            <h4>Sur la page</h4>
+            <div class="players" id="spectatorList"></div>
+          </div>
+
+          <div class="lobby-config">
+            <h3>Configuration</h3>
+            <div id="hostControls" hidden>
+              <div class="setup-row">
+                <span class="setup-label">Mode</span>
+                <div class="seg" id="modeSeg">
+                  <button data-m="equipes" class="on">Équipes</button>
+                  <button data-m="streamer">Streamer contre tchat</button>
+                </div>
+              </div>
+              <div class="setup-row">
+                <span class="setup-label">Chaîne Twitch</span>
+                <input type="text" id="channelInput" class="channel-input" autocomplete="off"
+                       spellcheck="false" placeholder="prof_de_tweener" value="prof_de_tweener">
+              </div>
+              <div id="teamConfig"></div>
+
+              <div class="cfg-block">
+                <div class="setup-row">
+                  <span class="setup-label">Règles (tirées à chaque manche)</span>
+                  <div class="chips" id="rulesChips">
+                    <button class="chip" data-r="contient">Contient</button>
+                    <button class="chip" data-r="commence">Commence par</button>
+                    <button class="chip" data-r="finit">Finit par</button>
+                    <button class="chip" data-r="chaine">Chaîne</button>
+                  </div>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Syllabes</span>
+                  <div class="seg" id="levelSeg">
+                    <button data-v="facile">Faciles</button>
+                    <button data-v="moyen">Moyennes</button>
+                    <button data-v="difficile">Difficiles</button>
+                  </div>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Cuisson par manche</span>
+                  <div class="seg" id="fuseSeg">
+                    <button data-v="courte">Courte</button>
+                    <button data-v="moyenne">Moyenne</button>
+                    <button data-v="longue">Longue</button>
+                  </div>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Temps minimum par tour</span>
+                  <div class="seg" id="minTurnSeg">
+                    <button data-v="8">8 s</button>
+                    <button data-v="12">12 s</button>
+                    <button data-v="16">16 s</button>
+                    <button data-v="20">20 s</button>
+                  </div>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Boîte de chargement</span>
+                  <div class="seg" id="chargeSeg">
+                    <button data-v="30">30 lettres</button>
+                    <button data-v="50">50 lettres</button>
+                    <button data-v="80">80 lettres</button>
+                  </div>
+                </div>
+                <div id="livesRows"></div>
+              </div>
+
+              <p class="rules-note" id="modeNote"></p>
+              <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
+              <p class="setup-err" id="startErr"></p>
+            </div>
+            <p class="wait-note" id="waitNote" hidden>En attente que l'hôte lance la partie…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JEU -->
+    <section id="game" hidden>
+      <div class="ct-game">
+        <div class="ct-rulebar" id="ruleBar"></div>
+
+        <div class="ct-stage" id="stage">
+          <svg viewBox="0 0 320 270" role="img" aria-labelledby="potTitle">
+            <title id="potTitle">La cocotte</title>
+            <g class="burst">
+              <circle cx="110" cy="70" r="34" fill="var(--steam)"/>
+              <circle cx="160" cy="44" r="42" fill="var(--steam)"/>
+              <circle cx="212" cy="70" r="34" fill="var(--steam)"/>
+            </g>
+            <g class="steam">
+              <circle cx="160" cy="28" r="9" style="--drift:-8px"/>
+              <circle cx="160" cy="28" r="11" style="--drift:9px"/>
+              <circle cx="160" cy="28" r="8" style="--drift:2px"/>
+            </g>
+            <g class="pot-group">
+              <rect class="pot-handle" x="4" y="112" width="48" height="16" rx="8"/>
+              <rect class="pot-handle" x="268" y="112" width="48" height="16" rx="8"/>
+              <rect class="pot-body" x="40" y="92" width="240" height="152" rx="26"/>
+              <rect class="pot-band" id="potBand" x="41.5" y="140" width="237" height="66"/>
+              <rect class="pot-shine" x="56" y="104" width="14" height="120" rx="7"/>
+              <text class="pot-label" id="potLabel" x="160" y="189" text-anchor="middle" font-size="50">…</text>
+            </g>
+            <g class="lid-group">
+              <path class="pot-lid" d="M44 94 Q160 28 276 94 Z"/>
+              <rect class="valve" x="152" y="36" width="16" height="20" rx="4"/>
+              <g id="dial">
+                <circle class="dial-face" cx="214" cy="66" r="19"/>
+                <g id="dialTicks"></g>
+                <line class="dial-needle" id="needle" x1="214" y1="66" x2="214" y2="52"/>
+                <circle class="dial-hub" cx="214" cy="66" r="3"/>
+              </g>
+            </g>
+          </svg>
+          <div class="ct-inter" id="inter" hidden>
+            <span class="big" id="interBig"></span>
+            <span class="small" id="interSmall"></span>
+          </div>
+        </div>
+
+        <div class="ct-turn" id="turn"></div>
+
+        <div class="ct-host-input" id="hostInput" hidden>
+          <input type="text" id="hostWord" autocomplete="off" spellcheck="false" placeholder="Ton mot">
+          <button class="btn btn-primary" id="hostSend">Envoyer</button>
+        </div>
+
+        <div class="ct-teams" id="teams"></div>
+        <div class="ct-feed" id="feed"></div>
+        <p class="ct-help" id="help"></p>
+        <div class="ct-btns">
+          <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIN -->
+    <section id="finished" hidden>
+      <div class="setup-card">
+        <h2 id="winTitle"></h2>
+        <p class="end-note" id="endNote"></p>
+        <div id="ranking"></div>
+        <h3 id="topTitle" hidden>Meilleurs cuistots</h3>
+        <div id="top"></div>
+        <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <footer class="app-footer">
+    <a href="regles.html" target="_blank" rel="noopener">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../mentions.html">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script type="module" src="js/room.js?v=1"></script>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
+</body>
+</html>

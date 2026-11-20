@@ -486,6 +486,13 @@ if ($("channelInput")) {
   if (saved) $("channelInput").value = saved;
 }
 
+// Changement de chaine dans le salon : on rebranche le tchat tout de suite.
+if ($("channelInput")) {
+  $("channelInput").addEventListener("change", () => {
+    if (startCfg.mode === "chat" && isHost) startChatRelay(true);
+  });
+}
+
 function channelName() {
   const el = $("channelInput");
   const v = el ? el.value.toLowerCase().replace(/^#/, "").trim() : "";
@@ -521,9 +528,14 @@ function setChatStatus(state, text) {
   $("chatStatusText").textContent = text;
 }
 
-function startChatRelay() {
+// Idempotent : chaque room_state du salon (donc chaque !join) repasse par
+// applyModeUI. Avant, on coupait et rouvrait l'IRC a chaque fois, et les
+// messages envoyes pendant la reconnexion (des !join notamment) etaient
+// perdus. On ne reconnecte plus que si la chaine change (ou si force).
+function startChatRelay(force) {
   const ch = channelName();
   if (!ch || !isHost) return;
+  if (chat && chat.channel === ch && !force) return;
   stopChatRelay();
   chat = new TwitchChat(ch);
   chat.on("status", (s) => setChatStatus(s.state, s.text));
