@@ -68,15 +68,6 @@ function saveCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 // ---------- Connexion ----------
 const conn = new RoomConnection(CODE, "pression");
 
-function buildInviteUrl(code) {
-  const url = new URL(location.href);
-  url.pathname = url.pathname.replace(/room\.html$/, "index.html");
-  url.search = ""; url.hash = code;
-  return url.toString();
-}
-const inviteUrl = buildInviteUrl(CODE);
-$("inviteUrl").textContent = inviteUrl;
-
 conn.onStatus((s) => {
   const b = $("conn");
   if (s === "open") b.hidden = true;
@@ -173,6 +164,7 @@ function render() {
   if (phase === "lobby") renderLobby();
   if (phase === "playing") { renderGame(); startLoop(); } else stopLoop();
   syncRelay();
+  syncTestChat();
 }
 
 // ---------- Salon ----------
@@ -195,7 +187,6 @@ function lobbyViewerRow(p) {
 
 function renderLobby() {
   const viewers = players.filter((p) => p.isViewer);
-  const spectators = players.filter((p) => !p.isViewer);
 
   if (mode === "equipes") {
     $("playersTitle").textContent = viewers.length + (viewers.length > 1 ? " inscrits" : " inscrit");
@@ -211,11 +202,6 @@ function renderLobby() {
       `<p class="empty-note">${esc(hostPseudo || "Le streamer")} contre tout le tchat. Pas d'inscription : ` +
       "n'importe quel viewer peut répondre quand c'est au tchat.</p>";
   }
-  $("spectatorList").innerHTML = spectators.map((p) =>
-    `<div class="player-row"><span class="pname">${p.pseudo === ME ? "toi" : esc(p.pseudo)}</span>` +
-    (p.isHost ? ' <span class="badge">hôte</span>' : "") +
-    (p.isConnected ? "" : ' <span class="badge off">hors ligne</span>') + "</div>").join("");
-
   if (!isHost) {
     $("hostControls").hidden = true;
     $("waitNote").hidden = false;
@@ -634,8 +620,22 @@ function sound(kind) {
 }
 
 // ---------- Divers ----------
-$("copyBtn").onclick = () => {
-  navigator.clipboard?.writeText(inviteUrl);
-  $("copyBtn").textContent = "Lien copié !";
-  setTimeout(() => ($("copyBtn").textContent = "Copier le lien"), 1400);
+// ---------- Faux tchat (test seul) ----------
+// room.html?code=XXX&test=1 : l'hote peut ecrire comme n'importe quel viewer.
+// Les messages passent par le meme chemin que ceux de l'IRC.
+const TEST_MODE = params.get("test") === "1";
+function syncTestChat() { $("testChat").hidden = !(TEST_MODE && isHost && phase !== "finished"); }
+function sendTest(name, text) {
+  name = String(name || "").trim(); text = String(text || "").trim();
+  if (!name || !text) return;
+  onChatMessage({ name, text });
+}
+$("testMsg").onkeydown = (e) => {
+  if (e.key !== "Enter") return;
+  sendTest($("testName").value || "Testeur", $("testMsg").value);
+  $("testMsg").select();
 };
+$("testChat").querySelectorAll(".test-chat-quick button").forEach((b) => {
+  b.onclick = () => { $("testName").value = b.dataset.n; sendTest(b.dataset.n, b.dataset.m); $("testMsg").focus(); };
+});
+

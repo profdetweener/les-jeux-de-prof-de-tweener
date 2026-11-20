@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <link rel="stylesheet" href="css/style.css?v=2">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -32,20 +32,10 @@
     <!-- SALON -->
     <section id="lobby" hidden>
       <div class="lobby-card">
-        <div class="room-code-banner">
-          <span class="label">Lien pour suivre la partie</span>
-          <div class="room-share">
-            <code class="invite-url" id="inviteUrl">-</code>
-            <button type="button" class="copy-btn" id="copyBtn">Copier le lien</button>
-          </div>
-        </div>
-
         <div class="lobby-grid">
           <div class="lobby-players">
             <h3 id="playersTitle">Joueurs</h3>
             <div class="players" id="viewerList"></div>
-            <h4>Sur la page</h4>
-            <div class="players" id="spectatorList"></div>
           </div>
 
           <div class="lobby-config">
@@ -195,6 +185,18 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Faux tchat pour tester seul : room.html?code=XXX&test=1 (hote uniquement).
+       Chaque message part comme s'il venait du tchat Twitch. -->
+  <div class="test-chat" id="testChat" hidden>
+    <div class="test-chat-head">Faux tchat (test)</div>
+    <input type="text" id="testName" maxlength="25" autocomplete="off" spellcheck="false" placeholder="Pseudo">
+    <input type="text" id="testMsg" autocomplete="off" spellcheck="false" placeholder="Message (Entrée pour envoyer)">
+    <div class="test-chat-quick">
+      <button type="button" data-n="Alice" data-m="!join 1">Alice !join 1</button>
+      <button type="button" data-n="Bob" data-m="!join 2">Bob !join 2</button>
+    </div>
+  </div>
+
   <footer class="app-footer">
     <a href="regles.html" target="_blank" rel="noopener">Règles du jeu</a>
     <span class="footer-sep">·</span>
@@ -205,7 +207,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=1"></script>
+  <script type="module" src="js/room.js?v=2"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

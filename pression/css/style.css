@@ -281,6 +281,23 @@
 .rank-row.bronze { background: linear-gradient(180deg, #fbeee2, #efd4bd); border-color: #dcb896; color: #1a2540; }
 .rank-row.gold .detail, .rank-row.silver .detail, .rank-row.bronze .detail { color: #5a5a5a; }
 
+/* Faux tchat de test (?test=1) */
+.test-chat {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60; width: 260px;
+  background: var(--blanc); border: 2px dashed var(--jaune); border-radius: var(--rayon);
+  box-shadow: var(--ombre-forte); padding: 10px; display: flex; flex-direction: column; gap: 6px;
+}
+.test-chat-head { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gris-texte); }
+.test-chat input {
+  padding: 7px 9px; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm);
+  background: var(--beige); color: var(--bleu-nuit); font: inherit; font-size: 14px;
+}
+.test-chat-quick { display: flex; gap: 6px; }
+.test-chat-quick button {
+  flex: 1; border: 1px solid var(--gris-clair); background: var(--beige-fonce); color: var(--bleu-nuit);
+  border-radius: var(--rayon-sm); padding: 5px; font: inherit; font-size: 12px; cursor: pointer;
+}
+
 /* Toast */
 .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: var(--bleu-nuit); color: var(--beige);
   padding: 10px 18px; border-radius: var(--rayon-sm); font-size: 14px; font-weight: 600; box-shadow: var(--ombre-forte);

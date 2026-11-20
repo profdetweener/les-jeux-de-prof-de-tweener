@@ -68,11 +68,13 @@ const LIVES_MIN = 1, LIVES_MAX = 6;
 const LIVES_BONUS_CAP = 2;
 const INTER_MS = 5000;   // pause entre deux manches
 const RECENT = 12;       // syllabes recentes evitees au tirage
-// Seau a jetons par viewer, comme Mots meles : un essai = un jeton, un jeton
-// regagne par seconde, 5 d'avance. Seuls les essais faits quand c'est le tour
-// de son equipe coutent.
-const CHAT_BURST = 5;
-const CHAT_REFILL_MS = 1000;
+// Garde-fou anti-bot par viewer (seau a jetons) : 10 essais d'avance, un jeton
+// regagne toutes les 300 ms. Un humain qui enchaine les propositions apres un
+// refus n'attend jamais ; seul un script qui inonde le tchat est freine.
+// Seuls les essais faits quand c'est le tour de son equipe coutent, et la
+// page de l'hote ne relaie deja que les mots conformes a la regle.
+const CHAT_BURST = 10;
+const CHAT_REFILL_MS = 300;
 
 function shuffleInPlace<T>(a: T[]): void {
   for (let i = a.length - 1; i > 0; i--) {
