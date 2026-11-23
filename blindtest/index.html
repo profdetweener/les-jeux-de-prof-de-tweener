@@ -230,9 +230,9 @@
         </div>
         <select id="popLevel">
           <option value="0">Tous les morceaux</option>
-          <option value="40">Plutôt connus</option>
-          <option value="70" selected>Très connus</option>
-          <option value="88">Tubes uniquement</option>
+          <option value="50">Plutôt connus</option>
+          <option value="75" selected>Très connus</option>
+          <option value="90">Tubes uniquement</option>
         </select>
       </div>
 
@@ -1159,7 +1159,7 @@ setupAudio();
 (function init(){
   const ch=store.get('channel',''); if(ch) $('channel').value=ch;
   const c=store.get('cfg',null);
-  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; if(c.pop!=null) $('popLevel').value=c.pop; }
+  if(c){ $('duration').value=c.duration; $('ptsTitle').value=c.ptsTitle; $('ptsArtist').value=c.ptsArtist; $('tolerance').value=c.tolerance; if(c.rounds!=null) $('rounds').value=c.rounds||''; if(c.pop!=null) $('popLevel').value=c.pop; if($('popLevel').selectedIndex<0) $('popLevel').value='75'; }
   G.scores={}; G.names={};
   G.volume=store.get('volume',75); $('volume').value=G.volume;
   updatePlCount();
