@@ -91,6 +91,7 @@ export interface GameDTO {
   lastPass: PassInfo | null;
   usedCount: number;
   whistling: boolean;          // la cocotte siffle (explosion imminente)
+  pausedAt: number | null;     // partie en pause depuis (ms epoch), sinon null
   hostPseudo: string;
 }
 
@@ -100,6 +101,10 @@ export type GameEvent =
   | { kind: "explode"; teamId: number; eliminated: boolean }
   // Compte a rebours final : explosion dans WARN_MS si personne ne repond.
   | { kind: "whistle" };
+
+// Sort d'un mot relaye par l'hote (journal de diagnostic, ?debug=1).
+export type ChatDebugResult =
+  | "ok" | "pause" | "not_joined" | "not_turn" | "spam" | "late" | "rule" | "used" | "unknown";
 
 export interface ViewerStat { name: string; teamId: number; words: number; letters: number; }
 
@@ -118,6 +123,8 @@ export type ClientMessage =
   | { type: "hostWord"; word: string }
   | { type: "start"; mode: Mode; config: StartConfig }
   | { type: "endGame" }
+  | { type: "pause" }
+  | { type: "resume" }
   | { type: "backToLobby" };
 
 // -------- Serveur -> client --------
@@ -138,7 +145,7 @@ export type ServerMessage =
   | { type: "game_state"; game: GameDTO; event?: GameEvent }
   // Mot conforme a la regle mais refuse : affiche dans le fil, pour que le
   // tchat comprenne pourquoi la cocotte n'a pas bouge.
-  | { type: "reject"; by: string; word: string; teamId: number; reason: "used" | "unknown" }
+  | { type: "reject"; by: string; word: string; teamId: number; reason: "used" | "unknown" | "not_joined" }
   | {
       type: "finished";
       mode: Mode;
@@ -150,4 +157,5 @@ export type ServerMessage =
       totalWords: number;
       hostPseudo: string;
     }
+  | { type: "chat_debug"; by: string; word: string; result: ChatDebugResult; teamId: number; holder: number; rule: Rule; syllable: string }
   | { type: "error"; code: CtErrorCode; message: string };

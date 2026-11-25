@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression, règles du jeu</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -163,7 +163,8 @@
 
       <h3>Bon à savoir</h3>
       <ul class="rules-list">
-        <li>Un mot par message, sans phrase autour.</li>
+        <li>Un mot par message, sans phrase autour. La ponctuation autour du mot et les réponses (« @pseudo mot ») sont tolérées.</li>
+        <li>En mode Équipes, il faut s'être inscrit avec <b>!join</b> pour jouer. Le mot d'un viewer non inscrit s'affiche en rouge avec « pas inscrit ».</li>
         <li>La dernière proposition s'affiche sous la cocotte pendant 2 secondes : en vert si le mot est validé, en rouge s'il est refusé (déjà joué ou pas dans le dictionnaire).</li>
         <li>Mot refusé ? Propose-en un autre tout de suite, il n'y a pas de temps d'attente entre deux essais. Et si un coéquipier a envoyé un bon mot juste après le tien, il est pris en compte automatiquement : chaque message est examiné dans l'ordre d'arrivée.</li>
         <li>

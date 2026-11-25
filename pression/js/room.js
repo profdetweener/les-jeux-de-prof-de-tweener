@@ -135,7 +135,10 @@ conn.on("game_state", (m) => {
 // Mot refuse : pas d'affichage public (pas d'historique a l'ecran). Seul le
 // streamer, en mode streamer, voit son champ trembler.
 conn.on("reject", (m) => {
-  pushProp(false, m.word, m.by, m.teamId, m.reason === "used" ? "déjà joué" : "pas dans le dictionnaire");
+  const why = m.reason === "used" ? "déjà joué"
+    : m.reason === "not_joined" ? "pas inscrit, tape !join"
+    : "pas dans le dictionnaire";
+  pushProp(false, m.word, m.by, m.teamId, why);
   renderProps();
   if (mode === "streamer" && isHost && m.teamId === 1) {
     const box = $("hostInput");
@@ -186,6 +189,7 @@ function render() {
   if (phase === "playing") { renderGame(); startLoop(); } else stopLoop();
   syncRelay();
   syncTestChat();
+  syncDebug();
 }
 
 // ---------- Salon ----------
@@ -386,8 +390,10 @@ function renderGame() {
   label.setAttribute("font-size", game.syllable.length > 2 ? "48" : "56");
   $("potBand").style.fill = holder ? colorOf(holder.color) : "";
 
+  const paused = game.pausedAt !== null;
+
   // Qui tient la cocotte.
-  const myTurn = mode === "streamer" && isHost && game.holder === 1 && !inter;
+  const myTurn = mode === "streamer" && isHost && game.holder === 1 && !inter && !paused;
   if (inter) $("turn").innerHTML = "";
   else if (myTurn) $("turn").innerHTML = `<span class="who" style="background:${colorOf(0)}">À toi !</span> ${esc(RULE_HELP[game.rule])}`;
   else if (holder) {
@@ -395,9 +401,12 @@ function renderGame() {
     $("turn").innerHTML = `Au tour ${prep}${prep.endsWith("'") ? "" : " "}<span class="who" style="background:${colorOf(holder.color)}">${esc(noun)}</span>`;
   }
 
-  // Pause entre deux manches.
-  $("inter").hidden = !inter;
-  if (inter) {
+  // Pause de l'hote, ou pause entre deux manches.
+  $("inter").hidden = !inter && !paused;
+  if (paused) {
+    $("interBig").textContent = "Partie en pause";
+    $("interSmall").textContent = "En attente de l'hôte";
+  } else if (inter) {
     const t = lastBlast ? gameTeam(lastBlast.teamId) : null;
     $("interBig").textContent = !lastBlast || !t ? "💥 Ça a sauté !"
       : lastBlast.eliminated ? `💥 ${cap(nounOf(t))} est éliminée !`
@@ -449,6 +458,11 @@ function renderGame() {
   $("hostSend").disabled = !myTurn;
   if (myTurn && !wasMyTurn) { inp.value = ""; inp.focus(); }
   wasMyTurn = myTurn;
+
+  const pb = $("pauseBtn");
+  pb.hidden = !isHost;
+  pb.textContent = paused ? "▶ Reprendre" : "⏸ Pause";
+  pb.onclick = () => conn.send({ type: paused ? "resume" : "pause" });
 
   const eg = $("endGameBtn");
   eg.hidden = !isHost;
@@ -538,6 +552,8 @@ function frame() {
   loopId = requestAnimationFrame(frame);
   if (!game) return;
   const st = $("stage");
+  // En pause : tout est fige (aiguille comprise), plus de vapeur.
+  if (game.pausedAt !== null) { st.classList.remove("cooking", "hot", "whistle"); return; }
   const now = serverTime();
   let p;
   if (game.interUntil !== null) {
@@ -620,6 +636,22 @@ function parseJoin(text) {
   const m = JOIN_RE.exec(text);
   return m ? { team: m[1] ? parseInt(m[1], 10) : 0 } : null;
 }
+// Nettoie un message du tchat avant de le juger :
+//  - caracteres invisibles que certaines extensions (7TV, Chatterino, BTTV)
+//    ajoutent pour contourner le refus de Twitch d'envoyer deux fois le meme
+//    message en 30 s (U+E0000, U+034F, espaces de largeur nulle...) ;
+//  - "@pseudo" en tete (reponse a un message dans Twitch) ;
+//  - ponctuation autour du mot ("ternir !", "privée.", « ternir »).
+function cleanMsg(t) {
+  return String(t || "")
+    .replace(/[\u034F\u00AD\u180E\u200B-\u200F\u2060-\u2064\uFEFF\u2800\u{E0000}-\u{E007F}]/gu, "")
+    .replace(/^(?:@\S+\s+)+/, "")
+    .trim()
+    .replace(/^[«"“'(]+/, "")
+    .replace(/[.,;:!?…»"”')]+$/, "")
+    .trim();
+}
+
 function looksLikeWord(t) {
   if (!t || t.startsWith("!") || /\s/.test(t)) return false;
   if (t.length < 3 || t.length > 30) return false;
@@ -653,21 +685,70 @@ function stopRelay() {
 }
 
 function onChatMessage(m) {
-  const text = String(m.text || "").trim();
+  const text = cleanMsg(m.text);
   if (mode === "equipes") {
     const j = parseJoin(text);
-    if (j) { conn.send({ type: "chatJoin", viewer: m.name, team: j.team }); return; }
+    if (j) { dbgLog(m, "inscription (!join)", "info"); conn.send({ type: "chatJoin", viewer: m.name, team: j.team }); return; }
   }
-  if (phase !== "playing" || !game || game.interUntil !== null) return;
+  if (phase !== "playing" || !game) return dbgLog(m, "hors partie", "ko");
+  if (game.interUntil !== null) return dbgLog(m, "pause entre deux manches", "ko");
+  if (game.pausedAt !== null) return dbgLog(m, "partie en pause", "ko");
   // En streamer, le streamer joue sur sa page : ses messages du tchat ne comptent pas.
-  if (mode === "streamer" && chat && m.name.toLowerCase() === chat.channel) return;
-  if (!looksLikeWord(text)) return;
+  if (mode === "streamer" && chat && m.name.toLowerCase() === chat.channel) return dbgLog(m, "message du streamer (il joue sur sa page)", "ko");
+  if (!looksLikeWord(text)) return dbgLog(m, "pas un mot seul", "ko");
   // Pre-filtre : seuls les mots qui respectent la regle partent au serveur.
   // On tolere l'avant-derniere syllabe, le temps que l'etat se mette a jour.
   const w = normWord(text);
-  if (!matchesRule(w, game.rule, game.syllable) && !matchesRule(w, game.rule, prevSyllable)) return;
+  if (!matchesRule(w, game.rule, game.syllable) && !matchesRule(w, game.rule, prevSyllable)) {
+    return dbgLog(m, `ne respecte pas la règle (${RULE_LABEL[game.rule].toLowerCase()} ${game.syllable})`, "ko");
+  }
+  dbgLog(m, "envoyé au serveur", "info");
   conn.send({ type: "chatWord", viewer: m.name, word: text });
 }
+
+// ---------- Journal du tchat (diagnostic, room.html?...&debug=1) ----------
+// Chaque message du tchat et ce que le jeu en a fait, avec la raison. Les
+// caracteres invisibles sont rendus visibles (<U+E0000>). Hote uniquement.
+const DEBUG = params.get("debug") === "1";
+const dbgLines = [];
+function showRaw(t) {
+  return Array.from(String(t || "")).map((c) => {
+    const cp = c.codePointAt(0);
+    const visible = /[\p{L}\p{N}\p{P}\p{S}]/u.test(c) || c === " ";
+    return visible ? c : `<U+${cp.toString(16).toUpperCase().padStart(4, "0")}>`;
+  }).join("");
+}
+function dbgPush(html, cls) {
+  if (!DEBUG || !isHost) return;
+  const t = new Date();
+  const hh = t.toTimeString().slice(0, 8);
+  dbgLines.unshift(`<li class="${cls}"><span class="t">${hh}</span> ${html}</li>`);
+  if (dbgLines.length > 40) dbgLines.length = 40;
+  const box = $("dbgList");
+  if (box) box.innerHTML = dbgLines.join("");
+}
+function dbgLog(m, verdict, cls) {
+  dbgPush(`<b>${esc(m.name)}</b> « ${esc(showRaw(m.text))} » → ${esc(verdict)}`, cls);
+}
+const DBG_RESULT = {
+  ok: ["validé", "ok"],
+  pause: ["pause entre deux manches", "ko"],
+  not_joined: ["pas inscrit (!join)", "ko"],
+  not_turn: ["pas le tour de son équipe", "ko"],
+  spam: ["anti-spam", "ko"],
+  late: ["trop tard, la cocotte a déjà sauté", "ko"],
+  rule: ["ne respecte pas la règle (serveur)", "ko"],
+  used: ["déjà joué", "ko"],
+  unknown: ["pas dans le dictionnaire", "ko"],
+};
+conn.on("chat_debug", (m) => {
+  const [label, cls] = DBG_RESULT[m.result] || [m.result, "ko"];
+  let extra = "";
+  if (m.result === "not_turn") extra = ` (son équipe : ${m.teamId}, cocotte chez l'équipe ${m.holder})`;
+  if (m.result === "rule") extra = ` (${RULE_LABEL[m.rule].toLowerCase()} ${m.syllable})`;
+  dbgPush(`<span class="srv">serveur</span> <b>${esc(m.by)}</b> ${esc(normWord(m.word))} → ${esc(label + extra)}`, cls);
+});
+function syncDebug() { $("dbgPanel").hidden = !(DEBUG && isHost); }
 
 // ---------- Son (WebAudio, aucun fichier) ----------
 let soundOn = localStorage.getItem(SOUND_KEY) !== "off";

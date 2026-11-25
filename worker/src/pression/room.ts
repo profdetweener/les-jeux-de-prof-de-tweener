@@ -18,7 +18,7 @@ import { validatePseudo, pseudosEqual } from "../shared/moderation";
 import { norm, isWord, matchesRule, drawSyllable, startCount, CHAIN_MIN, warmUp } from "./dict";
 import type {
   ClientMessage, ServerMessage, PlayerDTO, TeamDTO, GameDTO, GameEvent, PassInfo, ViewerStat,
-  Phase, Mode, Rule, Level, Timer, StartConfig, CtErrorCode,
+  Phase, Mode, Rule, Level, Timer, StartConfig, CtErrorCode, ChatDebugResult,
 } from "./messages";
 
 interface Session {
@@ -139,6 +139,10 @@ export class PressionRoom {
   private fullMs: number;
   private explodeAt: number;
   private warned: boolean;
+  // Pause de l'hote : instant de la mise en pause (null = en jeu). Tout est
+  // fige : alarme supprimee, mots ignores. A la reprise, toutes les echeances
+  // sont decalees de la duree de la pause.
+  private pausedAt: number | null;
   private interUntil: number | null;
   private nextHolder: number;
   private lastPass: PassInfo | null;
@@ -174,6 +178,7 @@ export class PressionRoom {
     this.fullMs = 0;
     this.explodeAt = 0;
     this.warned = false;
+    this.pausedAt = null;
     this.interUntil = null;
     this.nextHolder = 0;
     this.lastPass = null;
@@ -220,7 +225,7 @@ export class PressionRoom {
 
   // Alarme unique : explosion, ou fin de la pause entre deux manches.
   async alarm(): Promise<void> {
-    if (this.phase !== "playing") return;
+    if (this.phase !== "playing" || this.pausedAt !== null) return;
     const now = Date.now();
     if (this.interUntil !== null) {
       if (now >= this.interUntil - 25) this.startManche(this.nextHolder);
@@ -261,6 +266,8 @@ export class PressionRoom {
       case "hostWord": return this.onHostWord(ws, msg.word);
       case "start": return this.onStart(ws, msg.mode, msg.config);
       case "endGame": return this.onEndGame(ws);
+      case "pause": return this.onPause(ws, true);
+      case "resume": return this.onPause(ws, false);
       case "backToLobby": return this.onBackToLobby(ws);
       default: this.err(ws, "INVALID_MESSAGE", "Type inconnu.");
     }
@@ -499,6 +506,7 @@ export class PressionRoom {
     this.lastPass = null;
     this.longest = null;
     this.outCounter = 0;
+    this.pausedAt = null;
     this.phase = "playing";
 
     const first = this.teams[Math.floor(Math.random() * this.teams.length)].id;
@@ -563,9 +571,14 @@ export class PressionRoom {
   private onChatWord(ws: WebSocket, viewer: string, word: string): void {
     // Seul l'hote relaie : sa page est branchee sur l'IRC.
     if (!this.isHostWs(ws)) return;
-    if (this.phase !== "playing" || this.interUntil !== null) return;
-
     const name = String(viewer || "").slice(0, 30).trim();
+    // Journal de diagnostic : l'hote recoit le sort de chaque mot relaye
+    // (affiche seulement avec ?debug=1 sur sa page).
+    const dbg = (result: ChatDebugResult, teamId = 0) => this.send(ws, {
+      type: "chat_debug", by: name, word: String(word || "").slice(0, 40), result,
+      teamId, holder: this.holder, rule: this.rule, syllable: this.syllable,
+    });
+    if (this.phase !== "playing" || this.interUntil !== null || this.pausedAt !== null) return dbg("pause");
     if (!name) return;
     const key = name.toLowerCase();
 
@@ -579,45 +592,52 @@ export class PressionRoom {
       teamId = 2;
     } else {
       // En equipes, seuls les inscrits jouent : sinon on ne saurait pas pour
-      // quelle equipe ils repondent.
-      if (!v || !v.joined) return;
+      // quelle equipe ils repondent. Un non-inscrit qui propose un mot
+      // conforme a la regle est prevenu a l'ecran (sinon il ne comprend pas
+      // pourquoi son mot ne compte pas).
+      if (!v || !v.joined) {
+        if (matchesRule(norm(word), this.rule, this.syllable)) {
+          this.broadcast({ type: "reject", by: name, word: norm(word), teamId: 0, reason: "not_joined" });
+        }
+        return dbg("not_joined");
+      }
       teamId = v.teamId;
     }
     v.name = name;
 
     // Hors de son tour, un message ne coute rien : il n'a aucun effet.
-    if (teamId !== this.holder) return;
+    if (teamId !== this.holder) return dbg("not_turn", teamId);
 
     const now = Date.now();
     const gained = (now - v.lastRefill) / CHAT_REFILL_MS;
     if (gained > 0) { v.tokens = Math.min(CHAT_BURST, v.tokens + gained); v.lastRefill = now; }
-    if (v.tokens < 1) return;
+    if (v.tokens < 1) return dbg("spam", teamId);
     v.tokens -= 1;
 
-    this.tryWord(teamId, v.name, word, v);
+    dbg(this.tryWord(teamId, v.name, word, v), teamId);
   }
 
   private onHostWord(ws: WebSocket, word: string): void {
     if (!this.isHostWs(ws)) return;
-    if (this.mode !== "streamer" || this.phase !== "playing" || this.interUntil !== null) return;
+    if (this.mode !== "streamer" || this.phase !== "playing" || this.interUntil !== null || this.pausedAt !== null) return;
     if (this.holder !== 1) return;
     this.tryWord(1, this.hostPseudo || "Streamer", word, null);
   }
 
-  private tryWord(teamId: number, by: string, raw: string, viewer: Viewer | null): void {
+  private tryWord(teamId: number, by: string, raw: string, viewer: Viewer | null): ChatDebugResult {
     const now = Date.now();
     // Trop tard : l'alarme d'explosion n'a pas encore tourne, mais c'est fini.
-    if (now >= this.explodeAt) return;
+    if (now >= this.explodeAt) return "late";
     const w = norm(raw);
     // Ce qui ne respecte pas la regle est du bruit de tchat : ignore en silence.
-    if (!matchesRule(w, this.rule, this.syllable)) return;
+    if (!matchesRule(w, this.rule, this.syllable)) return "rule";
     if (this.used.has(w)) {
       this.broadcast({ type: "reject", by, word: w, teamId, reason: "used" });
-      return;
+      return "used";
     }
     if (!isWord(w)) {
       this.broadcast({ type: "reject", by, word: w, teamId, reason: "unknown" });
-      return;
+      return "unknown";
     }
 
     // ----- Mot valide -----
@@ -670,6 +690,7 @@ export class PressionRoom {
     this.holder = this.nextAlive(teamId);
     this.startTurn(now);
     this.broadcastGame({ kind: "pass", word: w, by, teamId, bonus, chainBroken, timeBonusSec });
+    return "ok";
   }
 
   // ========================= Explosion / fin =========================
@@ -729,6 +750,32 @@ export class PressionRoom {
     });
   }
 
+  // Pause / reprise (hote). Pendant la pause, le minuteur de l'equipe et la
+  // pause entre manches sont figes ; a la reprise, on repart d'ou on etait.
+  private onPause(ws: WebSocket, pause: boolean): void {
+    if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote peut mettre en pause.");
+    if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
+    const now = Date.now();
+    if (pause) {
+      if (this.pausedAt !== null) return;
+      this.pausedAt = now;
+      void this.state.storage.deleteAlarm();
+    } else {
+      if (this.pausedAt === null) return;
+      const d = now - this.pausedAt;
+      this.pausedAt = null;
+      if (this.interUntil !== null) {
+        this.interUntil += d;
+        this.schedule(this.interUntil);
+      } else {
+        this.turnStartAt += d;
+        this.explodeAt += d;
+        this.scheduleFuse();
+      }
+    }
+    this.broadcastGame();
+  }
+
   private onEndGame(ws: WebSocket): void {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote peut terminer.");
     if (this.phase !== "playing") return this.err(ws, "WRONG_PHASE", "Pas en jeu.");
@@ -739,6 +786,7 @@ export class PressionRoom {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote peut relancer.");
     this.phase = "lobby";
     this.interUntil = null;
+    this.pausedAt = null;
     this.teams = [];
     void this.state.storage.deleteAlarm();
     // En streamer, la table des viewers ne sert qu'a la partie.
@@ -812,7 +860,8 @@ export class PressionRoom {
       interUntil: this.interUntil,
       lastPass: this.lastPass,
       usedCount: this.used.size,
-      whistling: this.warned && this.interUntil === null,
+      whistling: this.warned && this.interUntil === null && this.pausedAt === null,
+      pausedAt: this.pausedAt,
       hostPseudo: this.hostPseudo ?? "",
     };
   }

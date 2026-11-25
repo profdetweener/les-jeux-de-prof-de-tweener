@@ -19,7 +19,9 @@
  *    Ex. : PORTE, MARCHE, LIVRES (aussi des noms), FATIGUE, COURANT (adjectifs
  *    a part entiere), MANGER.
  *  - on RETIRE une forme que le Lefff ne connait que comme verbe conjugue ou
- *    participe. Ex. : MANGE, MANGEONS, CHANTAIT, MANGEES.
+ *    participe. Ex. : MANGE, MANGEONS, CHANTAIT, MANGEES. Exception : le
+ *    feminin d'un participe dont le masculin est aussi un nom ou un adjectif
+ *    a part entiere (PRIVE -> PRIVEE).
  *  - noms propres exclus, 3 lettres minimum.
  *
  * Sorties (dans src/pression/data/) :
@@ -59,6 +61,8 @@ const KEEP_POS = new Set(["nc", "adj", "adv", "prep", "csu", "det", "pro", "coo"
 const lefffOk = new Set();      // au moins un emploi non conjugue
 const lefffVerbal = new Set();  // au moins un emploi conjugue / participe
 const FORM_RE = /^[a-zàâäçéèêëîïôöùûüÿœæ'-]+$/;
+const rawOk = new Set();        // formes brutes (accents compris) nom/adjectif non participe
+const participle = new Map();   // lemme verbal -> { ms, fs } : participe passe au singulier
 const pluralSelf = new Set();   // pluriel dont le lemme est la forme (GENS)
 const pluralOther = new Set();  // pluriel d'un autre lemme (CHEVAUX <- CHEVAL)
 
@@ -74,6 +78,11 @@ for (const line of readFileSync(lefffPath, "utf8").split(/\r?\n/)) {
     else lefffVerbal.add(n);
   } else if (pos === "adj" && /^[KG]/.test(tag)) {
     lefffVerbal.add(n);                        // participe employe comme adjectif
+    if (tag === "Kms" || tag === "Kfs") {
+      const e = participle.get(lemma) || {};
+      e[tag === "Kms" ? "ms" : "fs"] = form;
+      participle.set(lemma, e);
+    }
   } else if (KEEP_POS.has(pos)) {
     // Pluriel (etiquette mp, fp ou p) : ecarte, sauf pluriel lexicalise
     // (traite apres la boucle).
@@ -82,8 +91,22 @@ for (const line of readFileSync(lefffPath, "utf8").split(/\r?\n/)) {
       continue;
     }
     lefffOk.add(n);
+    if (pos === "nc" || pos === "adj") rawOk.add(form);
   }
 }
+
+// Participe devenu adjectif ou nom : si le masculin singulier existe aussi
+// comme nom ou adjectif a part entiere (UN PRIVE), son feminin singulier est
+// un vrai mot (PRIVEE, VIE PRIVEE). Comparaison sur la forme brute, accents
+// compris, pour ne pas confondre PORTE (nom) et PORTE (participe de porter).
+let recup = 0;
+for (const { ms, fs } of participle.values()) {
+  if (ms && fs && rawOk.has(ms)) {
+    const n = norm(fs);
+    if (n.length >= 3 && !lefffOk.has(n)) { lefffOk.add(n); recup++; }
+  }
+}
+console.log(`${recup} feminins de participes devenus adjectifs recuperes (PRIVEE...).`);
 
 // Mot qui n'existe qu'au pluriel : garde seulement si le Lefff ne le
 // rattache a aucun singulier (GENS, CISEAUX oui ; CHEVAUX non).

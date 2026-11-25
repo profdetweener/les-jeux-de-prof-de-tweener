@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -186,6 +186,7 @@
           <div class="ct-side" id="teamsRight"></div>
         </div>
         <div class="ct-btns">
+          <button class="btn btn-ghost" id="pauseBtn" hidden>⏸ Pause</button>
           <button class="btn btn-ghost" id="endGameBtn" hidden>Terminer la partie</button>
         </div>
       </div>
@@ -205,6 +206,12 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Journal du tchat (diagnostic) : room.html?code=XXX&debug=1 (hote uniquement). -->
+  <div class="dbg-panel" id="dbgPanel" hidden>
+    <div class="dbg-head">Journal du tchat</div>
+    <ul class="dbg-list" id="dbgList"></ul>
+  </div>
 
   <!-- Faux tchat pour tester seul : room.html?code=XXX&test=1 (hote uniquement).
        Chaque message part comme s'il venait du tchat Twitch. -->
@@ -228,7 +235,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=13"></script>
+  <script type="module" src="js/room.js?v=16"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>
