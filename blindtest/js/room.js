@@ -344,6 +344,7 @@ function stopAudio() {
 // si on arrive en cours d'ecoute).
 function syncAudio() {
   if (!game || !game.preview || game.step === "loading") { if (playing) stopAudio(); return; }
+  if (game.pausedAt) { if (playing) stopAudio(); return; }
   if (audioSrc !== game.preview) {
     audioSrc = game.preview;
     audio.src = game.preview;
@@ -355,7 +356,9 @@ function syncAudio() {
   const go = () => {
     if (!playing) return;
     const ahead = (Date.now() - startLocal) / 1000;
-    try { if (ahead > 0.3) audio.currentTime = ahead; } catch {}
+    // On ne cale la lecture que si l'ecart est net (arrivee en cours
+    // d'ecoute) : apres une pause, on repart simplement de l'endroit atteint.
+    try { if (ahead > 0.3 && Math.abs(audio.currentTime - ahead) > 0.4) audio.currentTime = ahead; } catch {}
     const p = audio.play();
     if (p && p.catch) p.then(() => { $("unmute").hidden = true; }).catch(() => { $("unmute").hidden = false; });
   };
@@ -364,7 +367,7 @@ function syncAudio() {
   if (wait > 0) playTimer = setTimeout(go, wait); else go();
 }
 $("unmute").onclick = () => {
-  if (!game) return;
+  if (!game || game.pausedAt) return;
   const ahead = (serverTime() - game.startAt) / 1000;
   try { if (ahead > 0) audio.currentTime = ahead; } catch {}
   audio.play().then(() => { $("unmute").hidden = true; }).catch(() => {});
@@ -380,6 +383,10 @@ function myUnit() {
 function renderGame() {
   if (!game) return;
   $("hostBtns").hidden = !isHost;
+  const paused = !!game.pausedAt;
+  $("pauseBtn").textContent = paused ? "▶ Reprendre" : "⏸ Pause";
+  $("pauseBtn").classList.toggle("on", paused);
+  $("gameCard").classList.toggle("paused", paused);
   const key = game.round + ":" + game.step;
   const newRound = !lastRoundKey.startsWith(game.round + ":");
   if (key !== lastRoundKey) {
@@ -424,10 +431,11 @@ function renderGame() {
 
   const mine = myUnit();
   const done = !!(me.title && me.artist);
-  const canAnswer = game.step === "listening" && !!mine && !done;
+  const canAnswer = game.step === "listening" && !!mine && !done && !paused;
   $("answerInput").disabled = !canAnswer;
   $("answerSend").disabled = !canAnswer;
   $("answerInput").placeholder = !mine ? "Tu regardes cette partie"
+    : paused && game.step === "listening" ? "Partie en pause"
     : done ? "Tu as tout trouvé, bravo !"
     : "Titre, artiste, ou les deux";
   syncAudio();
@@ -439,7 +447,9 @@ function paintCard(kind, found, revealed) {
   card.classList.remove("found", "miss");
   if (found) {
     card.classList.add("found");
-    val.textContent = found.text;
+    // Mode streamer : la case passe au vert mais la reponse reste cachee
+    // tant qu'elle n'est pas devoilee a tous.
+    val.textContent = streamer && !revealed ? "Trouvé ✓" : found.text;
     const by = !game.solo && found.by !== ME ? ` · trouvé par ${found.by}` : "";
     info.textContent = `+${found.pts} · ${sec(found.t)}${by}`;
   } else if (revealed) {
@@ -452,18 +462,25 @@ function paintCard(kind, found, revealed) {
   }
 }
 
+// Recap de fin : sous le nom d'une equipe, ses joueurs (pas pendant la
+// partie, ou seul le nom de l'equipe est affiche). Inutile si l'equipe ne
+// compte qu'un joueur qui porte le meme nom.
+function showMembers(s) {
+  if (!s.members.length) return false;
+  return !(s.members.length === 1 && s.members[0].toLowerCase() === String(s.name).toLowerCase());
+}
+
 // Classement : rang en chiffre, nom, jauge titre / artiste de la manche, score.
 function renderBoard() {
   const mine = myUnit();
   let rank = 0, prev = null;
   $("board").innerHTML = game.scores.map((s, i) => {
     if (s.score !== prev) { rank = i + 1; prev = s.score; }
-    const members = s.members.length ? `<span class="bt-members">${s.members.map(esc).join(", ")}</span>` : "";
     const gain = game.step === "reveal" && s.gain ? `<span class="bt-gain">+${s.gain}</span>` : "";
     const dot = s.color >= 0 ? `<span class="dot" style="background:${colorOf(s.color)}"></span>` : "";
     return `<div class="bt-row${s.id === mine ? " me" : ""}">` +
       `<span class="bt-rank">${rank}</span>` +
-      `<span class="bt-who">${dot}<span class="bt-name">${esc(s.name)}</span>${members}</span>` +
+      `<span class="bt-who">${dot}<span class="bt-name">${esc(s.name)}</span></span>` +
       `<span class="bt-gauge" title="Titre / artiste"><i class="${s.title !== null ? "t" : ""}"></i><i class="${s.artist !== null ? "a" : ""}"></i></span>` +
       gain + `<span class="bt-score">${s.score}</span></div>`;
   }).join("") || '<p class="empty-note">Personne pour l\'instant.</p>';
@@ -480,7 +497,8 @@ function renderHistory() {
 // Chrono et texte d'etat, rafraichis en continu.
 function tick() {
   if (!game) return;
-  const now = serverTime();
+  const paused = !!game.pausedAt;
+  const now = paused ? game.pausedAt : serverTime();
   let status = "", timer = "";
   const v = $("vinyl");
   if (game.step === "loading") { status = "Chargement de l'extrait…"; timer = "-"; v.classList.remove("spinning"); }
@@ -513,6 +531,7 @@ function tick() {
     }
   }
   if (game.step !== "reveal") audio.volume = volume / 100;
+  if (paused) { status = "⏸ En pause"; v.classList.remove("spinning"); }
   $("status").textContent = status;
   $("timer").textContent = timer;
 }
@@ -531,6 +550,33 @@ $("answerForm").addEventListener("submit", (e) => {
   conn.send({ type: "answer", text: t });
 });
 $("skipBtn").onclick = () => conn.send({ type: "skip" });
+$("pauseBtn").onclick = () => { if (game) conn.send({ type: "pause", paused: !game.pausedAt }); };
+
+// Mode streamer (propre a chaque joueur, retenu sur l'appareil) : masque ce
+// que l'on tape et le contenu des cases trouvees, pour ne rien devoiler au
+// stream. Le cadre vert reste visible.
+let streamer = false;
+try { streamer = localStorage.getItem("bt_streamer") === "1"; } catch {}
+function applyStreamer() {
+  document.body.classList.toggle("streamer", streamer);
+  // Navigateurs sans masquage CSS : on passe la case en champ masque.
+  if (!(window.CSS && CSS.supports("-webkit-text-security", "disc"))) {
+    $("answerInput").type = streamer ? "password" : "text";
+  }
+  const b = $("streamerBtn");
+  b.classList.toggle("on", streamer);
+  b.setAttribute("aria-pressed", String(streamer));
+  b.title = streamer
+    ? "Mode streamer activé : tes réponses sont masquées à l'écran"
+    : "Mode streamer : masque tes réponses à l'écran";
+  if (game && phase === "playing") renderGame();
+}
+$("streamerBtn").onclick = () => {
+  streamer = !streamer;
+  try { localStorage.setItem("bt_streamer", streamer ? "1" : "0"); } catch {}
+  applyStreamer();
+};
+applyStreamer();
 $("endGameBtn").onclick = () => {
   if (confirm("Terminer la partie maintenant ?")) conn.send({ type: "endGame" });
 };
@@ -545,7 +591,7 @@ function renderFinished(m) {
   let rank = 0, prev = null;
   $("endRanking").innerHTML = rows.map((s, i) => {
     if (s.score !== prev) { rank = i + 1; prev = s.score; }
-    const members = s.members.length ? `<span class="detail">${s.members.map(esc).join(", ")}</span>` : "";
+    const members = showMembers(s) ? `<span class="detail">${s.members.map(esc).join(", ")}</span>` : "";
     return `<div class="rank-row${s.id === myUnitFor(m) ? " me" : ""}"><span class="rank-num">${rank}</span>` +
       `<span class="pname">${esc(s.name)}</span>${members}<span class="pscore">${s.score}</span></div>`;
   }).join("");

@@ -52,6 +52,7 @@ interface Round {
   endsAt: number;
   step: RoundStep;
   revealUntil: number | null;
+  pausedAt: number | null;         // heure de la mise en pause (null = en cours)
   finds: Map<string, UnitFinds>;   // par unite (joueur, ou equipe "t1")
   order: Array<{ by: string; unit: string; kind: "title" | "artist"; t: number; pts: number }>;
   gains: Map<string, number>;
@@ -160,7 +161,7 @@ export class BlindtestRoom {
   // Alarme unique : fin de l'ecoute, ou fin de la revelation.
   async alarm(): Promise<void> {
     const r = this.round;
-    if (this.phase !== "playing" || !r) return;
+    if (this.phase !== "playing" || !r || r.pausedAt !== null) return;
     const now = Date.now();
     if (r.step === "listening") {
       if (now >= r.endsAt - 25) this.reveal();
@@ -190,6 +191,7 @@ export class BlindtestRoom {
       case "start": return this.onStart(ws, msg.config);
       case "answer": return this.onAnswer(ws, msg.text);
       case "skip": return this.onSkip(ws);
+      case "pause": return this.onPause(ws, msg.paused);
       case "endGame": return this.onEndGame(ws);
       case "backToLobby": return this.onBackToLobby(ws);
       default: this.err(ws, "INVALID_MESSAGE", "Type inconnu.");
@@ -349,7 +351,7 @@ export class BlindtestRoom {
     if (n > this.total) { this.finish(); return; }
     this.round = {
       n, track: null, titles: [], artists: [], preview: null, cover: null,
-      startAt: 0, endsAt: 0, step: "loading", revealUntil: null,
+      startAt: 0, endsAt: 0, step: "loading", revealUntil: null, pausedAt: null,
       finds: new Map(), order: [], gains: new Map(),
     };
     const seq = ++this.seq;
@@ -380,7 +382,10 @@ export class BlindtestRoom {
       r.startAt = Date.now() + COUNTDOWN_MS;
       r.endsAt = r.startAt + this.cfg.duration * 1000;
       r.step = "listening";
-      this.schedule(r.endsAt);
+      // Mis en pause pendant le chargement : le compte a rebours partira
+      // de la reprise.
+      if (r.pausedAt !== null) r.pausedAt = Date.now();
+      else this.schedule(r.endsAt);
       this.broadcastGame();
       return;
     }
@@ -418,7 +423,7 @@ export class BlindtestRoom {
 
   private onAnswer(ws: WebSocket, text: string): void {
     const r = this.round;
-    if (this.phase !== "playing" || !r || r.step !== "listening") return;
+    if (this.phase !== "playing" || !r || r.step !== "listening" || r.pausedAt !== null) return;
     const now = Date.now();
     if (now < r.startAt || now > r.endsAt + LATE_MS) return;
     const p = this.wsToPseudo.get(ws);
@@ -479,6 +484,7 @@ export class BlindtestRoom {
   private reveal(): void {
     const r = this.round;
     if (!r || r.step === "reveal") return;
+    r.pausedAt = null;
     r.step = "reveal";
     r.revealUntil = Date.now() + REVEAL_MS;
     if (r.track) {
@@ -498,6 +504,33 @@ export class BlindtestRoom {
     if (r.step === "reveal") { this.nextRound(); return; }
     if (r.step === "loading") return;
     this.reveal();
+  }
+
+  // Pause : l'extrait et les chronos s'arretent pour tout le monde. A la
+  // reprise, toutes les echeances sont decalees de la duree de la pause,
+  // donc le temps de reponse (et les points) ne compte pas la pause.
+  private onPause(ws: WebSocket, paused: boolean): void {
+    if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote peut mettre en pause.");
+    const r = this.round;
+    if (this.phase !== "playing" || !r) return;
+    const now = Date.now();
+    if (paused) {
+      if (r.pausedAt !== null) return;
+      r.pausedAt = now;
+      void this.state.storage.deleteAlarm();
+    } else {
+      if (r.pausedAt === null) return;
+      const d = now - r.pausedAt;
+      r.pausedAt = null;
+      if (r.step !== "loading") {
+        r.startAt += d;
+        r.endsAt += d;
+      }
+      if (r.revealUntil !== null) r.revealUntil += d;
+      if (r.step === "listening") this.schedule(r.endsAt);
+      else if (r.step === "reveal" && r.revealUntil !== null) this.schedule(r.revealUntil);
+    }
+    this.broadcastGame();
   }
 
   private onEndGame(ws: WebSocket): void {
@@ -556,7 +589,8 @@ export class BlindtestRoom {
     }
     this.broadcastRoom();
     // Un absent ne doit pas empecher la revelation anticipee.
-    if (this.phase === "playing" && this.round?.step === "listening" && this.everyoneDone()) this.reveal();
+    if (this.phase === "playing" && this.round?.step === "listening" && this.round.pausedAt === null
+      && this.everyoneDone()) this.reveal();
   }
 
   // ========================= DTO / envois =========================
@@ -628,6 +662,7 @@ export class BlindtestRoom {
       startAt: r ? r.startAt : 0,
       endsAt: r ? r.endsAt : 0,
       revealUntil: r ? r.revealUntil : null,
+      pausedAt: r ? r.pausedAt : null,
       serverNow: Date.now(),
       scores: this.scoresDTO(),
       reveal,

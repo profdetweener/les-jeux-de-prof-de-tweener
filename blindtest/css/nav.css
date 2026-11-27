@@ -264,6 +264,19 @@
 @keyframes bt-in { from { opacity: 0; transform: translateY(-4px); } }
 
 .bt-host { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.bt-host #pauseBtn.on { background: var(--bleu-accent); color: #fff; border-color: var(--bleu-accent); }
+
+/* Pause : disque et case grises */
+.bt-stage.paused .vinyl { opacity: .45; }
+.bt-stage.paused .bt-status { font-weight: 700; color: var(--bleu-accent); }
+
+/* Mode streamer : bouton dans le bandeau, saisie masquee */
+.streamer-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--beige);
+  border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px;
+  cursor: pointer; opacity: .85; white-space: nowrap; }
+.streamer-btn:hover { opacity: 1; background: rgba(255,255,255,.08); }
+.streamer-btn.on { background: #9146ff; border-color: #9146ff; color: #fff; opacity: 1; }
+body.streamer .bt-answer input { -webkit-text-security: disc; text-security: disc; }
 
 /* Colonne : classement et morceaux passes */
 .bt-side { display: grid; gap: 20px; }
@@ -320,6 +333,8 @@
   .vinyl .label.cover { width: 96px; height: 96px; }
   .bt-timer { font-size: 30px; }
   .vol input[type="range"] { width: 70px; }
+  .streamer-btn { padding: 5px 9px; }
+  .streamer-btn .sb-txt { display: none; }
   .bt-answer input { font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .vinyl.spinning { animation: none; } }

@@ -77,6 +77,7 @@ export interface GameDTO {
   startAt: number;        // debut de l'extrait (heure serveur)
   endsAt: number;         // fin de l'ecoute
   revealUntil: number | null;
+  pausedAt: number | null; // heure serveur de la mise en pause, null si la partie tourne
   serverNow: number;
   scores: ScoreDTO[];
   reveal: RevealDTO | null;
@@ -102,6 +103,7 @@ export type ClientMessage =
   | { type: "start"; config: StartConfig }
   | { type: "answer"; text: string }
   | { type: "skip" }        // hote : passer ce morceau
+  | { type: "pause"; paused: boolean }   // hote : pause / reprise
   | { type: "endGame" }
   | { type: "backToLobby" };
 
