@@ -17,7 +17,6 @@
  * Seuls `initialized`, `source` et `hostPseudo` sont persistes.
  */
 
-import { ROOM_CONFIG } from "../shared/types";
 import { validatePseudo, pseudosEqual } from "../shared/moderation";
 import { norm, isWord, matchesRule, drawSyllable, startCount, CHAIN_MIN, warmUp } from "./dict";
 import type {
@@ -111,6 +110,10 @@ const RECENT = 12;       // syllabes recentes evitees au tirage
 // Seuls les essais faits quand c'est le tour de son equipe coutent, et la
 // page de l'hote ne relaie deja que les mots conformes a la regle.
 const CHAT_BURST = 10;
+// Nombre de joueurs : pas de limite par defaut. En navigateur, l'hote peut en
+// fixer une (2 a PLAYERS_SETTING_MAX). Garde-fou serveur dans tous les cas.
+const PLAYERS_SETTING_MAX = 50;
+const PLAYERS_HARD_CAP = 200;
 const CHAT_REFILL_MS = 300;
 
 function shuffleInPlace<T>(a: T[]): void {
@@ -133,6 +136,8 @@ export class PressionRoom {
   private source: Source;
   // Navigateur : chacun pour soi (une equipe par joueur).
   private solo: boolean;
+  // Navigateur : nombre maximum de joueurs choisi par l'hote (0 = sans limite).
+  private maxPlayers: number;
   // Navigateur : equipe de chaque pseudo dans le salon, pour la retrouver
   // apres un rafraichissement de page (la session est supprimee a la deconnexion).
   private lobbyTeamMemo: Map<string, number>;
@@ -178,6 +183,7 @@ export class PressionRoom {
     this.hostPseudo = null;
     this.source = "tchat";
     this.solo = false;
+    this.maxPlayers = 0;
     this.lobbyTeamMemo = new Map();
     this.phase = "lobby";
     this.mode = "equipes";
@@ -295,6 +301,7 @@ export class PressionRoom {
       case "chatJoin": return this.onChatJoin(ws, msg.viewer, msg.team);
       case "chatWord": return this.onChatWord(ws, msg.viewer, msg.word);
       case "setSolo": return this.onSetSolo(ws, msg.solo);
+      case "setMaxPlayers": return this.onSetMaxPlayers(ws, msg.max);
       case "word": return this.onWord(ws, msg.word);
       case "start": return this.onStart(ws, msg.mode, msg.config);
       case "endGame": return this.onEndGame(ws);
@@ -330,8 +337,14 @@ export class PressionRoom {
       return;
     }
 
-    if (this.players.size >= ROOM_CONFIG.MAX_PLAYERS) {
-      this.err(ws, "ROOM_FULL", "Room pleine."); ws.close(); return;
+    // Pression ne reprend pas la limite commune aux autres jeux : sans limite
+    // par defaut, ou celle de l'hote en navigateur.
+    const limit = this.source === "navigateur" && this.maxPlayers > 0 ? this.maxPlayers : PLAYERS_HARD_CAP;
+    if (this.players.size >= limit) {
+      this.err(ws, "ROOM_FULL", limit === PLAYERS_HARD_CAP
+        ? "La partie est complète."
+        : `La partie est complète (${limit} joueurs maximum).`);
+      ws.close(); return;
     }
 
     // Tchat : les connectes regardent, meme en cours de partie. L'hote, lui,
@@ -369,6 +382,16 @@ export class PressionRoom {
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
     if (this.source === "navigateur") return;
     this.mode = mode === "streamer" ? "streamer" : "equipes";
+    this.broadcastRoom();
+  }
+
+  // 0 = sans limite. Baisser la limite ne renvoie personne : elle ne joue
+  // que pour les nouveaux arrivants.
+  private onSetMaxPlayers(ws: WebSocket, max: number): void {
+    if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote regle le nombre de joueurs.");
+    if (this.source !== "navigateur") return;
+    const n = clampInt(max, 0, PLAYERS_SETTING_MAX, 0);
+    this.maxPlayers = n === 0 ? 0 : Math.max(2, n);
     this.broadcastRoom();
   }
 
@@ -1029,6 +1052,7 @@ export class PressionRoom {
       mode: this.mode,
       source: this.source,
       solo: this.solo,
+      maxPlayers: this.maxPlayers,
       teamCount: this.teamCount,
       teamNames: this.teamNamesArr(),
       players: this.playersDTO(),
@@ -1040,7 +1064,7 @@ export class PressionRoom {
     this.broadcast({
       type: "room_state", players: this.playersDTO(), hostPseudo: this.hostPseudo ?? "",
       phase: this.phase, mode: this.mode, source: this.source, solo: this.solo,
-      teamCount: this.teamCount, teamNames: this.teamNamesArr(),
+      maxPlayers: this.maxPlayers, teamCount: this.teamCount, teamNames: this.teamNamesArr(),
     });
   }
 

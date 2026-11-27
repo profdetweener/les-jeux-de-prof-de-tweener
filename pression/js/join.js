@@ -90,6 +90,12 @@ async function maybeResume() {
   };
 }
 
+// Renvoye ici parce que la partie est complete.
+try {
+  const full = sessionStorage.getItem("pr_full");
+  if (full) { sessionStorage.removeItem("pr_full"); showError(full); }
+} catch {}
+
 (async () => {
   const ok = await pingWorker();
   $("server-status").textContent = ok ? "✓ serveur en ligne" : "✗ serveur injoignable";

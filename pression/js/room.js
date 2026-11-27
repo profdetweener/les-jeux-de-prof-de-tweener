@@ -55,6 +55,7 @@ let phase = "lobby";
 let mode = "equipes";
 let source = "tchat";
 let solo = false;
+let maxPlayers = 0;        // navigateur : 0 = sans limite
 let teamCount = 2;
 let teamNames = [];
 let game = null;
@@ -110,7 +111,7 @@ conn.onStatus((s) => {
 conn.on("joined", (m) => {
   isHost = m.isHost; hostPseudo = m.hostPseudo; players = m.players; phase = m.phase;
   mode = m.mode; teamCount = m.teamCount; teamNames = m.teamNames || [];
-  source = m.source || "tchat"; solo = !!m.solo;
+  source = m.source || "tchat"; solo = !!m.solo; maxPlayers = m.maxPlayers || 0;
   game = m.game;
   if (game) setClock(game.serverNow);
   try {
@@ -123,7 +124,7 @@ conn.on("room_state", (m) => {
   const wasHost = isHost;
   players = m.players; hostPseudo = m.hostPseudo; mode = m.mode;
   teamCount = m.teamCount; teamNames = m.teamNames || [];
-  source = m.source || source; solo = !!m.solo;
+  source = m.source || source; solo = !!m.solo; maxPlayers = m.maxPlayers || 0;
   isHost = hostPseudo === ME || players.some((p) => p.isHost && p.pseudo === ME);
   // Changement de phase (lancement, retour au salon) : on bascule d'ecran.
   // Au lancement, room_state arrive juste avant le premier game_state.
@@ -162,6 +163,13 @@ conn.on("finished", (m) => {
   renderFinished(m);
 });
 conn.on("error", (m) => {
+  // Partie complete : on retourne a la page pseudo, qui affiche le message.
+  if (m.code === "ROOM_FULL") {
+    conn.close();
+    try { sessionStorage.setItem("pr_full", m.message); localStorage.removeItem(ACTIVE_KEY); } catch {}
+    location.href = `join.html#${encodeURIComponent(CODE)}`;
+    return;
+  }
   const e = $("startErr"); if (e) e.textContent = m.message;
   toast(m.message);
 });
@@ -264,6 +272,7 @@ function teamPicker(p) {
 function renderLobby() {
   if (source === "navigateur") return renderLobbyNav();
   $("soloRow").hidden = true;
+  $("maxRow").hidden = true;
   $("modeRow").hidden = false;
   $("channelRow").hidden = false;
   const viewers = players.filter((p) => p.isViewer);
@@ -346,13 +355,39 @@ function wireConfig() {
   renderLives();
 }
 
+// Nombre maximum de joueurs (navigateur). Paliers, puis "Sans limite" (0).
+// Le choix de l'hote est garde pour ses prochaines parties.
+const MAX_STEPS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 0];
+let maxSynced = false;
+function renderMaxPlayers() {
+  if (!maxSynced) {
+    maxSynced = true;
+    const want = MAX_STEPS.includes(cfg.maxPlayers) ? cfg.maxPlayers : 0;
+    if (want !== maxPlayers) { conn.send({ type: "setMaxPlayers", max: want }); maxPlayers = want; }
+  }
+  const i = Math.max(0, MAX_STEPS.indexOf(maxPlayers));
+  $("maxVal").textContent = maxPlayers ? `${maxPlayers} joueurs` : "Sans limite";
+  $("maxStepper").querySelectorAll("button").forEach((b) => {
+    const j = i + Number(b.dataset.d);
+    b.disabled = j < 0 || j >= MAX_STEPS.length;
+    b.onclick = () => {
+      if (b.disabled) return;
+      cfg.maxPlayers = MAX_STEPS[j];
+      saveCfg();
+      conn.send({ type: "setMaxPlayers", max: cfg.maxPlayers });
+    };
+  });
+}
+
 // ---------- Salon (navigateur) ----------
 function renderLobbyNav() {
   $("soloRow").hidden = false;
+  $("maxRow").hidden = false;
   $("modeRow").hidden = true;
   $("channelRow").hidden = true;
   const list = players.filter((p) => !p.isViewer);
-  $("playersTitle").textContent = list.length + (list.length > 1 ? " joueurs" : " joueur");
+  $("playersTitle").textContent = list.length + (list.length > 1 ? " joueurs" : " joueur") +
+    (maxPlayers ? ` sur ${maxPlayers}` : "");
   $("viewerList").innerHTML = list.map(lobbyPlayerRow).join("") +
     (list.length < 2 ? '<p class="empty-note">Envoie le lien d\'invitation aux autres joueurs.</p>' : "");
   $("viewerList").querySelectorAll(".team-btn").forEach((b) => {
@@ -373,6 +408,7 @@ function renderLobbyNav() {
     b.classList.toggle("on", v === solo);
     b.onclick = () => { if (v !== solo) conn.send({ type: "setSolo", solo: v }); };
   });
+  renderMaxPlayers();
   renderTeamConfig(list);
   wireConfig();
 

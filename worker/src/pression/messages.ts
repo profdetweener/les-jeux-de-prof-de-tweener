@@ -133,6 +133,8 @@ export type ClientMessage =
   | { type: "chatWord"; viewer: string; word: string }
   // Navigateur : chacun pour soi (equipes de 1) ou equipes (hote).
   | { type: "setSolo"; solo: boolean }
+  // Navigateur : nombre maximum de joueurs (0 = sans limite).
+  | { type: "setMaxPlayers"; max: number }
   // Navigateur : mot tape sur la page par un joueur.
   | { type: "word"; word: string }
   | { type: "start"; mode: Mode; config: StartConfig }
@@ -152,12 +154,13 @@ export type ServerMessage =
       mode: Mode;
       source: Source;
       solo: boolean;
+      maxPlayers: number;
       teamCount: number;
       teamNames: string[];
       players: PlayerDTO[];
       game: GameDTO | null;
     }
-  | { type: "room_state"; players: PlayerDTO[]; hostPseudo: string; phase: Phase; mode: Mode; source: Source; solo: boolean; teamCount: number; teamNames: string[] }
+  | { type: "room_state"; players: PlayerDTO[]; hostPseudo: string; phase: Phase; mode: Mode; source: Source; solo: boolean; maxPlayers: number; teamCount: number; teamNames: string[] }
   | { type: "game_state"; game: GameDTO; event?: GameEvent }
   // Mot conforme a la regle mais refuse : affiche sous la caisse, pour que le
   // tchat comprenne pourquoi elle n'a pas bouge. En navigateur, un mot qui ne
