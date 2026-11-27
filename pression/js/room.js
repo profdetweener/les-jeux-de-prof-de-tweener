@@ -695,6 +695,8 @@ function renderWordBox(myTurn, mine, frozen) {
   inp.placeholder = myTurn ? "Ton mot"
     : frozen ? ""
     : solo ? "Attends ton tour" : "Attends le tour de ton équipe";
+  // Sur telephone, la phrase longue ne tient pas dans la case.
+  if (!myTurn && !frozen && !solo && window.innerWidth <= 820) inp.placeholder = "Attends ton tour";
   if (myTurn && !wasMyTurn) inp.focus();
   if (!myTurn && wasMyTurn && document.activeElement === inp) inp.blur();
   wasMyTurn = myTurn;
@@ -756,7 +758,8 @@ function deForm(t) {
 function chargeLabel(t) {
   if (t.lives >= t.maxLives) return "Vies au maximum";
   const n = Math.max(0, game.chargeMax - t.charge);
-  return `Vie supplémentaire dans ${n} ${n > 1 ? "lettres" : "lettre"}`;
+  // Sur telephone, "suppl." remplace "supplementaire" (voir le CSS).
+  return `Vie <span class="w-long">supplémentaire</span><span class="w-short">suppl.</span> dans ${n} ${n > 1 ? "lettres" : "lettre"}`;
 }
 
 // ---------- Ecran de la caisse (boucle d'animation) ----------

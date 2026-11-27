@@ -210,8 +210,20 @@
   .ct-arena { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .ct-center { order: -1; }
   .ct-side { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .ct-side .ct-team { width: 180px; }
+  /* Deux cartes par ligne, coeurs un peu plus petits pour laisser le nom lisible. */
+  .ct-side .ct-team { width: calc(50% - 5px); max-width: 220px; padding: 10px; }
+  .ct-side .ct-team .tname { font-size: 14px; gap: 4px; }
+  .ct-side .ct-team .lives { gap: 1px; }
+  .ct-side .ct-team .life { width: 14px; height: 13px; }
+  /* Joueurs de l'equipe sur une seule ligne, separes par des virgules. */
+  .ct-side .ct-team .members-list li { display: inline; white-space: normal; }
+  .ct-side .ct-team .members-list li:not(:last-child)::after { content: ", "; }
+  .ct-center .ct-word input { font-size: 16px; padding: 10px 12px; }
   .ct-side:empty { display: none; }
+  /* Petit ecran : caisse 30 % plus petite et "Vie suppl." sur les cartes. */
+  .ct-center > .ct-stage { max-width: 175px; }
+  .ct-team .charge-lbl .w-long { display: none; }
+  .ct-team .charge-lbl .w-short { display: inline; }
   /* Petit ecran : espacements reduits, pour garder la case visible. */
   .ct-center > .ct-stage { margin-top: 28px; }
   .ct-center > .ct-word, .ct-center > .ct-spect { margin-top: 28px; }
@@ -231,6 +243,7 @@
 
 /* Scene : la caisse de TNT au centre. */
 .ct-stage { position: relative; width: 100%; max-width: 250px; }
+.charge-lbl .w-short { display: none; }
 .ct-stage svg { width: 100%; height: auto; display: block; overflow: visible; }
 
 /* Caisse de TNT. Le bois, la dynamite et l'ecran sont des objets : ils gardent
