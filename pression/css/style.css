@@ -176,7 +176,7 @@
 
 /* En-tete du jeu : numero de manche, puis la regle, centres. Pastille grise
    neutre : le bleu est deja une couleur d'equipe. */
-.ct-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 18px; }
+.ct-head { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 
 /* Titre vraiment centre sur la page : la barre a un element a gauche (retour)
    et un plus large a droite (tchat, son). En flex "space-between", le titre se
@@ -190,19 +190,32 @@
 /* Arene : equipes a gauche (et a droite au-dela de 4), caisse au centre.
    Les deux colonnes ont la meme largeur pour que la caisse reste centree. */
 /* Les equipes sont poussees vers les bords : la caisse occupe le centre. */
+/* L'arene prend toute la hauteur libre et y centre son contenu, plutot que
+   de rester collee en haut avec un grand vide en dessous. */
 .ct-arena {
   display: grid; grid-template-columns: 240px minmax(280px, 1fr) 240px;
-  gap: 32px; align-items: center; width: 100%;
+  gap: 32px; align-items: center; align-content: center; width: 100%; flex: 1;
 }
-.ct-center { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+/* Espacements verticaux : phrase du tour, grand espace, caisse, grand espace,
+   case pour ecrire, petit espace, dernier mot propose. */
+.ct-center { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.ct-center > .ct-stage { margin-top: 72px; }
+.ct-center > .ct-word, .ct-center > .ct-spect { margin-top: 60px; }
+.ct-center > .ct-props { margin-top: 18px; }
+/* Mode tchat (pas de case) : le dernier mot vient sous la caisse. */
+.ct-center:not(:has(.ct-word:not([hidden]))):not(:has(.ct-spect:not([hidden]))) > .ct-props { margin-top: 48px; }
 .ct-side { display: flex; flex-direction: column; gap: 10px; }
 .ct-side .ct-team { flex: none; width: 100%; min-width: 0; }
 @media (max-width: 820px) {
-  .ct-arena { grid-template-columns: 1fr; gap: 14px; }
+  .ct-arena { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .ct-center { order: -1; }
   .ct-side { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .ct-side .ct-team { width: 180px; }
   .ct-side:empty { display: none; }
+  /* Petit ecran : espacements reduits, pour garder la case visible. */
+  .ct-center > .ct-stage { margin-top: 28px; }
+  .ct-center > .ct-word, .ct-center > .ct-spect { margin-top: 28px; }
+  .ct-center > .ct-props { margin-top: 12px; }
 }
 .ct-manche { font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gris-texte); }
 /* Phrase du haut : "Au tour de [X] : le mot doit [contenir] la syllabe".
@@ -333,7 +346,7 @@
 .ct-team.me .tlabel::after { content: " · toi"; font-weight: 500; font-size: 12px; color: var(--gris-texte); }
 
 /* Navigateur : case du joueur, sous la caisse. Active seulement a son tour. */
-.ct-word { display: flex; gap: 8px; width: 100%; max-width: 420px; margin-top: 2px; }
+.ct-word { display: flex; gap: 8px; width: 100%; max-width: 460px; }
 .ct-word input {
   flex: 1; min-width: 0; padding: 11px 14px; font-size: 18px; font-weight: 700; letter-spacing: .04em;
   text-transform: uppercase; font-family: inherit; color: var(--bleu-nuit); background: var(--blanc);
@@ -345,7 +358,7 @@
 .ct-word .btn { flex: none; padding: 0 18px; }
 .ct-word.bad input { border-color: var(--rouge); animation: word-shake .32s; }
 @keyframes word-shake { 0%,100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-.ct-spect { margin: 2px 0 0; font-size: 14px; color: var(--gris-texte); font-style: italic; text-align: center; }
+.ct-spect { margin: 0; font-size: 14px; color: var(--gris-texte); font-style: italic; text-align: center; }
 .ct-team.flash { animation: flash .6s; }
 .ct-team { position: relative; }
 .time-pop {
@@ -356,7 +369,7 @@
 @keyframes flash { 0%,100% { filter: none; } 50% { filter: brightness(1.25); } }
 
 /* Propositions traitees par le serveur : vert = validee, rouge = refusee. */
-.ct-props { list-style: none; margin: 4px 0 0; padding: 0; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
+.ct-props { list-style: none; padding: 0; width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 6px; }
 .ct-props li {
   display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--rayon-sm);
   background: var(--blanc); border: 2px solid; font-size: 14px;
