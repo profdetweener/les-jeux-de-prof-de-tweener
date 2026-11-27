@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1a2540">
   <title>Les jeux de Prof de Tweener</title>
-  <link rel="stylesheet" href="shared/css/landing.css?v=6">
+  <link rel="stylesheet" href="shared/css/landing.css?v=8">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -57,68 +57,86 @@
       <a href="petitbac/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Petit Bac</h3>
-          <div class="game-card-meta"><span>2-12 joueurs</span></div>
+          <div class="game-card-meta"><span>Navigateur</span></div>
         </div>
         <p class="game-card-tagline">
             Un mot à deviner par catégorie, commençant par une lettre précise. Validation collaborative des réponses de chacun.
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">2-12 joueurs</span>
+        </div>
       </a>
 
       <a href="motus/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Sésame</h3>
-          <div class="game-card-meta"><span>1-12 joueurs / tchat Twitch</span></div>
+          <div class="game-card-meta"><span>Twitch ou navigateur</span></div>
         </div>
         <p class="game-card-tagline">
-           Devine le mot avec le moins de tentative possible. Après chaque essai, on te dit quelle lettre est bien placée / mal placée / absente. 
+           Devine le mot avec le moins de tentatives possible. Après chaque essai, on te dit quelle lettre est bien placée / mal placée / absente. 
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">1-12 joueurs</span>
+        </div>
       </a>
 
       <a href="definitions/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Définitions</h3>
-          <div class="game-card-meta"><span>1-12 joueurs</span></div>
+          <div class="game-card-meta"><span>Navigateur</span></div>
         </div>
         <p class="game-card-tagline">
             Devine la définition du mot ou de l'expression. 
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">1-12 joueurs</span>
+        </div>
       </a>
 
       <a href="blindtest/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Blind Test</h3>
-          <div class="game-card-meta"><span>Via le tchat Twitch</span></div>
+          <div class="game-card-meta"><span>Tchat Twitch</span></div>
         </div>
         <p class="game-card-tagline">
-            Devine la personne qui chante et le nom de la chanson. Jouable exclusivement via le tchat twitch. 
+            Devine la personne qui chante et le nom de la chanson. 
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">Tout le tchat</span>
+        </div>
       </a>
 
       <a href="pression/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Pression</h3>
-          <div class="game-card-meta"><span>Tchat Twitch ou navigateur</span></div>
+          <div class="game-card-meta"><span>Twitch ou navigateur</span></div>
         </div>
         <p class="game-card-tagline">
-            Trouve un mot avec la syllabe imposée avant que la caisse de TNT saute, et passe-la au suivant. Via le tchat Twitch, ou dans le navigateur avec un lien d'invitation.
+            Trouve un mot avec la syllabe imposée avant que la caisse de TNT saute, et passe-la au suivant.
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">2-12 joueurs</span>
+        </div>
       </a>
 
       <a href="motsmeles/index.html" class="game-card">
         <div class="game-card-head">
           <h3 class="game-card-title">Mots mêlés</h3>
-          <div class="game-card-meta"><span>1-20 joueurs / tchat Twitch</span></div>
+          <div class="game-card-meta"><span>Twitch ou navigateur</span></div>
         </div>
         <p class="game-card-tagline">
             Repère les mots cachés dans la grille, sans liste affichée. Les lettres
             restantes forment un mot mystère à deviner.
         </p>
-        <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+        <div class="game-card-foot">
+          <span class="game-card-cta">Jouer <span class="arrow">→</span></span>
+          <span class="game-card-players">1-20 joueurs</span>
+        </div>
       </a>
 
     </div>
