@@ -3,7 +3,7 @@
  *
  *  - petitbac    : une lettre est tiree a la roulette, a cote du titre
  *  - sesame      : les lettres du titre se retournent en tuiles colorees
- *  - definitions : une definition s'ecrit a la machine a la place du texte
+ *  - definitions : un mot et sa definition s'ecrivent a la machine
  *  - blindtest   : un egaliseur danse a cote du titre
  *  - pression    : la carte chauffe jusqu'au rouge puis tremble (CSS seul)
  *  - motsmeles   : les lettres du titre se melangent puis se remettent en place
@@ -16,8 +16,19 @@
   var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!canHover || calm) return;
 
-  // Phrase tapee sur la carte Definitions.
-  var DEFINITION = "Nom féminin : énoncé qui explique le sens d'un mot.";
+  // Carte Definitions : a chaque survol, un mot ou une expression et sa
+  // definition, tapes a la machine (un autre a chaque fois).
+  var DEFINITIONS = [
+    ["Ultracrépidarianisme", "donner son avis sur un sujet qu'on ne connaît pas."],
+    ["Sérendipité", "faire par hasard une découverte qu'on ne cherchait pas."],
+    ["Procrastiner", "remettre à plus tard ce qu'on pourrait faire tout de suite."],
+    ["Bayer aux corneilles", "rester bouche bée, le nez en l'air, à ne rien faire."],
+    ["Tergiverser", "hésiter et chercher des détours pour éviter de décider."],
+    ["Avoir le cafard", "avoir des idées noires, se sentir triste."],
+    ["Pinailler", "chicaner sur des détails sans importance."],
+    ["Poser un lapin", "ne pas venir à un rendez-vous."],
+  ];
+  var defLast = -1;
   // Lettres du Petit Bac (sans les lettres trop rares).
   var PB_LETTERS = "ABCDEFGHIJLMNOPRSTV";
   // Couleurs des tuiles de Sesame : bien placee, mal placee, absente.
@@ -80,14 +91,23 @@
       var orig = p.innerHTML;
       var t = null;
       hover(card, function () {
+        var k;
+        do { k = Math.floor(Math.random() * DEFINITIONS.length); } while (k === defLast && DEFINITIONS.length > 1);
+        defLast = k;
+        var word = DEFINITIONS[k][0], def = " : " + DEFINITIONS[k][1];
+        var full = word + def;
         var i = 0;
         clearInterval(t);
         p.classList.add("fx-typing");
         p.textContent = "";
+        var b = document.createElement("strong");
+        var rest = document.createTextNode("");
+        p.appendChild(b); p.appendChild(rest);
         t = setInterval(function () {
           i++;
-          p.textContent = DEFINITION.slice(0, i);
-          if (i >= DEFINITION.length) clearInterval(t);
+          b.textContent = full.slice(0, Math.min(i, word.length));
+          rest.textContent = i > word.length ? full.slice(word.length, i) : "";
+          if (i >= full.length) clearInterval(t);
         }, 28);
       }, function () {
         clearInterval(t);

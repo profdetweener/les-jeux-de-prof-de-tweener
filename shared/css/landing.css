@@ -518,7 +518,8 @@ html.pdt-skip-welcome #gamesGrid { display: grid; }
   100% { transform: rotateX(0); }
 }
 
-/* Definitions : texte tape, avec un curseur qui clignote. */
+/* Definitions : texte tape, avec un curseur qui clignote. Le mot est en gras. */
+.fx-typing strong { color: var(--bleu-nuit); font-weight: 700; }
 .fx-typing::after {
   content: ""; display: inline-block; width: 7px; height: 13px; margin-left: 1px;
   vertical-align: -2px; background: currentColor; animation: fx-blink .8s steps(2) infinite;
