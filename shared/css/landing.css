@@ -487,3 +487,77 @@ body { display: flex; flex-direction: column; }
 html.pdt-skip-welcome #welcome { display: none; }
 html.pdt-skip-welcome #gamesIntro { display: block; }
 html.pdt-skip-welcome #gamesGrid { display: grid; }
+
+/* ===== Accueil : effet de survol propre a chaque jeu (shared/js/card-fx.js) =====
+   Rien sur ecran tactile, ni si le systeme demande moins d'animations. */
+
+/* Petit Bac : case de lettre a cote du titre, vide au repos. */
+.fx-letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 5px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; font-weight: 700;
+  color: #fff; background: #3a3f4a; opacity: 0; transition: opacity .15s, background .2s;
+}
+.game-card:hover .fx-letter { opacity: 1; }
+.fx-letter.done { background: var(--rouge); }
+
+/* Sesame : chaque lettre du titre devient une tuile qui se retourne. */
+.fx-tile { display: inline-block; }
+.game-card[data-fx="sesame"]:hover .fx-tile {
+  width: 18px; height: 23px; line-height: 23px; margin-right: 2px; border-radius: 4px;
+  text-align: center; font-size: 13px; color: #fff; text-transform: uppercase;
+  animation: fx-flip .45s ease-out both; animation-delay: calc(var(--i) * 70ms);
+}
+.game-card[data-fx="sesame"]:hover .fx-tile.g { background: #3f9a5b; }
+.game-card[data-fx="sesame"]:hover .fx-tile.y { background: #c99a2e; }
+.game-card[data-fx="sesame"]:hover .fx-tile.r { background: #b84a47; }
+@keyframes fx-flip {
+  0% { transform: rotateX(0); background: #5d636e; }
+  50% { transform: rotateX(90deg); background: #5d636e; }
+  51% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0); }
+}
+
+/* Definitions : texte tape, avec un curseur qui clignote. */
+.fx-typing::after {
+  content: ""; display: inline-block; width: 7px; height: 13px; margin-left: 1px;
+  vertical-align: -2px; background: currentColor; animation: fx-blink .8s steps(2) infinite;
+}
+@keyframes fx-blink { 50% { opacity: 0; } }
+
+/* Blind Test : egaliseur a cote du titre, a plat au repos. */
+.fx-eq { display: inline-flex; gap: 3px; align-items: flex-end; height: 18px; opacity: .35; transition: opacity .2s; }
+.fx-eq i { display: block; width: 4px; height: 4px; border-radius: 1px; background: var(--bleu-accent); }
+.game-card:hover .fx-eq { opacity: 1; }
+.game-card:hover .fx-eq i { animation: fx-bar .5s ease-in-out infinite alternate; }
+.game-card:hover .fx-eq i:nth-child(2) { animation-delay: -.2s; }
+.game-card:hover .fx-eq i:nth-child(3) { animation-delay: -.35s; }
+.game-card:hover .fx-eq i:nth-child(4) { animation-delay: -.1s; }
+.game-card:hover .fx-eq i:nth-child(5) { animation-delay: -.4s; }
+@keyframes fx-bar { from { height: 4px; } to { height: 18px; } }
+
+/* Pression : la carte chauffe jusqu'au rouge en 2,4 s, puis tremble. */
+.game-card[data-fx="pression"].fx-on {
+  --fx-heat-bg: #fde3e0; --fx-heat-ring: #e2483f; --fx-heat-title: #c0392b;
+  transition: transform .15s ease-out, box-shadow 2.4s linear, background-color 2.4s linear;
+}
+[data-theme="dark"] .game-card[data-fx="pression"].fx-on {
+  --fx-heat-bg: #4a2424; --fx-heat-title: #ff6b5e;
+}
+.game-card[data-fx="pression"].fx-on .game-card-title { transition: color 2.4s linear; }
+.game-card[data-fx="pression"].fx-on:hover {
+  background-color: var(--fx-heat-bg);
+  box-shadow: var(--ombre-forte), inset 0 0 0 2px var(--fx-heat-ring);
+  animation: fx-shake .07s linear 2.4s infinite;
+}
+.game-card[data-fx="pression"].fx-on:hover .game-card-title { color: var(--fx-heat-title); }
+@keyframes fx-shake {
+  0%, 100% { transform: translate(0, -3px); }
+  25% { transform: translate(-1.5px, -2.5px); }
+  75% { transform: translate(1.5px, -3.5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-letter, .fx-eq { display: none; }
+  .game-card[data-fx] { animation: none !important; }
+}
