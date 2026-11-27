@@ -46,6 +46,15 @@
 .seg { display: inline-flex; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm); overflow: hidden; flex-wrap: wrap; }
 .seg button { border: none; background: var(--blanc); padding: 7px 12px; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--bleu-nuit); }
 .seg button.on { background: var(--bleu-nuit); color: var(--blanc); }
+/* Valeur libre de l'hote. Vide, la case montre en pale la valeur par defaut,
+   qui s'applique : on comprend que la case est a remplir. */
+.custom-input {
+  width: 120px; border: 1px solid var(--gris-clair); border-radius: var(--rayon-sm); background: var(--blanc);
+  padding: 7px 10px; font: inherit; font-size: 13px; color: var(--bleu-nuit); outline: none; text-align: center;
+}
+.custom-input::placeholder { color: var(--gris-texte); opacity: .55; font-style: italic; }
+.custom-input:focus { border-color: var(--bleu-accent); }
+.custom-input.bad { border-color: var(--rouge); box-shadow: 0 0 0 1px var(--rouge); }
 
 /* Regles cochables (plusieurs a la fois). */
 .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -62,11 +71,11 @@
 }
 .stepper button:hover { border-color: var(--bleu-nuit); }
 .stepper b { font-family: Georgia, serif; font-size: 16px; min-width: 18px; text-align: center; }
+.stepper b.unit { min-width: 36px; white-space: nowrap; }
+.stepper button:disabled { opacity: .35; cursor: default; }
+.stepper button:disabled:hover { border-color: var(--gris-clair); }
 
 /* Curseur (temps de passage) */
-.slider { display: inline-flex; align-items: center; gap: 10px; }
-.slider input[type="range"] { width: 170px; accent-color: var(--bleu-accent); cursor: pointer; }
-.slider b { font-family: Georgia, serif; min-width: 52px; text-align: right; }
 
 .channel-input {
   flex: 1; min-width: 0; max-width: 220px; padding: 7px 10px;
@@ -102,6 +111,9 @@
 .entry-resume-actions { display: flex; gap: 8px; }
 .entry-resume-actions .btn { flex: 1; padding: 9px 12px; font-size: 14px; }
 .entry-card .btn { width: 100%; padding: 12px 20px; font-size: 15px; }
+/* Page de choix du mode : bandeaux a la largeur des deux cartes. */
+.entry-resume-wide, .entry-alert-wide { width: 100%; max-width: 760px; margin-left: auto; margin-right: auto; }
+.entry-resume-wide .entry-resume-actions { max-width: 420px; }
 
 /* ===================== Salon ===================== */
 .room-main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 12px 32px; width: 100%; }
@@ -175,9 +187,9 @@
 .ct-header > h1 { justify-self: center; text-align: center; }
 .ct-header > :last-child { justify-self: end; }
 
-/* Arene : equipes a gauche (et a droite au-dela de 4), cocotte au centre.
-   Les deux colonnes ont la meme largeur pour que la cocotte reste centree. */
-/* Les equipes sont poussees vers les bords : la cocotte occupe le centre. */
+/* Arene : equipes a gauche (et a droite au-dela de 4), caisse au centre.
+   Les deux colonnes ont la meme largeur pour que la caisse reste centree. */
+/* Les equipes sont poussees vers les bords : la caisse occupe le centre. */
 .ct-arena {
   display: grid; grid-template-columns: 240px minmax(280px, 1fr) 240px;
   gap: 32px; align-items: center; width: 100%;
@@ -193,60 +205,96 @@
   .ct-side:empty { display: none; }
 }
 .ct-manche { font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gris-texte); }
-.ct-rule {
-  background: #5d636e; color: #ffffff; border-radius: 999px; padding: 6px 18px;
-  font-weight: 800; letter-spacing: .05em; font-size: 17px;
+/* Phrase du haut : "Au tour de [X] : le mot doit [contenir] la syllabe".
+   Le verbe garde le fond gris de l'ancienne etiquette de regle. */
+.ct-rule { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 34px; text-align: center; }
+.ct-rule .line { font-size: 18px; font-weight: 700; line-height: 1.9; color: var(--bleu-nuit); }
+.ct-rule .who { padding: 2px 10px; border-radius: 6px; color: #fff; white-space: nowrap; }
+.ct-rule .verb {
+  background: #5d636e; color: #ffffff; border-radius: 999px; padding: 3px 14px;
+  font-weight: 800; white-space: nowrap;
 }
+.ct-rule .chain-note { font-size: 13px; color: var(--gris-texte); font-style: italic; }
 
-/* Scene : la cocotte au centre. */
+/* Scene : la caisse de TNT au centre. */
 .ct-stage { position: relative; width: 100%; max-width: 250px; }
 .ct-stage svg { width: 100%; height: auto; display: block; overflow: visible; }
-.ct-turn { text-align: center; font-size: 18px; font-weight: 700; min-height: 27px; }
-.ct-turn .who { padding: 2px 10px; border-radius: 6px; color: #fff; }
 
-/* Couleurs de la cocotte (claires ou sombres selon le theme). */
+/* Caisse de TNT. Le bois, la dynamite et l'ecran sont des objets : ils gardent
+   leurs couleurs dans les deux themes. Ce qui change, ce sont les elements qui se
+   detachent sur le fond de la page (fil, meches, poignee, ombre, fumee) : sombres
+   sur le beige du mode clair, eclaircis sur le fond sombre. Le bois est un peu
+   assourdi en mode sombre pour ne pas eblouir. */
 .ct-stage {
-  --pot: #c6cbd3; --pot-dark: #9aa1ad; --pot-shine: #eef1f5; --lid: #b3b9c3;
-  --handle: #2d2f36; --dial: #ffffff; --dial-ink: #1a2540; --steam: rgba(150, 160, 175, .55);
-  --band: #4a6fa5; --pressure: 0;
+  --wood: #c8924f; --wood-side: #9c6a32; --wood-edge: #7a4f22; --wood-plank: #a87638; --ink: #2a1a0c;
+  --metal: #8e9399; --metal-dark: #5f6670; --handle: #5c3b1e;
+  --stick: #d43b33; --stick-mid: #e0483f; --stick-end: #9e2a24; --tape: #2b2b2b;
+  --wire: #2b2b2b; --fuse: #7d6a45;
+  --lcd-frame: #26282c; --lcd-bg: #0c1a10; --lcd-on: #3ee36b; --lcd-hot: #ff5a4f; --lcd-ghost: rgba(62, 227, 107, .08);
+  --shadow: rgba(26, 37, 64, .16); --smoke: rgba(80, 84, 94, .38);
 }
 [data-theme="dark"] .ct-stage {
-  --pot: #8e96a4; --pot-dark: #5f6775; --pot-shine: #c7ccd5; --lid: #7c8492;
-  --handle: #0d0f13; --dial: #eceef2; --dial-ink: #1a2540; --steam: rgba(220, 225, 235, .45);
+  --wood: #b5844a; --wood-side: #8c5f2e; --wood-edge: #5e3c1a; --wood-plank: #976a33;
+  --handle: #8a5a2e; --metal: #a3a8af;
+  --stick: #c9372f; --stick-mid: #d6443b;
+  --wire: #b4bac3; --fuse: #dccb9f;
+  --shadow: rgba(0, 0, 0, .5); --smoke: rgba(205, 210, 220, .32);
 }
-.pot-body { fill: var(--pot); stroke: var(--pot-dark); stroke-width: 3; }
-.pot-lid { fill: var(--lid); stroke: var(--pot-dark); stroke-width: 3; }
-.pot-handle { fill: var(--handle); }
-.pot-band { fill: var(--band); transition: fill .25s; }
-.pot-label { fill: #fff; font-family: Georgia, serif; font-weight: 800; letter-spacing: 3px; }
-.dial-face { fill: var(--dial); stroke: var(--handle); stroke-width: 3; }
-.dial-tick { stroke: var(--dial-ink); stroke-width: 2; }
-.dial-needle { stroke: #c84545; stroke-width: 3.5; stroke-linecap: round; }
-.dial-hub { fill: var(--dial-ink); }
-.valve { fill: var(--handle); }
+.tnt-shadow { fill: var(--shadow); }
+.plunger-rod { fill: var(--metal); }
+.plunger-handle { fill: var(--handle); }
+.crate { fill: var(--wood); }
+.crate-side { fill: var(--wood-side); }
+.crate-edge { fill: none; stroke: var(--wood-edge); stroke-width: 4; }
+.crate-plank { stroke: var(--wood-plank); stroke-width: 2; }
+.lcd-frame { fill: var(--lcd-frame); }
+.lcd-screen { fill: var(--lcd-bg); }
+.lcd, .lcd-ghost { font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace; font-size: 20px; font-weight: 700; }
+.lcd { fill: var(--lcd-on); transition: fill .15s; }
+.lcd-ghost { fill: var(--lcd-ghost); }
+.tnt-label { fill: var(--ink); font-family: Georgia, serif; font-weight: 800; letter-spacing: 2px; }
+.terminal { fill: var(--metal); stroke: var(--metal-dark); stroke-width: 2; }
+.terminal-core { fill: #3a3f46; }
+.stick { fill: var(--stick); }
+.stick.mid { fill: var(--stick-mid); }
+.stick-end { fill: var(--stick-end); }
+.tape { fill: var(--tape); }
+.cap { fill: var(--metal); }
+.fuse { fill: none; stroke: var(--fuse); stroke-width: 2; }
+.wire { fill: none; stroke: var(--wire); stroke-width: 3; stroke-linecap: round; }
 
-/* Vapeur : plus la pression monte, plus elle sort vite et fort. */
-.steam circle { fill: var(--steam); transform-box: fill-box; transform-origin: center; opacity: 0; }
-.ct-stage.cooking .steam circle { animation: puff var(--steam-speed, 2.4s) ease-out infinite; }
-.ct-stage.cooking .steam circle:nth-child(2) { animation-delay: calc(var(--steam-speed, 2.4s) / -3); }
-.ct-stage.cooking .steam circle:nth-child(3) { animation-delay: calc(var(--steam-speed, 2.4s) / -1.5); }
-@keyframes puff {
-  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
-  20% { opacity: .9; }
-  100% { opacity: 0; transform: translate(var(--drift, 6px), -46px) scale(1.6); }
-}
-/* Tremblement en zone rouge. */
-.ct-stage.hot .pot-group { animation: rattle .12s linear infinite; }
-.ct-stage.whistle .pot-group { animation: rattle .06s linear infinite; }
-@keyframes rattle { 0%,100% { transform: translate(0, 0); } 25% { transform: translate(-1.5px, .5px); } 75% { transform: translate(1.5px, -.5px); } }
+/* 5 dernieres secondes : chiffres rouges, meches qui crepitent, caisse qui tremble. */
+.ct-stage.whistle .lcd { fill: var(--lcd-hot); }
+.ct-stage.whistle .lcd-ghost { fill: rgba(255, 90, 79, .08); }
+.sparks circle { fill: #ffd34d; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.ct-stage.whistle .sparks circle { animation: spark .18s steps(2) infinite; }
+.ct-stage.whistle .sparks circle:nth-child(2) { animation-delay: -.09s; }
+@keyframes spark { 0% { opacity: 1; transform: scale(1.2); fill: #ffd34d; } 100% { opacity: .7; transform: scale(.6); fill: #ff8a2a; } }
+.tnt-group { transform-box: fill-box; transform-origin: 50% 100%; }
+.ct-stage.whistle .tnt-group { animation: rattle .07s linear infinite; }
+@keyframes rattle { 0%,100% { transform: translate(0, 0); } 25% { transform: translate(-1.5px, .5px) rotate(-.4deg); } 75% { transform: translate(1.5px, -.5px) rotate(.4deg); } }
 
-/* Explosion : le couvercle saute, nuage de vapeur. */
-.ct-stage .burst { opacity: 0; }
-.ct-stage.boom .lid-group { animation: lid-jump .9s cubic-bezier(.2,.8,.3,1) forwards; }
-.ct-stage.boom .burst { animation: burst 1.1s ease-out forwards; }
-@keyframes lid-jump { 0% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-70px) rotate(-14deg); } 100% { transform: translateY(-8px) rotate(-4deg); } }
-@keyframes burst { 0% { opacity: 0; transform: scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5); } }
-.ct-stage .burst, .ct-stage .lid-group { transform-box: fill-box; transform-origin: center; }
+/* Pause : l'ecran clignote. Entre deux manches : 00:00 en rouge. */
+.ct-stage.paused .lcd { animation: blink 1s steps(2) infinite; }
+.ct-stage.dead .lcd { fill: var(--lcd-hot); }
+@keyframes blink { 50% { opacity: .15; } }
+
+/* Explosion : on enfonce le detonateur, flash, fumee, la caisse saute. */
+.ct-stage .burst { opacity: 0; pointer-events: none; }
+.ct-stage .burst > * { transform-box: fill-box; transform-origin: center; }
+.flash-out { fill: #f08a24; }
+.flash-in { fill: #ffd34d; }
+.smoke { fill: var(--smoke); }
+.ct-stage.boom .plunger { animation: plunge .15s ease-in forwards; }
+.ct-stage.boom .tnt-group { animation: jolt .6s ease-out .12s; }
+.ct-stage.boom .burst { animation: burst-show 1.3s ease-out .12s forwards; }
+.ct-stage.boom .flash-out, .ct-stage.boom .flash-in { animation: flash .7s ease-out .12s forwards; }
+.ct-stage.boom .smoke { animation: smoke 1.3s ease-out .12s forwards; }
+@keyframes plunge { to { transform: translateY(26px); } }
+@keyframes jolt { 0% { transform: translateY(0); } 25% { transform: translateY(-14px) rotate(-3deg); } 55% { transform: translateY(2px) rotate(1.5deg); } 100% { transform: none; } }
+@keyframes burst-show { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes flash { 0% { opacity: 0; transform: scale(.3); } 20% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(1.35); } }
+@keyframes smoke { 0% { opacity: 0; transform: scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.4) translateY(-14px); } }
 
 /* Pause entre deux manches : voile sur la scene. */
 .ct-inter {
@@ -280,6 +328,24 @@
 .ct-team.holder { transform: translateY(-4px); box-shadow: var(--ombre-forte); }
 .ct-team.out { opacity: .45; }
 .ct-team.out .tname::after { content: "éliminée"; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--rouge); margin-left: 4px; }
+.ct-team.out.solo .tname::after { content: "hors jeu"; }
+/* Navigateur : ma carte (moi ou mon equipe). */
+.ct-team.me .tlabel::after { content: " · toi"; font-weight: 500; font-size: 12px; color: var(--gris-texte); }
+
+/* Navigateur : case du joueur, sous la caisse. Active seulement a son tour. */
+.ct-word { display: flex; gap: 8px; width: 100%; max-width: 420px; margin-top: 2px; }
+.ct-word input {
+  flex: 1; min-width: 0; padding: 11px 14px; font-size: 18px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; font-family: inherit; color: var(--bleu-nuit); background: var(--blanc);
+  border: 2px solid var(--gris-clair); border-radius: var(--rayon-sm); outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.ct-word input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 400; font-style: italic; color: var(--gris-texte); opacity: .7; }
+.ct-word input:disabled { background: var(--beige); opacity: .75; cursor: not-allowed; }
+.ct-word.on input { border-color: var(--bleu-accent); box-shadow: 0 0 0 3px rgba(74, 111, 165, .25); }
+.ct-word .btn { flex: none; padding: 0 18px; }
+.ct-word.bad input { border-color: var(--rouge); animation: word-shake .32s; }
+@keyframes word-shake { 0%,100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.ct-spect { margin: 2px 0 0; font-size: 14px; color: var(--gris-texte); font-style: italic; text-align: center; }
 .ct-team.flash { animation: flash .6s; }
 .ct-team { position: relative; }
 .time-pop {
@@ -307,18 +373,6 @@
 .ct-props li { animation: prop-in .18s ease-out, prop-out .3s ease-in 1.7s forwards; }
 @keyframes prop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes prop-out { to { opacity: 0; } }
-
-/* Saisie du streamer. */
-.ct-host-input { display: flex; gap: 8px; width: 100%; max-width: 420px; }
-.ct-host-input input {
-  flex: 1; min-width: 0; padding: 11px 12px; border: 2px solid var(--beige-fonce); border-radius: var(--rayon-sm);
-  font-size: 18px; background: var(--beige); color: var(--bleu-nuit); font-family: inherit;
-  text-transform: uppercase; letter-spacing: .06em;
-}
-.ct-host-input input:focus { outline: none; border-color: var(--bleu-accent); background: var(--blanc); }
-.ct-host-input input:disabled { opacity: .55; }
-.ct-host-input.bad input { animation: shake .3s; border-color: var(--rouge); }
-@keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
 .ct-help { font-size: 13px; color: var(--gris-texte); text-align: center; max-width: 560px; }
 .ct-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
@@ -396,9 +450,10 @@
 [data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #3f5f94; }
 [data-theme="dark"] .seg button.on,
 [data-theme="dark"] .chip.on { background: #35507e; color: #f2eee4; border-color: #35507e; }
-[data-theme="dark"] .ct-rule { background: #d9dce1; color: #1d2129; }
+[data-theme="dark"] .ct-rule .verb { background: #d9dce1; color: #1d2129; }
 [data-theme="dark"] .badge.off { background: #4a2a2a; color: #f0b4b4; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ct-stage.hot .pot-group, .ct-stage.cooking .steam circle { animation: none; }
+  .ct-stage.whistle .tnt-group, .ct-stage.whistle .sparks circle, .ct-stage.paused .lcd { animation: none; }
+  .ct-stage.whistle .sparks circle { opacity: 1; }
 }

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1a2540">
   <title>Pression</title>
   <link rel="stylesheet" href="../shared/css/landing.css?v=7">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=20">
   <script>
     // Applique le theme avant le premier rendu pour eviter le flash clair.
     (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -32,6 +32,14 @@
     <!-- SALON -->
     <section id="lobby" hidden>
       <div class="lobby-card">
+        <!-- Navigateur : lien a envoyer aux autres joueurs. -->
+        <div class="room-code-banner" id="invite" hidden>
+          <span class="label">Lien d'invitation</span>
+          <div class="room-share">
+            <code class="invite-url" id="inviteUrl"></code>
+            <button type="button" class="copy-btn" id="copyBtn">Copier le lien</button>
+          </div>
+        </div>
         <div class="lobby-grid">
           <div class="lobby-players">
             <h3 id="playersTitle">Joueurs</h3>
@@ -41,14 +49,21 @@
           <div class="lobby-config">
             <h3>Configuration</h3>
             <div id="hostControls" hidden>
-              <div class="setup-row">
+              <div class="setup-row" id="soloRow" hidden>
+                <span class="setup-label">Joueurs</span>
+                <div class="seg" id="soloSeg">
+                  <button data-v="teams">En équipes</button>
+                  <button data-v="solo">Chacun pour soi</button>
+                </div>
+              </div>
+              <div class="setup-row" id="modeRow">
                 <span class="setup-label">Mode</span>
                 <div class="seg" id="modeSeg">
                   <button data-m="equipes" class="on">Équipes</button>
                   <button data-m="streamer">Streamer contre tchat</button>
                 </div>
               </div>
-              <div class="setup-row">
+              <div class="setup-row" id="channelRow">
                 <span class="setup-label">Chaîne Twitch</span>
                 <input type="text" id="channelInput" class="channel-input" autocomplete="off"
                        spellcheck="false" placeholder="prof_de_tweener" value="prof_de_tweener">
@@ -73,30 +88,7 @@
                     <button data-v="difficile">Difficiles</button>
                   </div>
                 </div>
-                <div class="setup-row">
-                  <span class="setup-label">Minuteur de chaque équipe</span>
-                  <div class="seg" id="timerSeg">
-                    <button data-v="court">15-25 s</button>
-                    <button data-v="moyen">25-35 s</button>
-                    <button data-v="long">35-50 s</button>
-                  </div>
-                </div>
-                <div class="setup-row">
-                  <span class="setup-label">Minimum au tour suivant</span>
-                  <div class="seg" id="floorSeg">
-                    <button data-v="5">5 s</button>
-                    <button data-v="8">8 s</button>
-                    <button data-v="12">12 s</button>
-                    <button data-v="16">16 s</button>
-                  </div>
-                </div>
-                <div class="setup-row">
-                  <span class="setup-label">Temps de passage</span>
-                  <span class="slider">
-                    <input type="range" id="graceRange" min="0" max="8" step="1" value="3">
-                    <b id="graceVal">3 s</b>
-                  </span>
-                </div>
+                <div id="timeRows"></div>
                 <div class="setup-row">
                   <span class="setup-label">Bonus de rapidité</span>
                   <div class="seg" id="quickSeg">
@@ -106,11 +98,7 @@
                 </div>
                 <div class="setup-row">
                   <span class="setup-label">Boîte de chargement</span>
-                  <div class="seg" id="chargeSeg">
-                    <button data-v="30">30 lettres</button>
-                    <button data-v="50">50 lettres</button>
-                    <button data-v="80">80 lettres</button>
-                  </div>
+                  <input type="text" class="custom-input" id="chargeCustom" inputmode="numeric" autocomplete="off" placeholder="50 lettres" aria-label="Boîte de chargement, en lettres">
                 </div>
                 <div id="livesRows"></div>
               </div>
@@ -137,34 +125,49 @@
             </div>
 
             <div class="ct-stage" id="stage">
-              <svg viewBox="0 0 320 270" role="img" aria-labelledby="potTitle">
-                <title id="potTitle">La cocotte</title>
-                <g class="burst">
-                  <circle cx="110" cy="70" r="34" fill="var(--steam)"/>
-                  <circle cx="160" cy="44" r="42" fill="var(--steam)"/>
-                  <circle cx="212" cy="70" r="34" fill="var(--steam)"/>
-                </g>
-                <g class="steam">
-                  <circle cx="160" cy="28" r="9" style="--drift:-8px"/>
-                  <circle cx="160" cy="28" r="11" style="--drift:9px"/>
-                  <circle cx="160" cy="28" r="8" style="--drift:2px"/>
-                </g>
-                <g class="pot-group">
-                  <rect class="pot-handle" x="4" y="112" width="48" height="16" rx="8"/>
-                  <rect class="pot-handle" x="268" y="112" width="48" height="16" rx="8"/>
-                  <rect class="pot-body" x="40" y="92" width="240" height="152" rx="26"/>
-                  <rect class="pot-band" id="potBand" x="41.5" y="140" width="237" height="66"/>
-                  <text class="pot-label" id="potLabel" x="160" y="189" text-anchor="middle" font-size="50">…</text>
-                </g>
-                <g class="lid-group">
-                  <path class="pot-lid" d="M44 94 Q160 28 276 94 Z"/>
-                  <rect class="valve" x="152" y="36" width="16" height="20" rx="4"/>
-                  <g id="dial">
-                    <circle class="dial-face" cx="214" cy="66" r="27"/>
-                    <g id="dialTicks"></g>
-                    <line class="dial-needle" id="needle" x1="214" y1="66" x2="214" y2="46"/>
-                    <circle class="dial-hub" cx="214" cy="66" r="4"/>
+              <svg viewBox="0 0 260 210" role="img" aria-labelledby="tntTitle">
+                <title id="tntTitle">La caisse de TNT</title>
+                <ellipse class="tnt-shadow" cx="132" cy="197" rx="124" ry="6"/>
+                <g class="tnt-group">
+                  <g class="plunger">
+                    <rect class="plunger-rod" x="76" y="10" width="14" height="34"/>
+                    <rect class="plunger-handle" x="44" y="4" width="78" height="12" rx="6"/>
                   </g>
+                  <rect class="crate" x="14" y="44" width="138" height="150" rx="6"/>
+                  <rect class="crate-side" x="14" y="44" width="11" height="150"/>
+                  <rect class="crate-side" x="141" y="44" width="11" height="150"/>
+                  <rect class="crate-edge" x="14" y="44" width="138" height="150" rx="6"/>
+                  <line class="crate-plank" x1="18" y1="106" x2="148" y2="106"/>
+                  <rect class="lcd-frame" x="38" y="56" width="90" height="38" rx="5"/>
+                  <rect class="lcd-screen" x="44" y="62" width="78" height="26" rx="3"/>
+                  <text class="lcd-ghost" x="83" y="83" text-anchor="middle">88:88</text>
+                  <text class="lcd" id="lcd" x="83" y="83" text-anchor="middle">00:00</text>
+                  <text class="tnt-label" id="syl" x="83" y="161" text-anchor="middle" font-size="42">…</text>
+                  <circle class="terminal" cx="152" cy="122" r="6"/>
+                  <circle class="terminal-core" cx="152" cy="122" r="2"/>
+                  <rect class="stick" x="176" y="104" width="22" height="90" rx="5"/>
+                  <rect class="stick mid" x="200" y="98" width="22" height="96" rx="5"/>
+                  <rect class="stick" x="224" y="104" width="22" height="90" rx="5"/>
+                  <ellipse class="stick-end" cx="187" cy="106" rx="11" ry="4"/>
+                  <ellipse class="stick-end" cx="211" cy="100" rx="11" ry="4"/>
+                  <ellipse class="stick-end" cx="235" cy="106" rx="11" ry="4"/>
+                  <rect class="tape" x="174" y="128" width="74" height="7"/>
+                  <rect class="tape" x="174" y="168" width="74" height="7"/>
+                  <path class="fuse" d="M187 102 C 185 94, 191 90, 188 84"/>
+                  <path class="fuse" d="M235 102 C 237 94, 231 90, 234 84"/>
+                  <rect class="cap" x="206" y="86" width="10" height="14" rx="2"/>
+                  <path class="wire" d="M158 122 C 172 120, 176 70, 211 86"/>
+                  <g class="sparks">
+                    <circle cx="188" cy="83" r="4"/>
+                    <circle cx="234" cy="83" r="4"/>
+                  </g>
+                </g>
+                <g class="burst">
+                  <circle class="smoke" cx="95" cy="80" r="48"/>
+                  <circle class="smoke" cx="175" cy="70" r="54"/>
+                  <circle class="smoke" cx="140" cy="135" r="58"/>
+                  <path class="flash-out" d="M135 18 L152 72 L210 46 L176 96 L240 112 L178 128 L206 182 L148 146 L128 200 L114 146 L56 176 L90 124 L24 110 L88 94 L58 42 L116 72 Z"/>
+                  <path class="flash-in" d="M134 56 L146 88 L182 76 L160 104 L196 114 L158 122 L172 154 L140 132 L128 166 L118 132 L86 150 L106 118 L70 110 L106 100 L90 70 L122 88 Z"/>
                 </g>
               </svg>
               <div class="ct-inter" id="inter" hidden>
@@ -175,13 +178,16 @@
               </div>
             </div>
 
-            <div class="ct-turn" id="turn"></div>
+            <!-- Navigateur : case du joueur, active quand c'est son tour. -->
+            <form class="ct-word" id="wordBox" hidden autocomplete="off">
+              <input type="text" id="wordInput" maxlength="30" spellcheck="false" autocapitalize="characters"
+                     enterkeyhint="send" aria-label="Ton mot">
+              <button class="btn btn-primary" id="wordSend" type="submit">Envoyer</button>
+            </form>
+            <p class="ct-spect" id="spectNote" hidden>Tu regardes cette partie. Tu joueras à la suivante.</p>
+
             <ul class="ct-props" id="props"></ul>
 
-            <div class="ct-host-input" id="hostInput" hidden>
-              <input type="text" id="hostWord" autocomplete="off" spellcheck="false" placeholder="Ton mot">
-              <button class="btn btn-primary" id="hostSend">Envoyer</button>
-            </div>
           </div>
           <div class="ct-side" id="teamsRight"></div>
         </div>
@@ -198,9 +204,10 @@
         <h2 id="winTitle"></h2>
         <p class="end-note" id="endNote"></p>
         <div id="ranking"></div>
-        <h3 id="topTitle" hidden>Meilleurs cuistots</h3>
+        <h3 id="topTitle" hidden>Meilleurs joueurs</h3>
         <div id="top"></div>
         <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
+        <p class="wait-note" id="endWait" hidden>L'hôte va relancer une partie.</p>
       </div>
     </section>
   </main>
@@ -235,7 +242,7 @@
     <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
   </footer>
 
-  <script type="module" src="js/room.js?v=16"></script>
+  <script type="module" src="js/room.js?v=25"></script>
   <script type="module" src="../shared/js/theme.js?v=2"></script>
 </body>
 </html>

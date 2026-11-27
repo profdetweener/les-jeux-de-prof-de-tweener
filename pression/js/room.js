@@ -1,9 +1,14 @@
 /**
  * Pression, page de partie (salon, jeu, fin).
  *
- * La page de l'hote lit le tchat Twitch (IRC anonyme, shared/js/twitch.js) et
- * relaie au Worker : !join (inscriptions) et les mots. Le serveur arbitre tout
- * et n'accepte ces relais que de l'hote. Les autres connectes regardent.
+ * Deux facons de jouer, fixees a la creation de la partie (source) :
+ *  - tchat : la page de l'hote lit le tchat Twitch (IRC anonyme,
+ *    shared/js/twitch.js) et relaie au Worker : !join (inscriptions) et les
+ *    mots. Le serveur n'accepte ces relais que de l'hote. Les autres connectes
+ *    regardent.
+ *  - navigateur : chaque joueur a ouvert le lien d'invitation et tape ses
+ *    mots dans la case sous la caisse quand c'est son tour (ou celui de son
+ *    equipe). Pas de temps de passage.
  */
 
 import { RoomConnection } from "../../shared/js/ws.js";
@@ -13,7 +18,9 @@ import { TwitchChat } from "../../shared/js/twitch.js";
 const params = new URLSearchParams(location.search);
 const CODE = (params.get("code") || "").toUpperCase();
 const ME = (sessionStorage.getItem("pr_pseudo") || localStorage.getItem("pr_pseudo") || "").trim();
-if (!CODE || ME.length < 3) { location.href = "index.html"; }
+// Sans pseudo (lien de la page de jeu partage tel quel) : page pseudo.
+if (!CODE) location.href = "index.html";
+else if (ME.length < 3) location.href = `join.html#${encodeURIComponent(CODE)}`;
 const ACTIVE_KEY = "pr_active";
 const CHANNEL_KEY = "pr_channel";
 const CFG_KEY = "pr_cfg";
@@ -31,11 +38,13 @@ const RULE_LABEL = {
   finit: "FINIT PAR",
   chaine: "CHAÎNE · COMMENCE PAR",
 };
-const RULE_HELP = {
-  contient: "le mot doit contenir la syllabe",
-  commence: "le mot doit commencer par la syllabe",
-  finit: "le mot doit finir par la syllabe",
-  chaine: "le mot doit commencer par la syllabe, et ses 2 dernières lettres deviennent la syllabe suivante",
+// Phrase du haut : "Au tour de [X] : le mot doit [contenir] la syllabe".
+// Le verbe porte le fond gris de la regle.
+const RULE_VERB = {
+  contient: "contenir",
+  commence: "commencer par",
+  finit: "finir par",
+  chaine: "commencer par",
 };
 
 // ---------- Etat ----------
@@ -44,6 +53,8 @@ let hostPseudo = "";
 let players = [];
 let phase = "lobby";
 let mode = "equipes";
+let source = "tchat";
+let solo = false;
 let teamCount = 2;
 let teamNames = [];
 let game = null;
@@ -52,7 +63,6 @@ let clockOffset = 0;
 let lastBlast = null;
 let toastTimer = null;
 let loopId = null;
-let wasMyTurn = false;
 let pendingPop = null;
 // Derniere proposition traitee par le serveur (mot conforme a la regle) :
 // vert si valide, rouge si refuse. Une seule a la fois : elle reste affichee
@@ -100,11 +110,12 @@ conn.onStatus((s) => {
 conn.on("joined", (m) => {
   isHost = m.isHost; hostPseudo = m.hostPseudo; players = m.players; phase = m.phase;
   mode = m.mode; teamCount = m.teamCount; teamNames = m.teamNames || [];
+  source = m.source || "tchat"; solo = !!m.solo;
   game = m.game;
   if (game) setClock(game.serverNow);
   try {
     localStorage.setItem("pr_pseudo", ME);
-    localStorage.setItem(ACTIVE_KEY, JSON.stringify({ code: CODE, pseudo: ME, ts: Date.now() }));
+    localStorage.setItem(ACTIVE_KEY, JSON.stringify({ code: CODE, pseudo: ME, source, ts: Date.now() }));
   } catch {}
   render();
 });
@@ -112,6 +123,7 @@ conn.on("room_state", (m) => {
   const wasHost = isHost;
   players = m.players; hostPseudo = m.hostPseudo; mode = m.mode;
   teamCount = m.teamCount; teamNames = m.teamNames || [];
+  source = m.source || source; solo = !!m.solo;
   isHost = hostPseudo === ME || players.some((p) => p.isHost && p.pseudo === ME);
   // Changement de phase (lancement, retour au salon) : on bascule d'ecran.
   // Au lancement, room_state arrive juste avant le premier game_state.
@@ -132,18 +144,16 @@ conn.on("game_state", (m) => {
   if (m.event) handleEvent(m.event);
   renderGame();
 });
-// Mot refuse : pas d'affichage public (pas d'historique a l'ecran). Seul le
-// streamer, en mode streamer, voit son champ trembler.
+// Mot refuse : affiche sous la caisse 2 s. En navigateur, la case de celui
+// qui l'a tape tremble et son mot reste selectionne pour reessayer.
 conn.on("reject", (m) => {
   const why = m.reason === "used" ? "déjà joué"
     : m.reason === "not_joined" ? "pas inscrit, tape !join"
+    : m.reason === "rule" ? "ne respecte pas la règle"
     : "pas dans le dictionnaire";
   pushProp(false, m.word, m.by, m.teamId, why);
   renderProps();
-  if (mode === "streamer" && isHost && m.teamId === 1) {
-    const box = $("hostInput");
-    box.classList.remove("bad"); void box.offsetWidth; box.classList.add("bad");
-  }
+  if (source === "navigateur" && m.by === ME) wordRefused();
 });
 conn.on("finished", (m) => {
   phase = "finished"; game = null;
@@ -157,6 +167,21 @@ conn.on("error", (m) => {
 });
 conn.connect();
 conn.send({ type: "join", pseudo: ME });
+
+// ---------- Lien d'invitation (navigateur) ----------
+// Lien canonique : join.html#CODE (le code dans le hash, comme Sesame).
+const INVITE_URL = (() => {
+  const u = new URL(location.href);
+  u.pathname = u.pathname.replace(/room\.html$/, "join.html");
+  u.search = "";
+  u.hash = CODE;
+  return u.toString();
+})();
+$("inviteUrl").textContent = INVITE_URL;
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(INVITE_URL); toast("Lien copié !"); }
+  catch { toast("Impossible de copier, sélectionne le lien à la main."); }
+};
 
 // ---------- Helpers ----------
 function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -185,6 +210,7 @@ function render() {
   $("lobby").hidden = phase !== "lobby";
   $("game").hidden = phase !== "playing";
   $("finished").hidden = phase !== "finished";
+  $("invite").hidden = !(source === "navigateur" && phase === "lobby");
   if (phase === "lobby") renderLobby();
   if (phase === "playing") { renderGame(); startLoop(); } else stopLoop();
   syncRelay();
@@ -210,7 +236,36 @@ function lobbyViewerRow(p) {
   return `<div class="player-row"><span class="pname">${esc(p.pseudo)}</span>${team}</div>`;
 }
 
+// Navigateur : liste des joueurs connectes. L'hote place chacun dans une
+// equipe (sauf en chacun pour soi).
+function lobbyPlayerRow(p) {
+  const host = p.isHost ? ' <span class="badge">hôte</span>' : "";
+  const me = p.pseudo === ME ? ' <span class="badge me">toi</span>' : "";
+  let team = "";
+  if (!solo) {
+    if (isHost) team = teamPicker(p);
+    else {
+      const col = colorOf((p.teamId || 1) - 1);
+      team = `<span class="badge team" style="border-color:${col};color:${col}">${esc(teamNameOf(p.teamId || 1))}</span>`;
+    }
+  }
+  return `<div class="player-row"><span class="pname">${esc(p.pseudo)}</span>${host}${me}${team}</div>`;
+}
+function teamPicker(p) {
+  const btns = [];
+  for (let t = 1; t <= teamCount; t++) {
+    const on = p.teamId === t;
+    const style = on ? `background:${colorOf(t - 1)};border-color:${colorOf(t - 1)};color:#fff` : "";
+    btns.push(`<button class="team-btn" style="${style}" data-p="${encodeURIComponent(p.pseudo)}" data-t="${t}">${t}</button>`);
+  }
+  return '<span class="team-pick">' + btns.join("") + "</span>";
+}
+
 function renderLobby() {
+  if (source === "navigateur") return renderLobbyNav();
+  $("soloRow").hidden = true;
+  $("modeRow").hidden = false;
+  $("channelRow").hidden = false;
   const viewers = players.filter((p) => p.isViewer);
 
   if (mode === "equipes") {
@@ -246,6 +301,30 @@ function renderLobby() {
 
   renderTeamConfig(viewers);
 
+  wireConfig();
+
+  $("modeNote").textContent = mode === "equipes"
+    ? "La caisse passe d'équipe en équipe. N'importe quel membre de l'équipe qui la tient peut répondre dans le tchat. Le premier mot valide reçu la fait passer."
+    : "La caisse fait l'aller-retour entre toi et le tchat. Tu écris tes mots dans le tchat, comme les viewers. Tes messages ne comptent que pendant ton tour.";
+
+  let err = "";
+  const filled = new Set(viewers.map((p) => p.teamId).filter((t) => t >= 1));
+  if (!channelName()) err = "Indique la chaîne Twitch à écouter.";
+  else if (mode === "equipes" && filled.size < 2) err = "Il faut des inscrits (!join) dans au moins 2 équipes.";
+  const bad = Object.values(CUSTOM).find((c) => $(c.id).classList.contains("bad"));
+  if (bad) err = bad.err;
+  $("startBtn").disabled = !!err;
+  $("startErr").textContent = err;
+  $("startBtn").onclick = () => {
+    saveCfg();
+    try { localStorage.setItem(CHANNEL_KEY, channelName()); } catch {}
+    unlockAudio();
+    conn.send({ type: "start", mode, config: { ...cfg, streamerName: channelName() } });
+  };
+}
+
+// Reglages de la partie, communs aux deux sources.
+function wireConfig() {
   // Regles : au moins une cochee.
   $("rulesChips").querySelectorAll(".chip").forEach((b) => {
     b.classList.toggle("on", cfg.rules.includes(b.dataset.r));
@@ -257,38 +336,62 @@ function renderLobby() {
     };
   });
   wireSeg("levelSeg", "level", false);
-  wireSeg("timerSeg", "timer", false);
-  wireSeg("floorSeg", "floorSec", true);
+  renderTimeRows();
   // Bonus de rapidite : oui / non.
   $("quickSeg").querySelectorAll("button").forEach((b) => {
     b.classList.toggle("on", (b.dataset.v === "on") === cfg.quickBonus);
     b.onclick = () => { cfg.quickBonus = b.dataset.v === "on"; saveCfg(); renderLobby(); };
   });
-  // Temps de passage : curseur de 0 a 8 s.
-  const gr = $("graceRange");
-  const showGrace = () => { $("graceVal").textContent = cfg.graceSec ? cfg.graceSec + " s" : "aucun"; };
-  gr.value = cfg.graceSec;
-  showGrace();
-  gr.oninput = () => { cfg.graceSec = +gr.value; showGrace(); };
-  gr.onchange = () => saveCfg();
-  wireSeg("chargeSeg", "charge", true);
+  wireCustom("charge");
   renderLives();
+}
 
-  $("modeNote").textContent = mode === "equipes"
-    ? "La cocotte passe d'équipe en équipe. N'importe quel membre de l'équipe qui la tient peut répondre dans le tchat. Le premier mot valide reçu la fait passer."
-    : "La cocotte fait l'aller-retour entre toi et le tchat. Tu tapes tes mots sur cette page, le tchat répond dans le tchat. Tes propres messages dans le tchat sont ignorés.";
+// ---------- Salon (navigateur) ----------
+function renderLobbyNav() {
+  $("soloRow").hidden = false;
+  $("modeRow").hidden = true;
+  $("channelRow").hidden = true;
+  const list = players.filter((p) => !p.isViewer);
+  $("playersTitle").textContent = list.length + (list.length > 1 ? " joueurs" : " joueur");
+  $("viewerList").innerHTML = list.map(lobbyPlayerRow).join("") +
+    (list.length < 2 ? '<p class="empty-note">Envoie le lien d\'invitation aux autres joueurs.</p>' : "");
+  $("viewerList").querySelectorAll(".team-btn").forEach((b) => {
+    b.onclick = () => conn.send({ type: "setTeam", pseudo: decodeURIComponent(b.dataset.p), teamId: +b.dataset.t });
+  });
+
+  if (!isHost) {
+    $("hostControls").hidden = true;
+    $("waitNote").hidden = false;
+    $("waitNote").textContent = "En attente que l'hôte lance la partie.";
+    return;
+  }
+  $("hostControls").hidden = false;
+  $("waitNote").hidden = true;
+
+  $("soloSeg").querySelectorAll("button").forEach((b) => {
+    const v = b.dataset.v === "solo";
+    b.classList.toggle("on", v === solo);
+    b.onclick = () => { if (v !== solo) conn.send({ type: "setSolo", solo: v }); };
+  });
+  renderTeamConfig(list);
+  wireConfig();
+
+  $("modeNote").textContent = solo
+    ? "La caisse passe de joueur en joueur. Quand c'est ton tour, tape ton mot dans la case sous la caisse."
+    : "La caisse passe d'équipe en équipe. Quand c'est au tour de ton équipe, n'importe lequel de ses joueurs peut taper un mot dans la case sous la caisse.";
 
   let err = "";
-  const filled = new Set(viewers.map((p) => p.teamId).filter((t) => t >= 1));
-  if (!channelName()) err = "Indique la chaîne Twitch à écouter.";
-  else if (mode === "equipes" && filled.size < 2) err = "Il faut des inscrits (!join) dans au moins 2 équipes.";
+  const filled = new Set(list.map((p) => p.teamId).filter((t) => t >= 1));
+  if (solo && list.length < 2) err = "Il faut au moins 2 joueurs.";
+  else if (!solo && filled.size < 2) err = "Il faut des joueurs dans au moins 2 équipes.";
+  const bad = Object.values(CUSTOM).find((c) => $(c.id).classList.contains("bad"));
+  if (bad) err = bad.err;
   $("startBtn").disabled = !!err;
   $("startErr").textContent = err;
   $("startBtn").onclick = () => {
     saveCfg();
-    try { localStorage.setItem(CHANNEL_KEY, channelName()); } catch {}
     unlockAudio();
-    conn.send({ type: "start", mode, config: { ...cfg, streamerName: channelName() } });
+    conn.send({ type: "start", mode: "equipes", config: { ...cfg, graceSec: 0 } });
   };
 }
 
@@ -297,8 +400,102 @@ function wireSeg(id, key, numeric) {
   seg.querySelectorAll("button").forEach((b) => {
     const v = numeric ? +b.dataset.v : b.dataset.v;
     b.classList.toggle("on", cfg[key] === v);
-    b.onclick = () => { cfg[key] = v; saveCfg(); wireSeg(id, key, numeric); };
+    b.onclick = () => {
+      cfg[key] = v;
+      saveCfg();
+      renderLobby();
+    };
   });
+}
+
+// Boite de chargement : une case libre. Vide, elle montre en pale la valeur
+// par defaut (50 lettres), qui s'applique. Remplie avec une valeur valide, elle
+// la remplace.
+const intIn = (t, lo, hi) => {
+  const m = /^(\d{1,3})\s*(?:lettres?)?$/i.exec(t);
+  if (!m) return null;
+  const n = +m[1];
+  return n >= lo && n <= hi ? n : null;
+};
+const CUSTOM = {
+  charge: {
+    id: "chargeCustom",
+    parse: (t) => intIn(t, 10, 500),
+    apply(v) { cfg.charge = v; cfg.chargeSet = true; },
+    isSet: () => cfg.chargeSet === true,
+    text: () => `${cfg.charge} lettres`,
+    reset() { cfg.charge = 50; cfg.chargeSet = false; },
+    err: "Boîte de chargement : indique un nombre de lettres entre 10 et 500.",
+  },
+};
+if (typeof cfg.chargeSet !== "boolean") cfg.chargeSet = cfg.charge !== 50;
+
+// Minuteur, minimum au tour suivant et temps de passage : boutons − / +,
+// comme pour les vies. Le minuteur est un temps fixe, par pas de 5 s : toutes
+// les equipes repartent avec ce temps a chaque manche.
+const STEPS = {
+  timerSec: { min: 5, max: 120, step: 5, unit: "s" },
+  floorSec: { min: 1, max: 60, step: 1, unit: "s" },
+  graceSec: { min: 0, max: 8, step: 1, unit: "s" },
+};
+// Reprise des anciens reglages (plages) : on garde le milieu, arrondi a 5 s.
+const OLD_TIMERS = { court: 20, moyen: 30, long: 45 };
+if (cfg.timerSec === undefined) {
+  if (OLD_TIMERS[cfg.timer]) cfg.timerSec = OLD_TIMERS[cfg.timer];
+  else if (cfg.timerMin > 0 && cfg.timerMax > 0) cfg.timerSec = Math.round((cfg.timerMin + cfg.timerMax) / 10) * 5;
+}
+for (const k of Object.keys(STEPS)) {
+  const st = STEPS[k], d = { timerSec: 30, floorSec: 8, graceSec: 3 }[k];
+  const v = Math.round(Number(cfg[k]));
+  cfg[k] = Number.isFinite(v) ? Math.max(st.min, Math.min(st.max, v)) : d;
+}
+// Le serveur attend une plage : un temps fixe, c'est une plage d'une seule valeur.
+cfg.timer = "custom";
+cfg.timerMin = cfg.timerMax = cfg.timerSec;
+delete cfg.floorSet;
+
+function stepper(key) {
+  const st = STEPS[key], v = cfg[key];
+  return `<span class="stepper"><button data-k="${key}" data-d="-1"${v <= st.min ? " disabled" : ""}>−</button>` +
+    `<b class="unit">${v} ${st.unit}</b>` +
+    `<button data-k="${key}" data-d="1"${v >= st.max ? " disabled" : ""}>+</button></span>`;
+}
+function renderTimeRows() {
+  const box = $("timeRows");
+  box.innerHTML =
+    `<div class="setup-row"><span class="setup-label">Minuteur de chaque ${source === "navigateur" && solo ? "joueur" : "équipe"}</span>${stepper("timerSec")}</div>` +
+    `<div class="setup-row"><span class="setup-label">Minimum au tour suivant</span>${stepper("floorSec")}</div>` +
+    // Pas de retard de stream en navigateur : pas de temps de passage.
+    (source === "navigateur" ? "" : `<div class="setup-row"><span class="setup-label">Temps de passage</span>${stepper("graceSec")}</div>`);
+  box.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.k, st = STEPS[k];
+      cfg[k] = Math.max(st.min, Math.min(st.max, cfg[k] + st.step * (+b.dataset.d)));
+      if (k === "timerSec") cfg.timerMin = cfg.timerMax = cfg.timerSec;
+      saveCfg(); renderTimeRows();
+    };
+  });
+}
+function wireCustom(key) {
+  const c = CUSTOM[key], inp = $(c.id);
+  const bad = inp.classList.contains("bad");
+  // Pendant la saisie, on ne touche pas au texte de l'hote.
+  if (document.activeElement !== inp && !bad) inp.value = c.isSet() ? c.text() : "";
+  inp.oninput = () => {
+    const t = inp.value.trim();
+    if (!t) {
+      inp.classList.remove("bad");
+      if (c.isSet()) { c.reset(); saveCfg(); }
+    } else {
+      const v = c.parse(t);
+      inp.classList.toggle("bad", !v);
+      if (v) { c.apply(v); saveCfg(); }
+    }
+    renderLobby();
+  };
+  // En quittant la case, on remet la valeur au propre (« 20-40 s »).
+  inp.onblur = () => renderLobby();
+  inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); };
 }
 
 function stepperRow(label, key) {
@@ -309,7 +506,7 @@ function stepperRow(label, key) {
 function renderLives() {
   const box = $("livesRows");
   box.innerHTML = mode === "equipes"
-    ? stepperRow("Vies par équipe", "lives")
+    ? stepperRow(source === "navigateur" && solo ? "Vies par joueur" : "Vies par équipe", "lives")
     : stepperRow("Tes vies", "livesStreamer") + stepperRow("Vies du tchat", "livesChat");
   box.querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
@@ -322,7 +519,7 @@ function renderLives() {
 
 function renderTeamConfig(viewers) {
   const box = $("teamConfig");
-  if (mode !== "equipes") { box.innerHTML = ""; return; }
+  if (mode !== "equipes" || (source === "navigateur" && solo)) { box.innerHTML = ""; return; }
   const counts = {};
   viewers.forEach((p) => { counts[p.teamId] = (counts[p.teamId] || 0) + 1; });
   let html = `<div class="setup-row"><span class="setup-label">Nombre d'équipes</span>` +
@@ -335,7 +532,10 @@ function renderTeamConfig(viewers) {
       `<span class="count">${n} ${n > 1 ? "joueurs" : "joueur"}</span></div>`;
   }
   html += "</div>";
-  html += `<div class="setup-row"><span class="setup-label">Les viewers choisissent avec !join 1, !join 2…</span>` +
+  const how = source === "navigateur"
+    ? "Les nouveaux arrivent dans l'équipe la moins remplie. Clique sur un numéro pour déplacer un joueur."
+    : "Les viewers choisissent avec !join 1, !join 2…";
+  html += `<div class="setup-row"><span class="setup-label">${how}</span>` +
     `<button class="btn btn-ghost btn-sm" id="shuffleBtn">Répartir au hasard</button></div>`;
   box.innerHTML = html;
   $("shuffleBtn").onclick = () => conn.send({ type: "shuffleTeams" });
@@ -354,6 +554,8 @@ function handleEvent(ev) {
     sound("manche");
   } else if (ev.kind === "pass") {
     pushProp(true, ev.word, ev.by, ev.teamId, "");
+    // Navigateur : mot de mon equipe passe, la case se vide.
+    if (source === "navigateur" && ev.teamId === myTeam()) $("wordInput").value = "";
     if (ev.bonus) {
       const t = gameTeam(ev.teamId);
       toast(`+1 vie pour ${t ? t.name : ""} !`);
@@ -383,23 +585,32 @@ function renderGame() {
   const inter = game.interUntil !== null;
 
   $("manche").textContent = "Manche " + game.manche;
-  $("rule").textContent = RULE_LABEL[game.rule];
 
-  const label = $("potLabel");
+  const label = $("syl");
   label.textContent = inter ? "" : game.syllable;
-  label.setAttribute("font-size", game.syllable.length > 2 ? "48" : "56");
-  $("potBand").style.fill = holder ? colorOf(holder.color) : "";
+  label.setAttribute("font-size", game.syllable.length > 2 ? "42" : "50");
 
   const paused = game.pausedAt !== null;
 
-  // Qui tient la cocotte.
-  const myTurn = mode === "streamer" && isHost && game.holder === 1 && !inter && !paused;
-  if (inter) $("turn").innerHTML = "";
-  else if (myTurn) $("turn").innerHTML = `<span class="who" style="background:${colorOf(0)}">À toi !</span> ${esc(RULE_HELP[game.rule])}`;
-  else if (holder) {
+  // Qui tient la caisse.
+  const mine = myTeam();
+  const myTurn = !inter && !paused && (source === "navigateur"
+    ? mine > 0 && game.holder === mine
+    : mode === "streamer" && isHost && game.holder === 1);
+  // En haut, a la place de l'ancienne etiquette de regle : qui joue et ce que
+  // le mot doit faire. Vide entre deux manches (la regle suivante n'est pas
+  // encore tiree).
+  let who = "";
+  if (myTurn) {
+    const txt = source === "navigateur" && !solo ? "À ton équipe" : "À toi";
+    who = `<span class="who" style="background:${colorOf(holder ? holder.color : 0)}">${txt}</span>`;
+  } else if (holder) {
     const [prep, noun] = deForm(holder);
-    $("turn").innerHTML = `Au tour ${prep}${prep.endsWith("'") ? "" : " "}<span class="who" style="background:${colorOf(holder.color)}">${esc(noun)}</span>`;
+    who = `Au tour ${prep}${prep.endsWith("'") ? "" : " "}<span class="who" style="background:${colorOf(holder.color)}">${esc(noun)}</span>`;
   }
+  $("rule").innerHTML = inter || !holder ? "" :
+    `<span class="line">${who} : le mot doit <span class="verb">${RULE_VERB[game.rule]}</span> la syllabe</span>` +
+    (game.rule === "chaine" ? '<span class="chain-note">Chaîne : les dernières lettres du mot donnent la syllabe suivante</span>' : "");
 
   // Pause de l'hote, ou pause entre deux manches.
   $("inter").hidden = !inter && !paused;
@@ -409,20 +620,23 @@ function renderGame() {
   } else if (inter) {
     const t = lastBlast ? gameTeam(lastBlast.teamId) : null;
     $("interBig").textContent = !lastBlast || !t ? "💥 Ça a sauté !"
-      : lastBlast.eliminated ? `💥 ${cap(nounOf(t))} est éliminée !`
+      : lastBlast.eliminated ? (solo ? `💥 ${t.name} est hors jeu !` : `💥 ${cap(nounOf(t))} est éliminée !`)
       : `💥 Ça a sauté chez ${nounOf(t)} !`;
   }
 
   renderProps();
+  renderWordBox(myTurn, mine, inter || paused);
 
-  // Equipes : 4 a gauche de la cocotte, les suivantes a droite.
+  // Equipes : 4 a gauche de la caisse, les suivantes a droite (au-dela de 8,
+  // moitie a gauche, moitie a droite).
   const cards = game.teams.map((t) => {
     const col = colorOf(t.color);
     let lives = "";
     for (let i = 0; i < Math.max(t.lives, 0); i++) lives += HEART;
     const pct = Math.min(100, Math.round((t.charge / game.chargeMax) * 100));
     const isHolder = t.id === game.holder && !inter && t.alive;
-    return `<div class="ct-team${isHolder ? " holder" : ""}${t.alive ? "" : " out"}" data-t="${t.id}"` +
+    const meCls = (source === "navigateur" && t.id === mine ? " me" : "") + (solo ? " solo" : "");
+    return `<div class="ct-team${isHolder ? " holder" : ""}${t.alive ? "" : " out"}${meCls}" data-t="${t.id}"` +
       ` style="border-color:${isHolder ? col : "var(--gris-clair)"}">` +
       `<div class="tname"><span class="dot" style="background:${col}"></span><span class="tlabel">${esc(t.name)}</span>` +
       `<span class="lives" style="color:${col}" title="${t.lives} vie(s)">${lives}</span></div>` +
@@ -430,8 +644,9 @@ function renderGame() {
       `<div class="charge" title="Boîte de chargement"><span style="width:${pct}%;background:${col}"></span></div>` +
       `<div class="charge-lbl">${chargeLabel(t)}</div></div>`;
   });
-  $("teamsLeft").innerHTML = cards.slice(0, 4).join("");
-  $("teamsRight").innerHTML = cards.slice(4).join("");
+  const nLeft = cards.length <= 8 ? 4 : Math.ceil(cards.length / 2);
+  $("teamsLeft").innerHTML = cards.slice(0, nLeft).join("");
+  $("teamsRight").innerHTML = cards.slice(nLeft).join("");
   // Bonus de rapidite : petit "+2 s" qui s'envole de la carte de l'equipe.
   if (pendingPop) {
     const el = document.querySelector(`.ct-team[data-t="${pendingPop.teamId}"]`);
@@ -444,20 +659,11 @@ function renderGame() {
     pendingPop = null;
   }
 
-  // Sifflement : la cocotte va sauter dans 3 s si personne ne repond.
+  // Compte a rebours final : la caisse saute dans 5 s si personne ne repond.
   const whistling = game.whistling && !inter;
   if (whistling && !whistleStart) whistleStart = performance.now();
   if (!whistling) whistleStart = 0;
   if (whistling) startWhistle(); else stopWhistle();
-
-  // Saisie du streamer.
-  const hi = $("hostInput");
-  hi.hidden = !(mode === "streamer" && isHost);
-  const inp = $("hostWord");
-  inp.disabled = !myTurn;
-  $("hostSend").disabled = !myTurn;
-  if (myTurn && !wasMyTurn) { inp.value = ""; inp.focus(); }
-  wasMyTurn = myTurn;
 
   const pb = $("pauseBtn");
   pb.hidden = !isHost;
@@ -469,6 +675,44 @@ function renderGame() {
   eg.onclick = () => { if (confirm("Terminer la partie maintenant ?")) conn.send({ type: "endGame" }); };
 }
 
+// ---------- Case de saisie (navigateur) ----------
+// Mon equipe dans la partie (0 = je regarde).
+function myTeam() {
+  if (source !== "navigateur") return 0;
+  const me = players.find((p) => p.pseudo === ME);
+  return me ? me.teamId || 0 : 0;
+}
+let wasMyTurn = false;
+function renderWordBox(myTurn, mine, frozen) {
+  const box = $("wordBox"), inp = $("wordInput");
+  const nav = source === "navigateur";
+  box.hidden = !nav || !mine;
+  $("spectNote").hidden = !nav || !!mine;
+  if (!nav || !mine) return;
+  inp.disabled = !myTurn;
+  $("wordSend").disabled = !myTurn;
+  box.classList.toggle("on", myTurn);
+  inp.placeholder = myTurn ? "Ton mot"
+    : frozen ? ""
+    : solo ? "Attends ton tour" : "Attends le tour de ton équipe";
+  if (myTurn && !wasMyTurn) inp.focus();
+  if (!myTurn && wasMyTurn && document.activeElement === inp) inp.blur();
+  wasMyTurn = myTurn;
+}
+function wordRefused() {
+  const box = $("wordBox"), inp = $("wordInput");
+  box.classList.remove("bad"); void box.offsetWidth; box.classList.add("bad");
+  if (!inp.disabled) { inp.focus(); inp.select(); }
+}
+$("wordBox").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const inp = $("wordInput");
+  const w = inp.value.trim();
+  if (!w || inp.disabled) return;
+  unlockAudio();
+  conn.send({ type: "word", word: w });
+});
+
 // Coeur des vies, a la couleur de l'equipe (currentColor).
 const HEART = '<svg class="life" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21.5 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.1 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8L12 21.5Z" fill="currentColor"/></svg>';
 
@@ -477,8 +721,8 @@ const HEART = '<svg class="life" viewBox="0 0 24 22" aria-hidden="true"><path d=
 // entier joue, la liste n'aurait pas de sens).
 const MAX_NAMES = 8;
 function membersHtml(t) {
-  if (mode !== "equipes") return "";
-  const names = players.filter((p) => p.isViewer && p.teamId === t.id).map((p) => p.pseudo);
+  if (mode !== "equipes" || (source === "navigateur" && solo)) return "";
+  const names = players.filter((p) => (source === "navigateur" || p.isViewer) && p.teamId === t.id).map((p) => p.pseudo);
   if (!names.length) return "";
   const shown = names.slice(0, MAX_NAMES).map((n) => `<li>${esc(n)}</li>`).join("");
   const more = names.length > MAX_NAMES ? `<li class="more">+ ${names.length - MAX_NAMES} autres</li>` : "";
@@ -490,6 +734,7 @@ function membersHtml(t) {
 // Nom personnalise en mode equipes ("Les nuls") : "l'équipe Les nuls", ce qui
 // reste correct quel que soit le nom choisi.
 function nounOf(t) {
+  if (solo) return t.name;
   const m = /^Équipe (\d+)$/.exec(t.name);
   if (m) return "l'équipe " + m[1];
   if (mode === "streamer") return t.id === 2 ? "le tchat" : t.name;
@@ -501,9 +746,9 @@ function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 // "Au tour de [l'équipe 2]", "Au tour de l'équipe [Les nuls]",
 // "Au tour du [tchat]", "Au tour d'[Alpha]".
 function deForm(t) {
-  if (/^Équipe \d+$/.test(t.name)) return ["de", nounOf(t)];
+  if (!solo && /^Équipe \d+$/.test(t.name)) return ["de", nounOf(t)];
   if (mode === "streamer" && t.id === 2) return ["du", "tchat"];
-  if (mode === "equipes") return ["de l'équipe", t.name];
+  if (mode === "equipes" && !solo) return ["de l'équipe", t.name];
   if (/^[aeiouyhàâéèêîïôûAEIOUYHÀÂÉÈÊÎÏÔÛ]/.test(t.name)) return ["d'", t.name];
   return ["de", t.name];
 }
@@ -514,74 +759,53 @@ function chargeLabel(t) {
   return `Vie supplémentaire dans ${n} ${n > 1 ? "lettres" : "lettre"}`;
 }
 
-// Saisie du streamer.
-function sendHostWord() {
-  const inp = $("hostWord");
-  const w = inp.value.trim();
-  if (!w || inp.disabled) return;
-  conn.send({ type: "hostWord", word: w });
-  inp.select();
-}
-$("hostSend").onclick = sendHostWord;
-$("hostWord").onkeydown = (e) => { if (e.key === "Enter") sendHostWord(); };
-
-// ---------- Manometre (boucle d'animation) ----------
-const DIAL = { cx: 214, cy: 66 };
-(function drawDial() {
-  const g = $("dialTicks");
-  const pt = (deg, r) => {
-    const a = (deg * Math.PI) / 180;
-    return [DIAL.cx + r * Math.sin(a), DIAL.cy - r * Math.cos(a)];
-  };
-  let html = "";
-  for (let d = -120; d <= 120; d += 30) {
-    const [x1, y1] = pt(d, 18), [x2, y2] = pt(d, 24);
-    html += `<line class="dial-tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
-  }
-  const [ax, ay] = pt(75, 22), [bx, by] = pt(120, 22);
-  html += `<path d="M ${ax.toFixed(1)} ${ay.toFixed(1)} A 22 22 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}" stroke="#c84545" stroke-width="5" fill="none"/>`;
-  g.innerHTML = html;
-})();
-
-// Aiguille : elle monte avec le temps de cuisson mais s'arrete au bord de la
-// zone rouge (RED). Elle n'entre dans le rouge que pendant le compte a rebours final,
-// c'est-a-dire 3 s avant l'explosion : rouge = danger reel, jamais avant.
-const RED = 0.81;
+// ---------- Ecran de la caisse (boucle d'animation) ----------
+// L'ecran affiche le temps qui reste a l'equipe qui tient la caisse. Pendant le
+// temps de passage, il reste fige sur son temps complet. Dans les 5 dernieres
+// secondes : chiffres rouges, meches qui crepitent, caisse qui tremble.
 let whistleStart = 0;
+let lcdText = "";
+function setLcd(ms) {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const t = String(Math.floor(sec / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0");
+  if (t !== lcdText) { lcdText = t; $("lcd").textContent = t; }
+}
 function frame() {
   loopId = requestAnimationFrame(frame);
   if (!game) return;
   const st = $("stage");
-  // En pause : tout est fige (aiguille comprise), plus de vapeur.
-  if (game.pausedAt !== null) { st.classList.remove("cooking", "hot", "whistle"); return; }
   const now = serverTime();
-  let p;
+  // En pause : l'ecran est fige sur le temps restant au moment de la pause et clignote.
+  if (game.pausedAt !== null) {
+    st.classList.remove("whistle", "dead");
+    st.classList.add("paused");
+    if (game.interUntil === null) {
+      const at = Math.max(game.pausedAt, game.turnStartAt);
+      setLcd(game.turnBudgetMs - (at - game.turnStartAt));
+    }
+    return;
+  }
+  st.classList.remove("paused");
   if (game.interUntil !== null) {
-    p = 1;
     const s = Math.max(0, Math.ceil((game.interUntil - now) / 1000));
     $("interSmall").textContent = `Nouvelle manche dans ${s} s`;
-    st.classList.remove("cooking", "hot", "whistle");
-  } else if (whistleStart) {
-    p = RED + (1 - RED) * Math.min(1, (performance.now() - whistleStart) / (WARN_S * 1000));
-    st.classList.add("cooking", "hot", "whistle");
-    st.style.setProperty("--steam-speed", "0.5s");
-  } else {
-    // Pression = part du minuteur de l'equipe deja consommee.
-    const left = game.turnBudgetMs - (now - game.turnStartAt);
-    const t = Math.max(0, Math.min(1, 1 - left / game.fullMs));
-    p = Math.min(RED - 0.02, t);
-    st.classList.add("cooking");
     st.classList.remove("whistle");
-    st.classList.toggle("hot", t > 0.7);
-    st.style.setProperty("--steam-speed", (2.4 - 1.6 * t).toFixed(2) + "s");
+    st.classList.add("dead");
+    setLcd(0);
+    return;
   }
-  $("needle").setAttribute("transform", `rotate(${(-120 + 240 * p).toFixed(1)} ${DIAL.cx} ${DIAL.cy})`);
+  st.classList.remove("dead");
+  // Avant la fin du temps de passage, on reste sur le temps complet du tour.
+  const left = game.turnBudgetMs - Math.max(0, now - game.turnStartAt);
+  setLcd(left);
+  st.classList.toggle("whistle", !!whistleStart || left <= WARN_S * 1000);
 }
 function startLoop() { if (!loopId) loopId = requestAnimationFrame(frame); }
 function stopLoop() { if (loopId) { cancelAnimationFrame(loopId); loopId = null; } stopWhistle(); whistleStart = 0; }
 
 // ---------- Fin ----------
 function renderFinished(m) {
+  solo = !!m.solo;
   const medals = ["🥇", "🥈", "🥉"];
   const tiers = ["gold", "silver", "bronze"];
   if (m.mode === "streamer") {
@@ -597,7 +821,7 @@ function renderFinished(m) {
   $("ranking").innerHTML = m.teams.map((t, i) => {
     const tier = tiers[i] || "";
     const badge = medals[i] || `<span class="rank-num">${i + 1}</span>`;
-    const detail = t.alive ? `${t.lives} ${t.lives > 1 ? "vies restantes" : "vie restante"}` : "éliminée";
+    const detail = t.alive ? `${t.lives} ${t.lives > 1 ? "vies restantes" : "vie restante"}` : solo ? "hors jeu" : "éliminée";
     return `<div class="rank-row${tier ? " " + tier : ""}"><span class="rank-medal">${badge}</span>` +
       `<span class="dot" style="background:${colorOf(t.color)}"></span>` +
       `<span class="pname">${esc(t.name)}</span><span class="detail">${detail}</span></div>`;
@@ -613,6 +837,7 @@ function renderFinished(m) {
 
   const lb = $("lobbyBtn");
   lb.hidden = !isHost;
+  $("endWait").hidden = isHost || m.source !== "navigateur";
   lb.onclick = () => conn.send({ type: "backToLobby" });
 }
 
@@ -670,7 +895,7 @@ function setChatStatus(state, text) {
 // render (a chaque !join par exemple) ne doit pas couper le tchat.
 function syncRelay(force) {
   const ch = channelName();
-  const want = isHost && !!ch && phase !== "finished";
+  const want = isHost && source === "tchat" && !!ch && phase !== "finished";
   if (!want) { stopRelay(); return; }
   if (chat && chat.channel === ch && !force) return;
   stopRelay();
@@ -693,8 +918,6 @@ function onChatMessage(m) {
   if (phase !== "playing" || !game) return dbgLog(m, "hors partie", "ko");
   if (game.interUntil !== null) return dbgLog(m, "pause entre deux manches", "ko");
   if (game.pausedAt !== null) return dbgLog(m, "partie en pause", "ko");
-  // En streamer, le streamer joue sur sa page : ses messages du tchat ne comptent pas.
-  if (mode === "streamer" && chat && m.name.toLowerCase() === chat.channel) return dbgLog(m, "message du streamer (il joue sur sa page)", "ko");
   if (!looksLikeWord(text)) return dbgLog(m, "pas un mot seul", "ko");
   // Pre-filtre : seuls les mots qui respectent la regle partent au serveur.
   // On tolere l'avant-derniere syllabe, le temps que l'etat se mette a jour.
@@ -736,7 +959,7 @@ const DBG_RESULT = {
   not_joined: ["pas inscrit (!join)", "ko"],
   not_turn: ["pas le tour de son équipe", "ko"],
   spam: ["anti-spam", "ko"],
-  late: ["trop tard, la cocotte a déjà sauté", "ko"],
+  late: ["trop tard, la caisse a déjà sauté", "ko"],
   rule: ["ne respecte pas la règle (serveur)", "ko"],
   used: ["déjà joué", "ko"],
   unknown: ["pas dans le dictionnaire", "ko"],
@@ -744,11 +967,11 @@ const DBG_RESULT = {
 conn.on("chat_debug", (m) => {
   const [label, cls] = DBG_RESULT[m.result] || [m.result, "ko"];
   let extra = "";
-  if (m.result === "not_turn") extra = ` (son équipe : ${m.teamId}, cocotte chez l'équipe ${m.holder})`;
+  if (m.result === "not_turn") extra = ` (son équipe : ${m.teamId}, caisse chez l'équipe ${m.holder})`;
   if (m.result === "rule") extra = ` (${RULE_LABEL[m.rule].toLowerCase()} ${m.syllable})`;
   dbgPush(`<span class="srv">serveur</span> <b>${esc(m.by)}</b> ${esc(normWord(m.word))} → ${esc(label + extra)}`, cls);
 });
-function syncDebug() { $("dbgPanel").hidden = !(DEBUG && isHost); }
+function syncDebug() { $("dbgPanel").hidden = !(DEBUG && isHost && source === "tchat"); }
 
 // ---------- Son (WebAudio, aucun fichier) ----------
 let soundOn = localStorage.getItem(SOUND_KEY) !== "off";
@@ -857,7 +1080,7 @@ function sound(kind) {
 // room.html?code=XXX&test=1 : l'hote peut ecrire comme n'importe quel viewer.
 // Les messages passent par le meme chemin que ceux de l'IRC.
 const TEST_MODE = params.get("test") === "1";
-function syncTestChat() { $("testChat").hidden = !(TEST_MODE && isHost && phase !== "finished"); }
+function syncTestChat() { $("testChat").hidden = !(TEST_MODE && isHost && source === "tchat" && phase !== "finished"); }
 function sendTest(name, text) {
   name = String(name || "").trim(); text = String(text || "").trim();
   if (!name || !text) return;

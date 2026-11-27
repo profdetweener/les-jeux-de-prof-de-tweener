@@ -2,15 +2,19 @@
  * PressionRoom, Durable Object de Pression (voir messages.ts pour les
  * regles et le protocole).
  *
- * Les joueurs sont les viewers du tchat Twitch : ils n'ont pas de WebSocket.
- * La page de l'hote lit le tchat et relaie (chatJoin / chatWord) ; le serveur
- * n'accepte ces relais que de l'hote. Les autres connectes sont spectateurs.
+ * Source "tchat" : les joueurs sont les viewers du tchat Twitch, sans
+ * WebSocket. La page de l'hote lit le tchat et relaie (chatJoin / chatWord) ;
+ * le serveur n'accepte ces relais que de l'hote. Les autres connectes
+ * regardent.
  *
- * Minuterie : une seule alarme DO, qui sert soit a l'explosion de la cocotte,
- * soit a la fin de la pause entre deux manches. L'instant de l'explosion est
- * tire au hasard dans une plage et n'est jamais envoye au client.
+ * Source "navigateur" : les joueurs sont les connectes (lien d'invitation).
+ * Chacun envoie ses mots lui-meme (word). L'hote compose les equipes ou
+ * choisit "chacun pour soi".
  *
- * Seuls `initialized` et `hostPseudo` sont persistes, comme les autres jeux.
+ * Minuterie : une seule alarme DO, qui sert soit a l'explosion de la caisse,
+ * soit a la fin de la pause entre deux manches.
+ *
+ * Seuls `initialized`, `source` et `hostPseudo` sont persistes.
  */
 
 import { ROOM_CONFIG } from "../shared/types";
@@ -18,13 +22,21 @@ import { validatePseudo, pseudosEqual } from "../shared/moderation";
 import { norm, isWord, matchesRule, drawSyllable, startCount, CHAIN_MIN, warmUp } from "./dict";
 import type {
   ClientMessage, ServerMessage, PlayerDTO, TeamDTO, GameDTO, GameEvent, PassInfo, ViewerStat,
-  Phase, Mode, Rule, Level, Timer, StartConfig, CtErrorCode, ChatDebugResult,
+  Phase, Mode, Source, Rule, Level, Timer, StartConfig, CtErrorCode, ChatDebugResult,
 } from "./messages";
 
-interface Session {
+// Mots et lettres qui ont fait passer la caisse (stats de fin).
+interface Stat { words: number; letters: number; }
+
+interface Session extends Stat {
   pseudo: string;
   ws: WebSocket | null;
   joinedAt: number;
+  // Navigateur uniquement.
+  teamId: number;      // equipe dans le salon (1..teamCount)
+  playTeam: number;    // equipe dans la partie en cours (0 = spectateur)
+  tokens: number;      // seau a jetons anti-spam
+  lastRefill: number;
 }
 
 // Un viewer du tchat. En "equipes", il n'existe qu'apres !join. En
@@ -35,7 +47,7 @@ interface Viewer {
   teamId: number;      // 0 = sans equipe
   tokens: number;      // seau a jetons anti-spam
   lastRefill: number;
-  words: number;       // mots qui ont fait passer la cocotte
+  words: number;       // mots qui ont fait passer la caisse
   letters: number;
 }
 
@@ -53,26 +65,28 @@ interface Team {
 const MAX_TEAMS = 8;
 const RULES: Rule[] = ["contient", "commence", "finit", "chaine"];
 const LEVELS: Level[] = ["facile", "moyen", "difficile"];
-// Minuteur de depart : tire au hasard dans la plage au lancement (en secondes
-// entieres), le meme pour toutes les equipes.
-const TIMERS: Record<Timer, [number, number]> = {
+// Anciennes plages du minuteur de depart (la page envoie maintenant un temps
+// fixe, timer = "custom" avec timerMin = timerMax).
+const TIMERS: Record<Exclude<Timer, "custom">, [number, number]> = {
   court: [15, 25],
   moyen: [25, 35],
   long: [35, 50],
 };
 // Minimum au tour suivant d'une equipe qui a valide (en s). Doit couvrir le
-// retard du stream : le tchat voit la cocotte arriver quelques secondes apres
+// retard du stream : le tchat voit la caisse arriver quelques secondes apres
 // le serveur.
-const FLOORS = [5, 8, 12, 16];
-const CHARGES = [30, 50, 80];
+// L'hote peut aussi saisir ses propres valeurs, dans ces limites.
+const TIMER_MIN = 5, TIMER_MAX = 120;
+const FLOOR_MIN = 1, FLOOR_MAX = 60;
+const CHARGE_MIN = 10, CHARGE_MAX = 500;
 const LIVES_MIN = 1, LIVES_MAX = 6;
 // La boite de chargement peut faire monter une equipe jusqu'a ses vies de
 // depart + 2, pas au-dela (sinon une equipe en avance devient intouchable).
 const LIVES_BONUS_CAP = 2;
 const INTER_MS = 5000;   // pause entre deux manches
-// Compte a rebours final (tic-tac + aiguille dans le rouge) : les WARN_MS
-// dernieres millisecondes du minuteur de l'equipe qui tient la cocotte.
-// Une equipe qui recoit la cocotte au minimum (5 s) l'entend donc tout de suite.
+// Compte a rebours final (tic-tac + chiffres rouges) : les WARN_MS
+// dernieres millisecondes du minuteur de l'equipe qui tient la caisse.
+// Une equipe qui recoit la caisse au minimum (5 s) l'entend donc tout de suite.
 const WARN_MS = 5000;
 // Bonus de rapidite par paliers : [temps de reponse max, bonus], en ms. Le
 // temps de reponse se compte a partir du demarrage du minuteur, donc APRES le
@@ -84,12 +98,12 @@ const QUICK_TIERS: Array<[number, number]> = [
   [5000, 2000],   // moins de 5 s : +2 s
   [8000, 1000],   // moins de 8 s : +1 s
 ];
-// Temps de passage : quand la cocotte change d'equipe, la syllabe s'affiche
+// Temps de passage : quand la caisse change d'equipe, la syllabe s'affiche
 // tout de suite mais le minuteur de l'equipe ne demarre qu'apres ce delai.
 // Compense le retard du stream (2 a 5 s en faible latence). Les mots recus
 // pendant ce temps comptent. Pas de temps de passage pour le streamer en
 // mode streamer : il voit tout en direct.
-const GRACE_MAX = 8;   // secondes, reglage par curseur de 0 a 8
+const GRACE_MAX = 8;   // secondes, reglage de 0 a 8 (tchat uniquement)
 const RECENT = 12;       // syllabes recentes evitees au tirage
 // Garde-fou anti-bot par viewer (seau a jetons) : 10 essais d'avance, un jeton
 // regagne toutes les 300 ms. Un humain qui enchaine les propositions apres un
@@ -115,6 +129,13 @@ export class PressionRoom {
   private players: Map<string, Session>;
   private wsToPseudo: Map<WebSocket, string>;
   private hostPseudo: string | null;
+  // Fixee a la creation de la partie (corps de POST /pression/rooms).
+  private source: Source;
+  // Navigateur : chacun pour soi (une equipe par joueur).
+  private solo: boolean;
+  // Navigateur : equipe de chaque pseudo dans le salon, pour la retrouver
+  // apres un rafraichissement de page (la session est supprimee a la deconnexion).
+  private lobbyTeamMemo: Map<string, number>;
 
   private phase: Phase;
   private mode: Mode;
@@ -155,6 +176,9 @@ export class PressionRoom {
     this.players = new Map();
     this.wsToPseudo = new Map();
     this.hostPseudo = null;
+    this.source = "tchat";
+    this.solo = false;
+    this.lobbyTeamMemo = new Map();
     this.phase = "lobby";
     this.mode = "equipes";
     this.teamCount = 2;
@@ -190,6 +214,8 @@ export class PressionRoom {
       try {
         const h = await this.state.storage.get<string>("hostPseudo");
         if (typeof h === "string" && h.length > 0) this.hostPseudo = h;
+        const src = await this.state.storage.get<string>("source");
+        if (src === "navigateur") this.source = "navigateur";
       } catch { /* tolerant */ }
     });
   }
@@ -208,6 +234,11 @@ export class PressionRoom {
       return Response.json({ exists: init === true });
     }
     if (url.pathname.endsWith("/__internal/init")) {
+      // Corps facultatif : { source: "tchat" | "navigateur" } (tchat par defaut).
+      let body: { source?: string } = {};
+      try { body = await request.json(); } catch { /* pas de corps : tchat */ }
+      this.source = body.source === "navigateur" ? "navigateur" : "tchat";
+      await this.state.storage.put("source", this.source);
       await this.state.storage.put("initialized", true);
       return Response.json({ ok: true });
     }
@@ -244,7 +275,7 @@ export class PressionRoom {
     void this.state.storage.setAlarm(at);
   }
 
-  // Prochaine echeance de la cuisson : le sifflement, puis l'explosion.
+  // Prochaine echeance : le compte a rebours final, puis l'explosion.
   private scheduleFuse(): void {
     this.schedule(this.warned ? this.explodeAt : this.explodeAt - WARN_MS);
   }
@@ -263,7 +294,8 @@ export class PressionRoom {
       case "shuffleTeams": return this.onShuffleTeams(ws);
       case "chatJoin": return this.onChatJoin(ws, msg.viewer, msg.team);
       case "chatWord": return this.onChatWord(ws, msg.viewer, msg.word);
-      case "hostWord": return this.onHostWord(ws, msg.word);
+      case "setSolo": return this.onSetSolo(ws, msg.solo);
+      case "word": return this.onWord(ws, msg.word);
       case "start": return this.onStart(ws, msg.mode, msg.config);
       case "endGame": return this.onEndGame(ws);
       case "pause": return this.onPause(ws, true);
@@ -302,9 +334,22 @@ export class PressionRoom {
       this.err(ws, "ROOM_FULL", "Room pleine."); ws.close(); return;
     }
 
-    // Spectateurs acceptes meme en cours de partie : ils ne jouent pas, ils
-    // regardent. L'hote, lui, doit pouvoir revenir a tout moment.
-    this.players.set(pseudo, { pseudo, ws, joinedAt: Date.now() });
+    // Tchat : les connectes regardent, meme en cours de partie. L'hote, lui,
+    // doit pouvoir revenir a tout moment.
+    // Navigateur : dans le salon, un nouveau joueur va dans l'equipe ou il
+    // etait (rafraichissement), sinon dans la moins remplie. En partie, il
+    // rejoint l'equipe en vie la moins remplie, sauf en chacun pour soi ou il
+    // regarde jusqu'a la partie suivante.
+    const s: Session = {
+      pseudo, ws, joinedAt: Date.now(), teamId: 0, playTeam: 0,
+      tokens: CHAT_BURST, lastRefill: Date.now(), words: 0, letters: 0,
+    };
+    if (this.source === "navigateur") {
+      const memo = this.lobbyTeamMemo.get(pseudo.toLowerCase()) || 0;
+      s.teamId = memo >= 1 && memo <= this.teamCount ? memo : this.smallestLobbyTeam();
+      if (this.phase === "playing" && !this.solo) s.playTeam = this.smallestAliveTeam();
+    }
+    this.players.set(pseudo, s);
     this.wsToPseudo.set(ws, pseudo);
 
     const first = this.players.size === 1;
@@ -315,13 +360,23 @@ export class PressionRoom {
 
     this.sendSnapshot(ws, pseudo);
     this.broadcastRoom();
+    if (s.playTeam) this.broadcastGame();
   }
 
   // ========================= Salon =========================
   private onSetMode(ws: WebSocket, mode: Mode): void {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote regle le mode.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    if (this.source === "navigateur") return;
     this.mode = mode === "streamer" ? "streamer" : "equipes";
+    this.broadcastRoom();
+  }
+
+  private onSetSolo(ws: WebSocket, solo: boolean): void {
+    if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote regle les equipes.");
+    if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
+    if (this.source !== "navigateur") return;
+    this.solo = solo === true;
     this.broadcastRoom();
   }
 
@@ -329,13 +384,10 @@ export class PressionRoom {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote regle les equipes.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
     this.teamCount = clampInt(n, 2, MAX_TEAMS, 2);
-    // Les inscrits d'une equipe supprimee sont replaces dans la moins peuplee.
-    for (const v of this.viewers.values()) {
-      if (v.joined && v.teamId > this.teamCount) v.teamId = 0;
-    }
-    for (const v of this.viewers.values()) {
-      if (v.joined && v.teamId === 0) v.teamId = this.smallestLobbyTeam();
-    }
+    // Les membres d'une equipe supprimee sont replaces dans la moins peuplee.
+    const list = this.lobbyMembers();
+    for (const m of list) if (m.teamId > this.teamCount) m.teamId = 0;
+    for (const m of list) if (m.teamId === 0) m.teamId = this.smallestLobbyTeam();
     this.broadcastRoom();
   }
 
@@ -353,8 +405,9 @@ export class PressionRoom {
   private onSetTeam(ws: WebSocket, target: string, teamId: number): void {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote compose les equipes.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
-    const v = this.viewers.get(String(target || "").toLowerCase());
-    if (v && v.joined) v.teamId = clampInt(teamId, 1, this.teamCount, 1);
+    const key = String(target || "").toLowerCase();
+    const m = this.lobbyMembers().find((x) => x.name.toLowerCase() === key);
+    if (m) m.teamId = clampInt(teamId, 1, this.teamCount, 1);
     this.broadcastRoom();
   }
 
@@ -362,15 +415,41 @@ export class PressionRoom {
   private onShuffleTeams(ws: WebSocket): void {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote compose les equipes.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Pas dans le salon.");
-    const list = [...this.viewers.values()].filter((v) => v.joined);
+    const list = this.lobbyMembers();
     shuffleInPlace(list);
-    list.forEach((v, i) => { v.teamId = (i % this.teamCount) + 1; });
+    list.forEach((m, i) => { m.teamId = (i % this.teamCount) + 1; });
     this.broadcastRoom();
   }
 
+  // Membres d'equipe dans le salon : inscrits du tchat, ou connectes en
+  // navigateur. On renvoie des proxys dont teamId ecrit dans l'objet d'origine.
+  private lobbyMembers(): Array<{ name: string; teamId: number }> {
+    if (this.source === "navigateur") {
+      return [...this.players.values()].map((s) => ({
+        name: s.pseudo,
+        get teamId() { return s.teamId; },
+        set teamId(t: number) { s.teamId = t; },
+      }));
+    }
+    return [...this.viewers.values()].filter((v) => v.joined).map((v) => ({
+      name: v.name,
+      get teamId() { return v.teamId; },
+      set teamId(t: number) { v.teamId = t; },
+    }));
+  }
   private lobbyCounts(): Record<number, number> {
     const c: Record<number, number> = {};
-    for (const v of this.viewers.values()) if (v.joined && v.teamId >= 1) c[v.teamId] = (c[v.teamId] || 0) + 1;
+    for (const m of this.lobbyMembers()) if (m.teamId >= 1) c[m.teamId] = (c[m.teamId] || 0) + 1;
+    return c;
+  }
+  // Effectif de chaque equipe de la partie en cours.
+  private playCounts(): Record<number, number> {
+    const c: Record<number, number> = {};
+    if (this.source === "navigateur") {
+      for (const s of this.players.values()) if (s.playTeam >= 1) c[s.playTeam] = (c[s.playTeam] || 0) + 1;
+    } else {
+      for (const v of this.viewers.values()) if (v.joined && v.teamId >= 1) c[v.teamId] = (c[v.teamId] || 0) + 1;
+    }
     return c;
   }
   private smallestLobbyTeam(): number {
@@ -384,7 +463,7 @@ export class PressionRoom {
   }
   // En partie : equipe en vie la moins peuplee, pour un retardataire.
   private smallestAliveTeam(): number {
-    const c = this.lobbyCounts();
+    const c = this.playCounts();
     let best = 0, bestN = Infinity;
     for (const t of this.teams) {
       if (!t.alive) continue;
@@ -408,7 +487,7 @@ export class PressionRoom {
   // de partie (un retardataire rejoint une equipe encore en vie).
   private onChatJoin(ws: WebSocket, viewer: string, team: number): void {
     if (!this.isHostWs(ws)) return;
-    if (this.mode !== "equipes" || this.phase === "finished") return;
+    if (this.source !== "tchat" || this.mode !== "equipes" || this.phase === "finished") return;
     const name = String(viewer || "").slice(0, 30).trim();
     if (!name) return;
     const key = name.toLowerCase();
@@ -446,21 +525,26 @@ export class PressionRoom {
   private sanitizeConfig(c: Partial<StartConfig> | undefined): StartConfig {
     const rules = Array.isArray(c?.rules) ? c!.rules.filter((r): r is Rule => RULES.includes(r as Rule)) : [];
     const level = LEVELS.includes(c?.level as Level) ? (c!.level as Level) : "moyen";
-    const timer: Timer = c?.timer === "court" || c?.timer === "long" ? c.timer : "moyen";
-    const fl = Math.floor(Number(c?.floorSec));
-    const ch = Math.floor(Number(c?.charge));
+    let timer: Timer = c?.timer === "court" || c?.timer === "long" || c?.timer === "custom" ? c.timer : "moyen";
+    let timerMin: number | undefined, timerMax: number | undefined;
+    if (timer === "custom") {
+      const a = clampInt(c?.timerMin, TIMER_MIN, TIMER_MAX, 0);
+      const b = clampInt(c?.timerMax, TIMER_MIN, TIMER_MAX, 0);
+      if (a && b) { timerMin = Math.min(a, b); timerMax = Math.max(a, b); }
+      else timer = "moyen";
+    }
     const streamerName = String(c?.streamerName || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 25);
     return {
       rules: rules.length ? [...new Set(rules)] : ["contient"],
-      level, timer,
-      floorSec: FLOORS.includes(fl) ? fl : 8,
+      level, timer, timerMin, timerMax,
+      floorSec: clampInt(c?.floorSec, FLOOR_MIN, FLOOR_MAX, 8),
       quickBonus: c?.quickBonus !== false,
       graceSec: clampInt(c?.graceSec, 0, GRACE_MAX, 3),
       streamerName,
       lives: clampInt(c?.lives, LIVES_MIN, LIVES_MAX, 3),
       livesStreamer: clampInt(c?.livesStreamer, LIVES_MIN, LIVES_MAX, 3),
       livesChat: clampInt(c?.livesChat, LIVES_MIN, LIVES_MAX, 3),
-      charge: CHARGES.includes(ch) ? ch : 50,
+      charge: clampInt(c?.charge, CHARGE_MIN, CHARGE_MAX, 50),
     };
   }
 
@@ -468,14 +552,38 @@ export class PressionRoom {
     if (!this.isHostWs(ws)) return this.err(ws, "NOT_HOST", "Seul l'hote lance.");
     if (this.phase !== "lobby") return this.err(ws, "WRONG_PHASE", "Deja lancee.");
 
-    this.mode = mode === "streamer" ? "streamer" : "equipes";
+    this.mode = mode === "streamer" && this.source === "tchat" ? "streamer" : "equipes";
     this.cfg = this.sanitizeConfig(config);
+    // Pas de retard de stream en navigateur : pas de temps de passage.
+    if (this.source === "navigateur") this.cfg.graceSec = 0;
 
     const mk = (id: number, name: string, lives: number): Team => ({
       id, name, lives, maxLives: lives + LIVES_BONUS_CAP, charge: 0, alive: true, out: 0, clockMs: 0,
     });
 
-    if (this.mode === "equipes") {
+    if (this.source === "navigateur") {
+      const list = [...this.players.values()].filter((s) => s.ws !== null).sort((a, b) => a.joinedAt - b.joinedAt);
+      for (const s of this.players.values()) s.playTeam = 0;
+      if (this.solo) {
+        if (list.length < 2) return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut au moins 2 joueurs.");
+        this.teams = list.map((s, i) => { s.playTeam = i + 1; return mk(i + 1, s.pseudo, this.cfg.lives); });
+      } else {
+        const c: Record<number, number> = {};
+        for (const s of list) if (s.teamId >= 1) c[s.teamId] = (c[s.teamId] || 0) + 1;
+        const teams: Team[] = [];
+        for (let t = 1; t <= this.teamCount; t++) {
+          if ((c[t] || 0) > 0) teams.push(mk(t, this.teamNameOf(t), this.cfg.lives));
+        }
+        if (teams.length < 2) {
+          return this.err(ws, "NOT_ENOUGH_PLAYERS", "Il faut des joueurs dans au moins 2 equipes.");
+        }
+        for (const s of list) s.playTeam = s.teamId;
+        this.teams = teams;
+      }
+      for (const s of this.players.values()) {
+        s.words = 0; s.letters = 0; s.tokens = CHAT_BURST; s.lastRefill = Date.now();
+      }
+    } else if (this.mode === "equipes") {
       const c = this.lobbyCounts();
       const teams: Team[] = [];
       for (let t = 1; t <= this.teamCount; t++) {
@@ -529,9 +637,11 @@ export class PressionRoom {
   private startManche(holder: number): void {
     const now = Date.now();
     this.manche++;
-    // Chaque manche repart a zero : nouveau temps de depart, tire dans la
-    // plage, le meme pour toutes les equipes.
-    const [lo, hi] = TIMERS[this.cfg.timer];
+    // Chaque manche repart a zero : toutes les equipes recoivent le temps de
+    // depart (tire dans la plage s'il y en a une ; fixe depuis la page).
+    const [lo, hi] = this.cfg.timer === "custom"
+      ? [this.cfg.timerMin ?? 25, this.cfg.timerMax ?? 35]
+      : TIMERS[this.cfg.timer];
     this.fullMs = (lo + Math.floor(Math.random() * (hi - lo + 1))) * 1000;
     for (const t of this.teams) t.clockMs = this.fullMs;
     this.rule = this.pickRule();
@@ -545,15 +655,25 @@ export class PressionRoom {
     this.broadcastGame({ kind: "manche" });
   }
 
-  // Le minuteur de l'equipe qui tient la cocotte se met a tourner.
+  // Le minuteur de l'equipe qui tient la caisse se met a tourner.
   private startTurn(now: number): void {
     const team = this.teams.find((t) => t.id === this.holder);
-    const live = this.mode === "streamer" && this.holder === 1;
+    const live = this.source === "navigateur" || (this.mode === "streamer" && this.holder === 1);
     this.turnStartAt = now + (live ? 0 : this.cfg.graceSec * 1000);
     this.turnBudgetMs = team ? team.clockMs : this.fullMs;
+    // Navigateur : si plus personne de l'equipe n'est connecte (page fermee),
+    // on ne fait pas attendre les autres tout un minuteur : 5 s seulement.
+    if (this.source === "navigateur" && !this.teamOnline(this.holder)) {
+      this.turnBudgetMs = Math.min(this.turnBudgetMs, WARN_MS);
+    }
     this.explodeAt = this.turnStartAt + this.turnBudgetMs;
     this.warned = this.turnBudgetMs <= WARN_MS;
     this.scheduleFuse();
+  }
+
+  private teamOnline(teamId: number): boolean {
+    for (const s of this.players.values()) if (s.playTeam === teamId && s.ws !== null) return true;
+    return false;
   }
 
   // Equipe en vie suivante, dans l'ordre des equipes, en bouclant.
@@ -570,7 +690,7 @@ export class PressionRoom {
   // ========================= Mots =========================
   private onChatWord(ws: WebSocket, viewer: string, word: string): void {
     // Seul l'hote relaie : sa page est branchee sur l'IRC.
-    if (!this.isHostWs(ws)) return;
+    if (!this.isHostWs(ws) || this.source !== "tchat") return;
     const name = String(viewer || "").slice(0, 30).trim();
     // Journal de diagnostic : l'hote recoit le sort de chaque mot relaye
     // (affiche seulement avec ?debug=1 sur sa page).
@@ -581,6 +701,13 @@ export class PressionRoom {
     if (this.phase !== "playing" || this.interUntil !== null || this.pausedAt !== null) return dbg("pause");
     if (!name) return;
     const key = name.toLowerCase();
+
+    // En streamer contre tchat, le streamer joue depuis le tchat comme les
+    // viewers. Ses messages comptent pour son camp, et seulement a son tour.
+    if (this.mode === "streamer" && this.cfg.streamerName && key === this.cfg.streamerName.toLowerCase()) {
+      if (this.holder !== 1) return dbg("not_turn", 1);
+      return dbg(this.tryWord(1, name, word, null), 1);
+    }
 
     let v = this.viewers.get(key);
     let teamId: number;
@@ -617,20 +744,33 @@ export class PressionRoom {
     dbg(this.tryWord(teamId, v.name, word, v), teamId);
   }
 
-  private onHostWord(ws: WebSocket, word: string): void {
-    if (!this.isHostWs(ws)) return;
-    if (this.mode !== "streamer" || this.phase !== "playing" || this.interUntil !== null || this.pausedAt !== null) return;
-    if (this.holder !== 1) return;
-    this.tryWord(1, this.hostPseudo || "Streamer", word, null);
+  // Navigateur : mot tape sur la page par un joueur de l'equipe qui tient la
+  // caisse. Les autres essais sont ignores (la case n'est active qu'a son tour).
+  private onWord(ws: WebSocket, word: string): void {
+    if (this.source !== "navigateur") return;
+    if (this.phase !== "playing" || this.interUntil !== null || this.pausedAt !== null) return;
+    const p = this.wsToPseudo.get(ws);
+    const s = p ? this.players.get(p) : undefined;
+    if (!s || !s.playTeam || s.playTeam !== this.holder) return;
+    const now = Date.now();
+    const gained = (now - s.lastRefill) / CHAT_REFILL_MS;
+    if (gained > 0) { s.tokens = Math.min(CHAT_BURST, s.tokens + gained); s.lastRefill = now; }
+    if (s.tokens < 1) return;
+    s.tokens -= 1;
+    this.tryWord(s.playTeam, s.pseudo, String(word || "").slice(0, 40), s);
   }
 
-  private tryWord(teamId: number, by: string, raw: string, viewer: Viewer | null): ChatDebugResult {
+  private tryWord(teamId: number, by: string, raw: string, stat: Stat | null): ChatDebugResult {
     const now = Date.now();
     // Trop tard : l'alarme d'explosion n'a pas encore tourne, mais c'est fini.
     if (now >= this.explodeAt) return "late";
     const w = norm(raw);
     // Ce qui ne respecte pas la regle est du bruit de tchat : ignore en silence.
-    if (!matchesRule(w, this.rule, this.syllable)) return "rule";
+    // En navigateur, le mot a ete tape expres : on le signale.
+    if (!matchesRule(w, this.rule, this.syllable)) {
+      if (this.source === "navigateur" && w) this.broadcast({ type: "reject", by, word: w, teamId, reason: "rule" });
+      return "rule";
+    }
     if (this.used.has(w)) {
       this.broadcast({ type: "reject", by, word: w, teamId, reason: "used" });
       return "used";
@@ -642,7 +782,7 @@ export class PressionRoom {
 
     // ----- Mot valide -----
     this.used.add(w);
-    if (viewer) { viewer.words++; viewer.letters += w.length; }
+    if (stat) { stat.words++; stat.letters += w.length; }
     else { this.hostStat.words++; this.hostStat.letters += w.length; }
     const pass: PassInfo = { word: w, by, teamId };
     if (!this.longest || w.length > this.longest.word.length) this.longest = pass;
@@ -729,17 +869,21 @@ export class PressionRoom {
     const ranked = this.ranking();
     const w = winner || ranked[0] || null;
 
-    const stats: ViewerStat[] = [...this.viewers.values()]
-      .filter((v) => v.words > 0)
-      .map((v) => ({ name: v.name, teamId: v.teamId, words: v.words, letters: v.letters }));
+    const stats: ViewerStat[] = this.source === "navigateur"
+      ? [...this.players.values()].filter((s) => s.words > 0)
+        .map((s) => ({ name: s.pseudo, teamId: s.playTeam, words: s.words, letters: s.letters }))
+      : [...this.viewers.values()].filter((v) => v.words > 0)
+        .map((v) => ({ name: v.name, teamId: v.teamId, words: v.words, letters: v.letters }));
     if (this.mode === "streamer" && this.hostStat.words > 0) {
-      stats.push({ name: this.hostPseudo || "Streamer", teamId: 1, words: this.hostStat.words, letters: this.hostStat.letters });
+      stats.push({ name: this.cfg.streamerName || this.hostPseudo || "Streamer", teamId: 1, words: this.hostStat.words, letters: this.hostStat.letters });
     }
     stats.sort((a, b) => (b.words - a.words) || (b.letters - a.letters));
 
     this.broadcast({
       type: "finished",
       mode: this.mode,
+      source: this.source,
+      solo: this.solo,
       winnerTeamId: w ? w.id : 0,
       winnerName: w ? w.name : "",
       teams: ranked.map((t) => this.teamDTO(t)),
@@ -791,6 +935,11 @@ export class PressionRoom {
     void this.state.storage.deleteAlarm();
     // En streamer, la table des viewers ne sert qu'a la partie.
     if (this.mode === "streamer") this.viewers = new Map();
+    // Navigateur : ceux qui sont partis pendant la partie quittent le salon.
+    for (const [p, s] of this.players.entries()) {
+      if (s.ws === null && p !== this.hostPseudo) this.players.delete(p);
+      s.playTeam = 0;
+    }
     this.broadcastRoom();
   }
 
@@ -803,6 +952,7 @@ export class PressionRoom {
     if (!s || s.ws !== ws) return;
     s.ws = null;
     if (this.phase === "lobby") {
+      if (this.source === "navigateur") this.lobbyTeamMemo.set(pseudo.toLowerCase(), s.teamId);
       this.players.delete(pseudo);
       if (pseudo === this.hostPseudo) {
         const next = [...this.players.values()].find((p) => p.ws !== null);
@@ -819,9 +969,10 @@ export class PressionRoom {
       .sort((a, b) => a.joinedAt - b.joinedAt)
       .map((p) => ({
         pseudo: p.pseudo, isHost: p.pseudo === this.hostPseudo,
-        isConnected: p.ws !== null, isViewer: false, teamId: 0,
+        isConnected: p.ws !== null, isViewer: false,
+        teamId: this.source !== "navigateur" ? 0 : this.phase === "lobby" ? p.teamId : p.playTeam,
       }));
-    if (this.mode === "equipes") {
+    if (this.source === "tchat" && this.mode === "equipes") {
       for (const v of this.viewers.values()) {
         if (!v.joined) continue;
         out.push({ pseudo: v.name, isHost: false, isConnected: true, isViewer: true, teamId: v.teamId });
@@ -833,7 +984,7 @@ export class PressionRoom {
   private teamDTO(t: Team): TeamDTO {
     let members = 0;
     if (this.mode === "equipes") {
-      for (const v of this.viewers.values()) if (v.joined && v.teamId === t.id) members++;
+      members = this.playCounts()[t.id] || 0;
     } else {
       members = t.id === 1 ? 1 : this.viewers.size;
     }
@@ -846,6 +997,8 @@ export class PressionRoom {
   private gameDTO(): GameDTO {
     return {
       mode: this.mode,
+      source: this.source,
+      solo: this.solo,
       level: this.cfg.level,
       teams: this.teams.map((t) => this.teamDTO(t)),
       chargeMax: this.cfg.charge,
@@ -874,6 +1027,8 @@ export class PressionRoom {
       hostPseudo: this.hostPseudo ?? "",
       phase: this.phase,
       mode: this.mode,
+      source: this.source,
+      solo: this.solo,
       teamCount: this.teamCount,
       teamNames: this.teamNamesArr(),
       players: this.playersDTO(),
@@ -884,7 +1039,8 @@ export class PressionRoom {
   private broadcastRoom(): void {
     this.broadcast({
       type: "room_state", players: this.playersDTO(), hostPseudo: this.hostPseudo ?? "",
-      phase: this.phase, mode: this.mode, teamCount: this.teamCount, teamNames: this.teamNamesArr(),
+      phase: this.phase, mode: this.mode, source: this.source, solo: this.solo,
+      teamCount: this.teamCount, teamNames: this.teamNamesArr(),
     });
   }
 
