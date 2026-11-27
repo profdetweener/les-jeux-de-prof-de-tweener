@@ -48,7 +48,7 @@
 <body>
 
   <header class="landing-header">
-    <a href="index.html" class="app-header-home" title="Retour au jeu">← Retour</a>
+    <a href="index.html" class="app-header-home" title="Retour au Blind Test">← Retour</a>
     <h1>Blind Test, Règles</h1>
     <span aria-hidden="true" style="width:70px"></span>
   </header>
@@ -57,23 +57,32 @@
     <div class="rules-card">
       <h2>Règles du jeu</h2>
       <p class="subtitle">
-        Un extrait de musique est diffusé. Les viewers répondent <strong>dans le tchat Twitch</strong> :
-        pas de navigateur à ouvrir, pas d'inscription, rien à installer. Le plus rapide marque.
+        Un extrait de musique est joué, il faut trouver le <strong>titre</strong> et
+        l'<strong>artiste</strong>. Deux façons de jouer : <strong>dans le tchat Twitch</strong>
+        (le premier qui trouve marque) ou <strong>dans le navigateur</strong> avec un lien
+        d'invitation (tout le monde peut marquer).
       </p>
+
+      <h3>Deux façons de jouer</h3>
+      <ul>
+        <li><strong>Tchat Twitch</strong> : l'animateur affiche le jeu sur son stream et les viewers
+          répondent dans le tchat. Rien à ouvrir, rien à installer. Seul le premier qui trouve marque.</li>
+        <li><strong>Navigateur</strong> : l'hôte crée une partie et partage le lien d'invitation. Chacun
+          entre un pseudo, entend l'extrait sur son appareil et tape ses réponses dans une case.
+          Tous ceux qui trouvent marquent, et plus on trouve tôt, plus on gagne.</li>
+      </ul>
+      <p>
+        Dans les deux modes, le titre et l'artiste sont comptés <strong>séparément</strong>. Une
+        seule réponse contenant les deux rapporte les deux d'un coup.
+      </p>
+
+      <h2 style="margin-top:34px">Mode tchat Twitch</h2>
 
       <h3>Le principe</h3>
       <p>
-        L'animateur ouvre le jeu sur son écran et lance la partie. À chaque manche, un extrait de
-        30 secondes est joué. Les viewers écrivent leurs réponses dans le tchat, tout simplement.
-      </p>
-      <p>
-        Deux réponses sont à trouver, et elles sont comptées <strong>séparément</strong> : le
-        <strong>titre</strong> du morceau et l'<strong>artiste</strong>. Pour chacune, seul le
-        premier qui trouve marque. Si vous préférez un système où tout le monde peut marquer
-        des points, même après qu'une autre personne a trouvé la réponse, je vous conseille
-        <a href="https://whatthetune.com/" target="_blank" rel="noopener">whatthetune.com</a>,
-        qui permet cela. C'est en revanche un jeu qui se joue dans le navigateur, et non depuis
-        le tchat Twitch.
+        L'animateur ouvre le jeu sur son écran et lance la partie. À chaque manche, un extrait
+        est joué et les viewers écrivent leurs réponses dans le tchat, tout simplement. Pour le
+        titre comme pour l'artiste, seul le premier qui trouve marque.
       </p>
 
       <h3>Comment répondre</h3>
@@ -89,6 +98,7 @@
         <p>
           Quand un morceau a plusieurs interprètes, tous sont acceptés. Sur
           « À nos actes manqués », Goldman, Michael Jones ou Carole Fredericks comptent.
+          C'est valable dans les deux modes.
         </p>
       </div>
 
@@ -101,6 +111,28 @@
       <p>
         L'animateur peut modifier ces valeurs avant de lancer la partie. Comme seul le premier
         marque, recopier la réponse d'un autre ne sert à rien : le point est déjà pris.
+      </p>
+
+      <h3>Pour l'animateur</h3>
+      <ul>
+        <li><strong>Chaîne Twitch</strong> : votre nom de chaîne, sans le <code>#</code>. La lecture du tchat est anonyme, aucun jeton n'est demandé.</li>
+        <li><strong>Époques</strong> : cochez les décennies à inclure pour cibler une génération de musiques.</li>
+        <li><strong>Durée d'un extrait</strong> : de 5 à 30 secondes. Plus c'est court, plus c'est dur.</li>
+        <li><strong>Nombre de manches</strong> : les morceaux sont tirés au hasard. Laissez vide pour tout jouer.</li>
+        <li><strong>Tolérance aux fautes</strong> : 20 % est un bon compromis. Montez pour moins de sévérité.</li>
+      </ul>
+      <p>
+        Pendant la partie : <strong>Lancer la musique</strong> démarre l'extrait quand vous êtes prêt,
+        <strong>Passer</strong> saute un morceau, <strong>Terminer la partie</strong> affiche le
+        podium et les statistiques. Un curseur règle le volume.
+      </p>
+
+      <h3>Fin de partie</h3>
+      <p>
+        À la dernière manche, un podium affiche les trois premiers et le classement complet. Le
+        bouton « Voir les stats détaillées » donne le compte des titres et artistes par joueur,
+        la réponse la plus rapide, les rois du titre et de l'artiste, et la liste des morceaux
+        que personne n'a trouvés.
       </p>
 
       <h3>Signaler une erreur (aidez-nous !)</h3>
@@ -123,26 +155,106 @@
         </p>
       </div>
 
-      <h3>Pour l'animateur</h3>
+      <h2 style="margin-top:34px">Mode navigateur</h2>
+
+      <h3>Rejoindre une partie</h3>
       <ul>
-        <li><strong>Chaîne Twitch</strong> : votre nom de chaîne, sans le <code>#</code>. La lecture du tchat est anonyme, aucun jeton n'est demandé.</li>
-        <li><strong>Époques</strong> : cochez les décennies à inclure pour cibler une génération de musiques.</li>
-        <li><strong>Durée d'un extrait</strong> : de 5 à 30 secondes. Plus c'est court, plus c'est dur.</li>
-        <li><strong>Nombre de manches</strong> : les morceaux sont tirés au hasard. Laissez vide pour tout jouer.</li>
-        <li><strong>Tolérance aux fautes</strong> : 20 % est un bon compromis. Montez pour moins de sévérité.</li>
+        <li>L'hôte choisit <strong>Navigateur</strong>, entre son pseudo et crée la partie. Il
+          <strong>joue aussi</strong>, comme tout le monde.</li>
+        <li>Il copie le <strong>lien d'invitation</strong> affiché dans le salon et le partage.</li>
+        <li>Les autres ouvrent le lien, entrent un pseudo et cliquent sur <strong>Rejoindre</strong>.
+          Le nombre de joueurs n'est pas limité.</li>
+        <li>On peut rejoindre en cours de partie : on joue dès la manche en cours.</li>
+      </ul>
+
+      <h3>Le son</h3>
+      <p>
+        Chacun entend l'extrait sur son propre appareil, en même temps que les autres. Les
+        navigateurs bloquent le son tant qu'on n'a pas cliqué sur la page : le clic sur
+        <strong>Rejoindre</strong> suffit en général. Si un bouton <strong>🔊 Activer le son</strong>
+        apparaît, un clic dessus lance la musique. Le curseur en haut à droite règle le volume.
+      </p>
+
+      <h3>Comment répondre</h3>
+      <ul>
+        <li>Tapez votre réponse dans la case sous le disque, puis <strong>Entrée</strong> ou
+          <strong>Envoyer</strong>. Titre, artiste, ou les deux dans la même réponse.</li>
+        <li>Vous pouvez proposer autant de fois que vous voulez pendant l'extrait.</li>
+        <li>La même tolérance que dans le tchat s'applique : accents, ponctuation, petites
+          fautes, nom de famille seul.</li>
+        <li>Ce que vous avez trouvé s'affiche dans vos cases <strong>Titre</strong> et
+          <strong>Artiste</strong>. Si la case de réponse tremble en rouge, ce n'est pas ça.</li>
+      </ul>
+      <div class="callout">
+        <p>
+          <strong>Personne ne voit les réponses des autres.</strong> Le fil sous les cases indique
+          seulement qui a trouvé quoi, et en combien de secondes. Les réponses ne sont vérifiées
+          que par le serveur et ne sont dévoilées qu'à la fin de l'extrait.
+        </p>
+      </div>
+
+      <h3>Les points</h3>
+      <p>Tout le monde peut marquer sur chaque morceau. L'hôte choisit le système avant de lancer :</p>
+      <table class="pts-table">
+        <tr><th>Système</th><th>Titre</th><th>Artiste</th></tr>
+        <tr><td>À la vitesse</td><td>De 100 points (tout de suite) à 25 (à la fin de l'extrait)</td><td>De 50 à 13 points</td></tr>
+        <tr><td>À l'ordre d'arrivée</td><td>10, 8, 6, 4 pour les premiers, puis 2 pour tous les suivants</td><td>5, 4, 3, 2, puis 1</td></tr>
+      </table>
+      <p>
+        À la vitesse, seul compte le temps écoulé depuis le début de l'extrait. À l'ordre
+        d'arrivée, seul compte le rang : être 1<sup>er</sup> à 15 secondes vaut plus qu'être
+        2<sup>e</sup> à 2 secondes.
+      </p>
+      <p>
+        Si tout le monde a trouvé le titre et l'artiste, la réponse est dévoilée tout de suite,
+        sans attendre la fin de l'extrait.
+      </p>
+
+      <h3>Le classement pendant la partie</h3>
+      <ul>
+        <li>À droite (ou en dessous sur téléphone), chaque joueur a son numéro de place, son score
+          et deux petites jauges : <strong>bleue</strong> quand il a trouvé le titre,
+          <strong>verte</strong> quand il a trouvé l'artiste. On voit donc qui a trouvé quoi, sans
+          voir la réponse.</li>
+        <li>À la révélation, les points gagnés sur le morceau s'affichent à côté de chaque nom,
+          avec la pochette, le titre et l'artiste.</li>
+        <li>Le cadre <strong>« Déjà passés »</strong> garde la liste des morceaux joués.</li>
+      </ul>
+
+      <h3>En équipes ou chacun pour soi</h3>
+      <ul>
+        <li><strong>Chacun pour soi</strong> : chaque joueur a son propre score.</li>
+        <li><strong>En équipes</strong> : l'hôte choisit le nombre d'équipes, peut les renommer,
+          déplacer les joueurs ou les mélanger au hasard. Il faut au moins deux équipes avec des
+          joueurs pour lancer.</li>
+        <li>En équipes, un titre ou un artiste ne rapporte qu'<strong>une fois par équipe</strong> :
+          c'est le premier de l'équipe à trouver qui fait marquer l'équipe. Les coéquipiers voient
+          aussitôt ce que leur équipe a trouvé.</li>
+        <li>Un joueur qui arrive en cours de partie rejoint l'équipe la moins remplie.</li>
+      </ul>
+
+      <h3>Les réglages de l'hôte</h3>
+      <ul>
+        <li><strong>Points</strong> : à la vitesse ou à l'ordre d'arrivée (voir plus haut).</li>
+        <li><strong>Manches</strong> : de 3 à 50 morceaux (10 par défaut).</li>
+        <li><strong>Durée d'un extrait</strong> : de 10 à 30 secondes (20 par défaut).</li>
+        <li><strong>Tolérance aux fautes</strong> : de 0 à 40 % (20 % par défaut).</li>
+        <li><strong>Notoriété des morceaux</strong> : Tous, Plutôt connus, Très connus ou Tubes,
+          pour jouer avec des titres plus ou moins célèbres.</li>
+        <li><strong>Époques</strong> : cliquez sur les décennies pour les inclure ou les retirer.
+          Il en faut au moins une.</li>
       </ul>
       <p>
-        Pendant la partie : <strong>Lancer la musique</strong> démarre l'extrait quand vous êtes prêt,
-        <strong>Passer</strong> saute un morceau, <strong>Terminer la partie</strong> affiche le
-        podium et les statistiques. Un curseur règle le volume.
+        Les réglages sont retenus pour la prochaine partie. Pendant la partie, l'hôte a deux
+        boutons : <strong>Passer le morceau</strong> (dévoile la réponse tout de suite) et
+        <strong>Terminer la partie</strong>.
       </p>
 
       <h3>Fin de partie</h3>
       <p>
-        À la dernière manche, un podium affiche les trois premiers et le classement complet. Le
-        bouton « Voir les stats détaillées » donne le compte des titres et artistes par joueur,
-        la réponse la plus rapide, les rois du titre et de l'artiste, et la liste des morceaux
-        que personne n'a trouvés.
+        Le classement final s'affiche avec, pour chaque joueur ou équipe, le nombre de titres et
+        d'artistes trouvés, les points et la réponse la plus rapide. L'hôte peut ensuite
+        <strong>revenir au salon</strong> pour relancer une partie avec les mêmes joueurs.
       </p>
 
       <div class="back-cta">

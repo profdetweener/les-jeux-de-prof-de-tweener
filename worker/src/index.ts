@@ -28,6 +28,7 @@ export { DefinitionVotes } from "./definition/votes";
 export { SlideRoom } from "./slide/room";
 export { MotsMelesRoom } from "./motsmeles/room";
 export { PressionRoom } from "./pression/room";
+export { BlindtestRoom } from "./blindtest/room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
@@ -38,6 +39,7 @@ export interface Env {
   SLIDE_ROOMS: DurableObjectNamespace;
   MOTSMELES_ROOMS: DurableObjectNamespace;
   PRESSION_ROOMS: DurableObjectNamespace;
+  BLINDTEST_ROOMS: DurableObjectNamespace;
   // Secret HMAC pour le mode chill stateless. Fallback dev "dev-secret-do-not-use-in-prod".
   // En prod, definir via : npx wrangler secret put CHILL_SECRET
   CHILL_SECRET?: string;
@@ -178,7 +180,7 @@ export default {
       return jsonResponse({
         status: "ok",
         service: "les-jeux-de-prof-de-tweener",
-        games: ["petitbac", "motus", "definitions", "slide", "motsmeles", "pression"],
+        games: ["petitbac", "motus", "definitions", "slide", "motsmeles", "pression", "blindtest"],
         timestamp: new Date().toISOString(),
       });
     }
@@ -287,6 +289,12 @@ export default {
     if (url.pathname.startsWith("/pression/")) {
       const subPath = url.pathname.slice("/pression".length);
       const res = await handleGameRoutes(request, subPath, env.PRESSION_ROOMS);
+      if (res) return res;
+    }
+
+    if (url.pathname.startsWith("/blindtest/")) {
+      const subPath = url.pathname.slice("/blindtest".length);
+      const res = await handleGameRoutes(request, subPath, env.BLINDTEST_ROOMS);
       if (res) return res;
     }
 

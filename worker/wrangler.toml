@@ -76,3 +76,12 @@ new_sqlite_classes = ["CocotteRoom"]
 [[migrations]]
 tag = "v8"
 renamed_classes = [{ from = "CocotteRoom", to = "PressionRoom" }]
+
+# Blind Test en navigateur (le mode tchat Twitch, lui, n'a pas de serveur).
+[[durable_objects.bindings]]
+name = "BLINDTEST_ROOMS"
+class_name = "BlindtestRoom"
+
+[[migrations]]
+tag = "v9"
+new_sqlite_classes = ["BlindtestRoom"]

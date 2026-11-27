@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a2540">
+  <title>Blind Test</title>
+  <link rel="stylesheet" href="../shared/css/landing.css?v=10">
+  <link rel="stylesheet" href="css/nav.css?v=1">
+  <script>
+    // Applique le theme avant le premier rendu pour eviter le flash clair.
+    (function(){try{var t=localStorage.getItem('pdt-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <link rel="stylesheet" href="../shared/css/theme.css?v=4">
+</head>
+<body>
+  <header class="landing-header ct-header">
+    <a href="index.html" class="app-header-home" title="Quitter la partie">←</a>
+    <h1>Blind Test</h1>
+    <span class="header-right">
+      <span class="vol" title="Volume">
+        <span aria-hidden="true">🔊</span>
+        <input type="range" id="volume" min="0" max="100" value="75" aria-label="Volume">
+      </span>
+    </span>
+  </header>
+
+  <main class="room-main">
+    <div class="conn-banner" id="conn" hidden></div>
+
+    <!-- SALON -->
+    <section id="lobby" hidden>
+      <div class="lobby-card">
+        <div class="room-code-banner" id="invite">
+          <span class="label">Lien d'invitation</span>
+          <div class="room-share">
+            <code class="invite-url" id="inviteUrl"></code>
+            <button type="button" class="copy-btn" id="copyBtn">Copier le lien</button>
+          </div>
+        </div>
+        <div class="lobby-grid">
+          <div class="lobby-players">
+            <h3 id="playersTitle">Joueurs</h3>
+            <div class="players" id="playerList"></div>
+          </div>
+
+          <div class="lobby-config">
+            <h3>Configuration</h3>
+            <div id="hostControls" hidden>
+              <div class="setup-row">
+                <span class="setup-label">Joueurs</span>
+                <div class="seg" id="soloSeg">
+                  <button data-v="teams">En équipes</button>
+                  <button data-v="solo">Chacun pour soi</button>
+                </div>
+              </div>
+              <div id="teamConfig"></div>
+              <div class="cfg-block">
+                <div class="setup-row">
+                  <span class="setup-label">Points</span>
+                  <div class="seg" id="scoringSeg">
+                    <button data-v="temps">À la vitesse</button>
+                    <button data-v="rang">À l'ordre d'arrivée</button>
+                  </div>
+                </div>
+                <p class="rules-note" id="scoringNote"></p>
+                <div id="stepRows"></div>
+                <div class="setup-row">
+                  <span class="setup-label">Notoriété des morceaux</span>
+                  <div class="seg" id="popSeg">
+                    <button data-v="0">Tous</button>
+                    <button data-v="50">Plutôt connus</button>
+                    <button data-v="75">Très connus</button>
+                    <button data-v="90">Tubes</button>
+                  </div>
+                </div>
+                <div class="setup-row">
+                  <span class="setup-label">Époques</span>
+                  <div class="chips" id="decadeChips"></div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-block" id="startBtn">Lancer la partie</button>
+              <p class="setup-err" id="startErr"></p>
+            </div>
+            <p class="wait-note" id="waitNote" hidden>En attente que l'hôte lance la partie.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JEU -->
+    <section id="game" hidden>
+      <div class="bt-game">
+        <div class="bt-stage">
+          <div class="bt-top">
+            <span class="round-pill" id="roundPill">Manche 1</span>
+            <span class="bt-status" id="status"></span>
+            <span class="bt-timer" id="timer">-</span>
+          </div>
+
+          <div class="bt-vinyl-zone">
+            <div class="vinyl" id="vinyl">
+              <div class="label" id="vinylLabel">🎵</div>
+              <div class="hole"></div>
+            </div>
+            <button type="button" class="bt-unmute" id="unmute" hidden>🔊 Activer le son</button>
+          </div>
+
+          <form class="bt-answer" id="answerForm" autocomplete="off">
+            <input type="text" id="answerInput" maxlength="120" spellcheck="false"
+                   enterkeyhint="send" placeholder="Titre, artiste, ou les deux" aria-label="Ta réponse">
+            <button class="btn btn-primary" type="submit" id="answerSend">Envoyer</button>
+          </form>
+          <p class="bt-feedback" id="feedback"></p>
+
+          <div class="bt-cards">
+            <div class="acard" id="cardTitle">
+              <div class="kind">Titre</div>
+              <div class="val" id="titleVal">?</div>
+              <div class="finder" id="titleInfo"></div>
+            </div>
+            <div class="acard" id="cardArtist">
+              <div class="kind">Artiste</div>
+              <div class="val" id="artistVal">?</div>
+              <div class="finder" id="artistInfo"></div>
+            </div>
+          </div>
+
+          <ul class="bt-feed" id="feed" aria-live="polite"></ul>
+
+          <div class="bt-host" id="hostBtns" hidden>
+            <button class="btn btn-ghost" id="skipBtn" type="button">Passer le morceau</button>
+            <button class="btn btn-ghost" id="endGameBtn" type="button">Terminer la partie</button>
+          </div>
+        </div>
+
+        <aside class="bt-side">
+          <div class="bt-panel">
+            <h3>Classement</h3>
+            <p class="bt-legend"><span class="seg-t"></span> titre trouvé <span class="seg-a"></span> artiste trouvé</p>
+            <div id="board"></div>
+          </div>
+          <div class="bt-panel">
+            <h3>Déjà passés</h3>
+            <div id="history"><p class="empty-note">Les morceaux joués s'afficheront ici.</p></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- FIN -->
+    <section id="finished" hidden>
+      <div class="setup-card bt-end">
+        <h2>Partie terminée</h2>
+        <p class="end-note" id="endWinner"></p>
+        <div id="endRanking"></div>
+        <h3>Détail par joueur</h3>
+        <table class="bt-table" id="endTable"></table>
+        <button class="btn btn-primary btn-block" id="lobbyBtn" hidden>Retour au salon</button>
+        <p class="wait-note" id="endWait" hidden>L'hôte va relancer une partie.</p>
+      </div>
+    </section>
+
+    <audio id="audio" preload="auto"></audio>
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <footer class="app-footer">
+    <a href="regles.html" target="_blank" rel="noopener">Règles du jeu</a>
+    <span class="footer-sep">·</span>
+    <a href="../mentions.html" target="_blank" rel="noopener">Mentions légales</a>
+    <span class="footer-sep">·</span>
+    <a href="https://www.twitch.tv/prof_de_tweener" target="_blank" rel="noopener">🟣 Twitch</a>
+    <span class="footer-sep">·</span>
+    <a href="https://buymeacoffee.com/profdetweener" target="_blank" rel="noopener">☕ Soutenir</a>
+  </footer>
+
+  <script type="module" src="js/room.js?v=1"></script>
+  <script type="module" src="../shared/js/theme.js?v=2"></script>
+</body>
+</html>
